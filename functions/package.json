@@ -1,5 +1,5 @@
 {
-  "name": "tehnadzor-online-functions",
+  "name": "tehnadzor-functions",
   "private": true,
   "main": "dist/functions/src/index.js",
   "engines": {

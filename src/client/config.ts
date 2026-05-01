@@ -86,6 +86,7 @@ export const APP_CONFIG = {
   // Для hosted-версии эти URL можно задавать через window.__APP_CONFIG__ до загрузки app.js:
   // window.__APP_CONFIG__ = { BIM_IMPORT_API_BASE: "https://bim.example.com" }
   AI_REPORT_API_BASE: readRuntimeConfigString("AI_REPORT_API_BASE", ""),
+  PROFILE_FEED_URL: readRuntimeConfigString("PROFILE_FEED_URL", ""),
   BIM_IMPORT_API_BASE: readRuntimeConfigString(
     "BIM_IMPORT_API_BASE",
     readRuntimeConfigString("AI_REPORT_API_BASE", "")

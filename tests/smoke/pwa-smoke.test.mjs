@@ -64,7 +64,7 @@ test("service worker keeps dynamic precache discovery and no stale stylesheet pi
   assert.equal(response.status, 200);
   assert.match(swSource, /discoverInstallAssets/);
   assert.match(swSource, /MANIFEST_URL = "manifest\.json"/);
-  assert.match(swSource, /CACHE_NAME = "technadzor-v\d+"/);
+  assert.match(swSource, /CACHE_NAME = "tehnadzor-v\d+"/);
   assert.doesNotMatch(swSource, /style\.css\?v=17/);
 });
 

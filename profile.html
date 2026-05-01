@@ -530,8 +530,8 @@
     function buildProfileFeedApiCandidates() {
       const candidates = [new URL("./dist/profile-feed.json", location.href).toString()];
       const isLocalDevHost = ["127.0.0.1", "localhost"].includes(location.hostname);
-      const productionFeedUrl = "https://tehnadzor-online.web.app/dist/profile-feed.json";
-      if (!isLocalDevHost) {
+      const productionFeedUrl = String(APP_CONFIG.PROFILE_FEED_URL || "").trim();
+      if (productionFeedUrl && !isLocalDevHost) {
         candidates.push(productionFeedUrl);
       }
       const configuredBase = String(APP_CONFIG.AI_REPORT_API_BASE || "").trim();

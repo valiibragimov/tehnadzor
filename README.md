@@ -84,7 +84,7 @@ See [SECURITY.md](SECURITY.md) for the full policy.
 - Add a safe demo mode and anonymized sample data.
 - Improve BIM/IFC element mapping and model-linked findings.
 - Document Firestore collections and security rules.
-- Add CI for lint, typecheck, tests, and secret scanning.
+- Expand CI with secret scanning and deployment checks.
 - Add report export templates for practical supervision workflows.
 - Expand project documentation for contributors and deployers.
 
@@ -188,7 +188,7 @@ Firebase web config подставляется из локального окр�
 - Добавить безопасный demo mode и обезличенные sample data.
 - Улучшить BIM/IFC mapping и связь замечаний с элементами модели.
 - Описать Firestore collections и security rules.
-- Добавить CI для lint, typecheck, tests и secret scanning.
+- Расширить CI проверками secret scanning и deployment checks.
 - Добавить шаблоны экспорта отчетов для практики технадзора.
 - Расширить документацию для contributors и deployers.
 
