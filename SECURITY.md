@@ -6,7 +6,7 @@
 
 ## Supported Version
 
-Tehnadzor Online is in early development. Security fixes are currently accepted for the main branch of the public repository.
+Tehnadzor is in early development. Security fixes are currently accepted for the main branch of the public repository.
 
 ## Reporting Vulnerabilities
 
@@ -69,7 +69,7 @@ Before deploying a public instance, check that:
 
 ## Поддерживаемая версия
 
-Tehnadzor Online находится в ранней разработке. Исправления безопасности сейчас принимаются для основной ветки публичного репозитория.
+Tehnadzor находится в ранней разработке. Исправления безопасности сейчас принимаются для основной ветки публичного репозитория.
 
 ## Как сообщать об уязвимостях
 

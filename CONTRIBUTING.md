@@ -4,9 +4,9 @@
 
 # Contributing
 
-Thanks for your interest in Tehnadzor Online.
+Thanks for your interest in Tehnadzor.
 
-Tehnadzor Online is related to construction quality control, so changes should protect engineering accuracy: checks, tolerances, regulatory references, report logic, and BIM/IFC workflows must not be broken casually.
+Tehnadzor is related to construction quality control, so changes should protect engineering accuracy: checks, tolerances, regulatory references, report logic, and BIM/IFC workflows must not be broken casually.
 
 ## Proposing Changes
 
@@ -86,7 +86,7 @@ By contributing, you agree that your contribution may be distributed under the M
 
 # Участие в проекте
 
-Спасибо за интерес к Tehnadzor Online.
+Спасибо за интерес к Tehnadzor.
 
 Проект связан со строительным контролем, поэтому изменения должны сохранять инженерную точность: проверки, допуски, нормативные ссылки, логику отчетов и BIM/IFC-сценарии нельзя ломать случайными правками.
 

@@ -1,7 +1,7 @@
 {
-  "name": "tehnadzor-online",
+  "name": "tehnadzor",
   "version": "0.1.0",
-  "description": "Tehnadzor Online is an open-source web application for construction supervision, QA/QC workflows, and BIM/IFC-based inspection records.",
+  "description": "Tehnadzor is an open-source web application for construction supervision, QA/QC workflows, and BIM/IFC-based inspection records.",
   "license": "MIT",
   "scripts": {
     "clean": "node ./scripts/clean-runtime-artifacts.mjs",
