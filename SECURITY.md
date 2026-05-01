@@ -1,46 +1,58 @@
 # Security Policy
 
-## Поддерживаемая версия
+[English](SECURITY.md) | [Русский](SECURITY.ru.md)
 
-Пока проект находится в ранней open-source подготовке, security fixes принимаются для основной ветки репозитория.
+## Supported Version
 
-## Как сообщать об уязвимостях
+SCOPE is in early development. Security fixes are currently accepted for the main branch of the public repository.
 
-Не публикуйте в открытых issues:
+## Reporting Vulnerabilities
 
-- реальные токены, ключи, service account JSON и `.env`;
-- персональные данные пользователей;
-- адреса, договоры, сметы и закрытую документацию объектов;
-- приватные IFC/BIM-модели.
+Please do not publish sensitive details in public issues or discussions.
 
-Если вы нашли проблему безопасности, создайте приватный канал связи с мейнтейнерами проекта или отправьте минимальное описание без секретов и персональных данных. В отчете укажите:
+If you find a vulnerability, contact the maintainers privately if possible. If no private channel is available, open a minimal public issue without secrets, personal data, project files, or exploit details that could expose real systems.
 
-- затронутую область: client, server, functions, Firestore Rules, BIM/IFC import;
-- шаги воспроизведения на тестовых данных;
-- ожидаемое и фактическое поведение;
-- возможное влияние;
-- безопасный пример запроса или фрагмента данных.
+Useful reports include:
 
-## Секреты и конфигурация
+- affected area: client, server, Firebase Functions, Firestore Rules, BIM/IFC import;
+- steps to reproduce on test data;
+- expected and actual behavior;
+- possible impact;
+- a safe example request or data fragment.
 
-Запрещено коммитить:
+## Do Not Post Publicly
 
-- `.env`, `.env.local`, `.env.production` и аналогичные файлы;
+Never post:
+
+- `.env` files, tokens, private keys, cookies, OAuth secrets;
+- Firebase service account JSON files;
+- real IFC/BIM models from closed projects;
+- personal data;
+- object addresses;
+- contracts, cost estimates, or closed project documentation.
+
+## Secrets And Configuration
+
+Do not commit:
+
+- `.env`, `.env.local`, `.env.production`, or similar files;
 - `server/serviceAccount.local.json`;
-- любые `serviceAccount*.json`, `firebase-adminsdk*.json`, `credentials*.json`;
+- `serviceAccount*.json`, `firebase-adminsdk*.json`, `credentials*.json`;
 - `*.pem`, `*.key`, `*.p12`, `*.pfx`;
-- приватные SSH/OpenSSL ключи.
+- private SSH/OpenSSL keys.
 
-Firebase web config задается через корневой `.env` или переменные окружения `FIREBASE_WEB_*` во время клиентской сборки. Firebase web API key не является Firebase Admin secret, но он идентифицирует проект. Для публичного репозитория используйте собственный Firebase-проект, строгие Firestore Rules, ограничения Auth providers и App Check там, где это возможно.
+Firebase web config is injected from local `.env` or `FIREBASE_WEB_*` environment variables during the client build. The Firebase web API key is not a Firebase Admin secret, but it identifies a project and should be used with proper Firestore Rules, Auth provider restrictions, allowed domains, and App Check where possible.
+
+Firebase Admin credentials must stay in local files or deployment secret storage.
 
 ## Production Checklist
 
-Перед публичным деплоем проверьте:
+Before deploying a public instance, check that:
 
-- `AUTH_REQUIRED=true` для серверного API;
-- Firestore Rules запрещают чтение и запись чужих проектов;
-- CORS разрешает только ожидаемые origins;
-- rate limits включены для тяжелых операций;
-- реальные service account credentials хранятся только в secret storage окружения;
-- логи не содержат токены, тела IFC-файлов и персональные данные;
-- демо-скриншоты и sample data полностью обезличены.
+- server API authentication is enabled;
+- Firestore Rules prevent access to other users' projects;
+- CORS allows only expected origins;
+- rate limits are enabled for heavy operations;
+- service account credentials are stored only in secret storage;
+- logs do not contain tokens, IFC file bodies, or personal data;
+- screenshots, sample data, and demo IFC files are anonymized.

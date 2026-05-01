@@ -1,17 +1,19 @@
 # Contributing
 
-Спасибо за интерес к проекту `Технадзор Онлайн`.
+[English](CONTRIBUTING.md) | [Русский](CONTRIBUTING.ru.md)
 
-Цель репозитория - развивать открытую основу для строительного технадзора, BIM/IFC-сценариев и цифрового контроля качества. Вклад должен сохранять инженерную точность, безопасность данных и воспроизводимость сборки.
+Thanks for your interest in SCOPE.
 
-## Как предлагать изменения
+SCOPE is related to construction quality control, so changes should protect engineering accuracy: checks, tolerances, regulatory references, report logic, and BIM/IFC workflows must not be broken casually.
 
-1. Создайте issue или опишите задачу в pull request.
-2. Делайте изменения небольшими и сфокусированными.
-3. Не смешивайте документацию, рефакторинг и поведенческие изменения в одном PR без необходимости.
-4. Объясняйте, какую проблему решает изменение и как оно проверено.
+## Proposing Changes
 
-## Локальная разработка
+- Open an issue or describe the change clearly in a pull request.
+- Keep pull requests focused.
+- Separate documentation, refactoring, and behavior changes when possible.
+- Explain what problem the change solves and how it was checked.
+
+## Local Development
 
 ```bash
 npm install
@@ -20,55 +22,56 @@ cd ../functions && npm install
 cd ..
 ```
 
-Полезные команды:
+Create local Firebase web config:
 
 ```bash
-npm run build
-npm run lint
-npm run typecheck
-npm test
+cp .env.example .env
 ```
 
-Для запуска клиента:
+Fill `FIREBASE_WEB_*` values in `.env` before building the client.
+
+Run the client:
 
 ```bash
 npm run build:client
 python -m http.server 8000
 ```
 
-Для запуска локального API:
+## Checks
+
+For code changes, run the relevant checks:
 
 ```bash
-npm run build:server:ts
-cd server
-cp .env.example .env
-npm run dev
+npm run lint
+npm run typecheck
+npm test
 ```
 
-## Правила качества
+Add or update tests when behavior changes, especially around inspection calculations, IFC import, report output, server contracts, or data formats.
 
-- Используйте существующие паттерны проекта.
-- Не редактируйте вручную `dist/**`, `server/dist/**`, `functions/dist/**` и корневой `sw.js`.
-- Не добавляйте параллельные `.js`-копии для актуальных `.ts`-исходников.
-- Для изменений кода запускайте `npm run lint`, `npm run typecheck` и `npm test`, если это применимо.
-- Добавляйте тесты там, где меняется поведение, формат данных, импорт IFC или серверные контракты.
+## Code Quality
 
-## Безопасность данных
+- Follow the existing project style and structure.
+- Do not edit generated output by hand: `dist/**`, `server/dist/**`, `functions/dist/**`, or root `sw.js`.
+- Do not add parallel `.js` copies for active `.ts` source files.
+- Keep domain logic readable; future contributors should be able to review engineering assumptions.
 
-Не добавляйте в репозиторий:
+## Data Safety
 
-- `.env` и локальные конфиги окружения;
-- Firebase service account JSON;
-- приватные ключи, токены, OAuth secrets, cookies;
-- реальные IFC-модели закрытых объектов;
-- скриншоты с персональными данными, адресами объектов, договорами, сметами или коммерческой информацией.
+Do not commit:
 
-Если изменение требует примера конфигурации, добавляйте только `.example`-файл с пустыми или явно тестовыми значениями.
+- `.env` files or local environment configs;
+- Firebase service account files;
+- private keys, tokens, cookies, OAuth secrets;
+- real IFC/BIM models from closed projects;
+- screenshots or samples with personal data, object addresses, contracts, cost estimates, or closed project documentation.
 
-## Документационные PR
+Use `.example` files with empty or clearly fake values when configuration examples are needed.
 
-Документационные изменения не должны менять бизнес-логику приложения. Если одновременно нужен код, разделите изменения на отдельные PR или явно укажите причину.
+## Documentation PRs
 
-## Лицензирование вклада
+Documentation-only pull requests should not change application behavior. If the documentation depends on a code change, mention that explicitly or split the work into separate PRs.
 
-Предлагая изменения, вы соглашаетесь, что ваш вклад может распространяться на условиях MIT License, указанной в `LICENSE`.
+## Contribution License
+
+By contributing, you agree that your contribution may be distributed under the MIT License used by this repository.

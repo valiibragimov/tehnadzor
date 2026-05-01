@@ -1,101 +1,35 @@
-# Технадзор Онлайн
+# SCOPE
 
-Веб-приложение для строительного технического надзора, цифрового контроля качества и работы с BIM/IFC-данными на объекте строительства.
+[English](README.md) | [Русский](README.ru.md)
 
-Проект объединяет журнал проверок, модули контроля геодезии, армирования, геометрии и прочности, импорт IFC-моделей, хранение данных в Firebase и локальный Node/Express API для отчетов и серверных операций.
+SCOPE is an open-source web application for construction supervision, quality control, and BIM/IFC-based inspection workflows.
 
-## Why This Project Matters
+The project grew out of the Russian "Технадзор Онлайн" context: field engineers, technical clients, QA/QC teams, and BIM coordinators need one place to record checks, compare actual values against tolerances, keep inspection context, and prepare clearer reports.
 
-Строительный технадзор часто остается разрозненным: замечания живут в таблицах, фото - в мессенджерах, BIM-модель - отдельно, а итоговые акты собираются вручную. Это повышает риск потери контекста, спорных решений и повторных дефектов.
+## Status
 
-`Технадзор Онлайн` нужен как открытая основа для цифрового контроля качества:
+SCOPE is in early active development. It is usable as a technical prototype, but the public repository is still being prepared for broader collaboration, documentation, demo data, and safer deployment defaults.
 
-- связывает проверки с проектом, конструкциями, допусками и ответственными участниками;
-- помогает переводить фактические отклонения в структурированные данные, пригодные для отчетности;
-- добавляет BIM/IFC-контекст к контролю, чтобы замечания можно было сопоставлять с элементами модели;
-- снижает ручную работу инженера при подготовке итоговых заключений;
-- создает базу для прозрачного аудита качества на стороне заказчика, подрядчика и технического заказчика.
+## What It Does
 
-## Возможности
+- Tracks construction inspection checks and findings.
+- Covers geodesy, reinforcement, geometry, and concrete strength checks.
+- Stores project and inspection data with Firebase.
+- Imports and works with BIM/IFC model data.
+- Helps prepare report text from structured inspection results.
+- Includes a local Node/Express API and Firebase Functions for server-side workflows.
 
-- Авторизация через Firebase Authentication.
-- Управление проектами и профилем инженера.
-- Журнал проверок и замечаний.
-- Модули контроля: геодезия, армирование, геометрия, прочность бетона.
-- BIM/IFC-инструменты: чтение IFC, импорт элементов, визуальная панель, viewer harness для разработки.
-- Генерация итогового текста отчета по результатам проверок.
-- Профильная лента и публичные страницы.
-- Service Worker и статическая сборка клиента.
-- Локальный Express API и Firebase Functions для серверных сценариев.
-
-## Screenshots
-
-Пока вместо реальных скриншотов используются заглушки. Перед публичной заявкой замените их актуальными изображениями интерфейса без персональных данных, адресов объектов, ФИО, телефонов, email и закрытых проектных материалов.
-
-![Dashboard placeholder](docs/screenshots/dashboard-placeholder.svg)
-
-![BIM IFC placeholder](docs/screenshots/bim-ifc-placeholder.svg)
-
-![Quality control placeholder](docs/screenshots/quality-control-placeholder.svg)
-
-## Технологический стек
+## Tech Stack
 
 - Frontend: HTML, CSS, TypeScript.
-- 3D/BIM: Three.js, That Open Components, web-ifc, ifc-lite.
+- BIM/3D: Three.js, That Open Components, web-ifc, ifc-lite.
 - Backend: Node.js, Express, TypeScript.
-- Cloud: Firebase Hosting, Firestore, Authentication, Firebase Functions.
+- Cloud: Firebase Hosting, Firestore, Authentication, Functions.
 - Tooling: npm, TypeScript, ESLint, Node test runner, esbuild.
 
-## Структура проекта
+## Quick Start
 
-```text
-.
-├── src/
-│   ├── client/                  # Канонический клиентский TypeScript-код
-│   └── shared/                  # Общая логика и типы
-├── server/
-│   └── src/                     # Локальный Node/Express API
-├── functions/
-│   └── src/                     # Firebase Functions
-├── scripts/                     # Build и maintenance scripts
-├── tests/smoke/                 # Smoke-регрессии публичных страниц
-├── tools/viewer-harness/        # Dev-only BIM viewer harness
-├── docs/                        # Техническая документация
-├── docs/screenshots/            # Заглушки и будущие скриншоты
-├── *.html / *.css / assets      # Статическая поверхность приложения
-├── dist/                        # Generated output клиента
-├── server/dist/                 # Generated output локального API
-└── functions/dist/              # Generated output Firebase Functions
-```
-
-## Source Of Truth
-
-Редактируйте исходники, а не generated output:
-
-- клиент: `src/client/**`;
-- shared-слой: `src/shared/**`;
-- локальный сервер: `server/src/**`;
-- Firebase Functions: `functions/src/**`;
-- `index.html`: собирается из `src/client/index-partials/**`;
-- `sw.js`: собирается из `src/client/sw.ts`.
-
-Не редактируйте вручную:
-
-- `dist/**`;
-- `server/dist/**`;
-- `functions/dist/**`;
-- корневой `sw.js`.
-
-## Локальный запуск
-
-Требования:
-
-- Node.js 20+;
-- npm;
-- Python 3 для простого статического сервера или любой другой static file server;
-- Firebase CLI для эмуляторов и деплоя Firebase Functions.
-
-Установка зависимостей:
+Requirements: Node.js 20+, npm, Python 3 or another static file server.
 
 ```bash
 npm install
@@ -104,138 +38,56 @@ cd ../functions && npm install
 cd ..
 ```
 
-Настройка Firebase web config для клиента:
+Create local Firebase web configuration:
 
 ```bash
 cp .env.example .env
 ```
 
-Заполните в корневом `.env` значения из Firebase Console -> Project settings -> General -> Your apps -> Web app:
+Fill `FIREBASE_WEB_*` values in `.env` from Firebase Console -> Project settings -> General -> Your apps -> Web app. The client build fails if these values are missing, so placeholders are not shipped by mistake.
 
-```dotenv
-FIREBASE_WEB_API_KEY=
-FIREBASE_WEB_AUTH_DOMAIN=
-FIREBASE_WEB_PROJECT_ID=
-FIREBASE_WEB_STORAGE_BUCKET=
-FIREBASE_WEB_MESSAGING_SENDER_ID=
-FIREBASE_WEB_APP_ID=
-```
-
-Без этих значений `npm run build:client` завершится ошибкой, чтобы в `dist/firebase.js` не попадали placeholder-строки вроде `__FIREBASE_WEB_API_KEY__`.
-
-Сборка клиента и запуск статического приложения:
+Build and run the static client:
 
 ```bash
 npm run build:client
 python -m http.server 8000
 ```
 
-Откройте `http://localhost:8000`.
+Open `http://localhost:8000`.
 
-Локальный API:
-
-```bash
-npm run build:server:ts
-cd server
-cp .env.example .env
-npm run dev
-```
-
-API будет доступен на `http://localhost:5050`. Для разработки без Firebase Admin credentials можно временно выставить `AUTH_REQUIRED=false` в локальном `.env`; не используйте это в публичном окружении.
-
-Firebase Functions:
+Useful checks:
 
 ```bash
-npm run build:functions:ts
-cd functions
-npm run serve
+npm run lint
+npm run typecheck
+npm test
 ```
-
-## Package Scripts
-
-Команды выполняются из корня проекта, если не указано другое:
-
-| Command | Назначение |
-| --- | --- |
-| `npm run clean` | Удаляет runtime/build артефакты перед новой сборкой. |
-| `npm run build:index-html` | Собирает корневой `index.html`. |
-| `npm run build:client` | Собирает клиент и BIM viewer. |
-| `npm run build:server:ts` | Компилирует локальный Express API. |
-| `npm run build:functions:ts` | Компилирует Firebase Functions. |
-| `npm run build:profile-feed` | Генерирует статическую профильную ленту. |
-| `npm run build` | Полная сборка проекта. |
-| `npm run lint` | Запускает ESLint. |
-| `npm run typecheck` | Проверяет TypeScript-проекты. |
-| `npm test` | Запускает smoke-тесты. |
-
-Серверные подпроекты:
-
-- `server`: `npm run dev`, `npm run start`, `npm run backfill:inspections`;
-- `functions`: `npm run serve`, `npm run deploy`.
-
-## Firebase И Секреты
-
-Никогда не публикуйте реальные service account файлы, приватные ключи и `.env`.
-
-### Firebase web config
-
-Клиентский Firebase config не хранится в `src/client/firebase.ts`. При сборке `npm run build:client` скрипт `scripts/inject-firebase-config.mjs` читает корневой `.env` или переменные окружения `FIREBASE_WEB_*` и подставляет значения в generated-файл `dist/firebase.js`. Если `.env` отсутствует или `FIREBASE_WEB_API_KEY` не задан, сборка падает с ошибкой.
-
-`.firebaserc` содержит безопасный placeholder `your-firebase-project-id`. Для деплоя замените его на id своего Firebase-проекта или выполните:
-
-```bash
-firebase use --add
-```
-
-Firebase web API key не является Firebase Admin secret, но он идентифицирует проект. Защищайте проект правилами Firestore/Auth, ограничениями доменов и App Check там, где это возможно.
-
-### Firebase Admin credentials
-
-Firebase Admin credentials поддерживаются в таком порядке:
-
-1. `FIREBASE_PROJECT_ID` + `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY`;
-2. `FIREBASE_SERVICE_ACCOUNT_PATH`;
-3. локальный untracked-файл `server/serviceAccount.local.json`;
-4. Google Application Default Credentials.
-
-Пример локального service account лежит в `server/serviceAccount.local.example.json`. Это шаблон, а не настоящий ключ.
 
 ## Security
 
-См. [SECURITY.md](SECURITY.md).
+Do not commit `.env`, service account files, private keys, tokens, real IFC/BIM models, personal data, object addresses, contracts, cost estimates, or closed project documentation.
 
-Коротко:
+Firebase web config is injected from local environment during build. Firebase Admin credentials must be kept in local files or secret storage only.
 
-- не открывайте публичные issues с реальными токенами, ключами, персональными данными и объектной документацией;
-- проверяйте Firestore Rules перед публикацией;
-- не запускайте production API с `AUTH_REQUIRED=false`;
-- удаляйте реальные данные из скриншотов, IFC-файлов и демо-дампов.
-
-## Contributing
-
-См. [CONTRIBUTING.md](CONTRIBUTING.md).
-
-Основные правила:
-
-- не менять бизнес-логику в документационных PR;
-- не редактировать generated output вручную;
-- запускать `npm run lint`, `npm run typecheck` и `npm test` для изменений кода;
-- не добавлять секреты и приватные данные.
+See [SECURITY.md](SECURITY.md) for the full policy.
 
 ## Roadmap
 
-- Заменить скриншоты-заглушки реальными anonymized screenshots.
-- Добавить демо-режим без реального Firebase-проекта.
-- Расширить BIM/IFC import mapping и поддержку типовых элементов.
-- Связать замечания технадзора с IFC GlobalId и координатами модели.
-- Добавить экспорт отчетов в PDF/DOCX с шаблонами заказчика.
-- Добавить CI для lint, typecheck, smoke tests и secret scanning.
-- Описать архитектуру Firestore collections и security rules.
-- Подготовить sample dataset без персональных и коммерческих данных.
-- Добавить issue templates и pull request template.
+- Add a safe demo mode and anonymized sample data.
+- Improve BIM/IFC element mapping and model-linked findings.
+- Document Firestore collections and security rules.
+- Add CI for lint, typecheck, tests, and secret scanning.
+- Add report export templates for practical supervision workflows.
+- Expand project documentation for contributors and deployers.
 
-## Лицензия
+## Contributing
 
-Проект распространяется по лицензии MIT. Это permissive open-source лицензия: она позволяет использовать, изучать, модифицировать и распространять код в исследовательских, образовательных, государственных и коммерческих сценариях при сохранении copyright notice и текста лицензии.
+Contributions are welcome, especially around inspection workflows, BIM/IFC handling, tests, documentation, and safe deployment practices.
 
-MIT выбрана потому, что для строительного технадзора и BIM-инструментов важна широкая внедряемость: подрядчики, заказчики, интеграторы и образовательные команды могут адаптировать основу под свои процессы без сложных лицензионных ограничений. При этом лицензия явно снимает гарантийные обязательства с авторов.
+Because SCOPE deals with construction control, changes must preserve engineering accuracy: tolerances, checks, regulatory references, report logic, and BIM/IFC behavior should be treated carefully.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+SCOPE is released under the [MIT License](LICENSE).
