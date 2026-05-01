@@ -198,18 +198,52 @@ function decodeHtmlEntities(value: string | null | undefined): string {
 }
 
 function stripHtml(value: string | null | undefined): string {
-  return String(value || "")
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<br\s*\/?>/gi, " ")
-    .replace(/<\/p>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const source = String(value || "");
+  let output = "";
+  let inTag = false;
+  let tagName = "";
+  let readingTagName = false;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (inTag) {
+      if (readingTagName && isAsciiAlphaNumeric(char)) {
+        tagName += char.toLowerCase();
+        continue;
+      }
+      readingTagName = false;
+      if (char === ">") {
+        if (tagName === "br" || tagName === "p" || tagName === "div" || tagName === "li") {
+          output += " ";
+        }
+        inTag = false;
+        tagName = "";
+      }
+      continue;
+    }
+
+    if (char === "<") {
+      inTag = true;
+      tagName = "";
+      const next = source[index + 1] || "";
+      readingTagName = next !== "/" && next !== "!" && next !== "?";
+      continue;
+    }
+
+    output += char;
+  }
+
+  return output.replace(/\s+/g, " ").trim();
+}
+
+function isAsciiAlphaNumeric(char: string): boolean {
+  const code = String(char || "").charCodeAt(0);
+  return (code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
 }
 
 function toPlainText(value: string | null | undefined): string {
-  return stripHtml(decodeHtmlEntities(value));
+  return decodeHtmlEntities(stripHtml(value));
 }
 
 function truncateText(value: string | null | undefined, maxLength = 180): string {

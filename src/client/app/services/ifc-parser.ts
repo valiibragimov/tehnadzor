@@ -1491,21 +1491,77 @@ function extractCompactCodeFromText(value) {
   const compact = normalized.replace(/\s+/g, " ").trim();
   if (!compact) return null;
 
-  const separatedCodeMatch = compact.match(
-    /\b([A-ZА-Я]{1,8}(?:[._/-]?[A-ZА-Я0-9]+)*[._/-]\d{1,6}[A-ZА-Я0-9._/-]*)\b/iu
-  );
-  if (separatedCodeMatch) {
-    return separatedCodeMatch[1];
-  }
+  const searchText = compact.length > 256 ? compact.slice(0, 256) : compact;
+  const separatedCode = findSeparatedCompactCode(searchText);
+  if (separatedCode) return separatedCode;
 
-  const codeLikeMatch = compact.match(/\b([A-ZА-Я]{0,4}\d{4,}[A-ZА-Я0-9._/-]*)\b/iu);
+  const codeLikeMatch = searchText.match(/\b([A-ZА-Я]{0,4}\d{4,}[A-ZА-Я0-9._/-]*)\b/iu);
   if (codeLikeMatch) {
     return codeLikeMatch[1];
   }
 
-  const digitsMatch = compact.match(/\b(\d{4,})\b/u);
+  const digitsMatch = searchText.match(/\b(\d{4,})\b/u);
   if (digitsMatch) {
     return digitsMatch[1];
+  }
+
+  return null;
+}
+
+function isCodeLetter(char) {
+  const normalized = String(char || "").toUpperCase();
+  return (normalized >= "A" && normalized <= "Z") || (normalized >= "А" && normalized <= "Я");
+}
+
+function isCodeDigit(char) {
+  return char >= "0" && char <= "9";
+}
+
+function isCodeTokenChar(char) {
+  return isCodeLetter(char) || isCodeDigit(char) || isCodeSeparator(char);
+}
+
+function isCodeSeparator(char) {
+  return char === "." || char === "_" || char === "/" || char === "-";
+}
+
+function isSeparatedCompactCodeToken(token) {
+  if (!token || token.length > 80 || !isCodeLetter(token[0])) return false;
+
+  let prefixLetters = 0;
+  while (prefixLetters < token.length && isCodeLetter(token[prefixLetters])) {
+    prefixLetters += 1;
+    if (prefixLetters > 8) return false;
+  }
+  if (prefixLetters === 0) return false;
+
+  for (let index = prefixLetters; index < token.length - 1; index += 1) {
+    if (!isCodeSeparator(token[index]) || !isCodeDigit(token[index + 1])) continue;
+
+    let digits = 0;
+    for (let digitIndex = index + 1; digitIndex < token.length; digitIndex += 1) {
+      if (!isCodeDigit(token[digitIndex])) break;
+      digits += 1;
+      if (digits > 6) break;
+    }
+    if (digits >= 1 && digits <= 6) return true;
+  }
+
+  return false;
+}
+
+function findSeparatedCompactCode(value) {
+  let token = "";
+
+  for (let index = 0; index <= value.length; index += 1) {
+    const char = value[index] || "";
+    if (char && isCodeTokenChar(char)) {
+      token += char;
+      continue;
+    }
+
+    if (isSeparatedCompactCodeToken(token)) return token;
+    token = "";
   }
 
   return null;

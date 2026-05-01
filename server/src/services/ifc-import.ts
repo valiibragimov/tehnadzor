@@ -19,10 +19,38 @@ const BIM_TO_TEHNADZOR_TYPE = Object.freeze({
 });
 
 function normalizeIfcText(source) {
-  return String(source || "")
+  return removeBlockComments(String(source || ""))
     .replace(/\uFEFF/g, "")
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
     .replace(/\r/g, "");
+}
+
+function removeBlockComments(source) {
+  let output = "";
+  let inBlockComment = false;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    const next = source[index + 1];
+
+    if (inBlockComment) {
+      if (char === "*" && next === "/") {
+        output += " ";
+        inBlockComment = false;
+        index += 1;
+      }
+      continue;
+    }
+
+    if (char === "/" && next === "*") {
+      inBlockComment = true;
+      index += 1;
+      continue;
+    }
+
+    output += char;
+  }
+
+  return output;
 }
 
 function collectEntityStatements(ifcText) {

@@ -5,6 +5,11 @@ on:
   schedule:
     - cron: "17 */6 * * *"
 
+permissions:
+  contents: read
+  checks: write
+  deployments: write
+
 jobs:
   refresh-and-deploy:
     runs-on: ubuntu-latest

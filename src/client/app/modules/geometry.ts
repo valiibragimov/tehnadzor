@@ -72,7 +72,7 @@ import type {
   GeometryWallRecord,
   InspectionPayload
 } from "../../types/module-records.js";
-import { renderRegulatoryBasisHtml } from "../services/regulatory-basis.js";
+import { getRegulatoryBasisEntries } from "../services/regulatory-basis.js";
 import {
   buildBimElementFilterOptions,
   buildBimElementOptionLabel,
@@ -3779,6 +3779,162 @@ function evaluateGeomCheck(checkData: GeometryCheckRecord) {
   };
 }
 
+function decodeBasicHtmlEntities(value) {
+  const entities = {
+    amp: "&",
+    lt: "<",
+    gt: ">",
+    quot: '"',
+    apos: "'",
+    "#39": "'",
+    nbsp: " "
+  };
+
+  return String(value || "").replace(/&([a-z0-9#]+);/gi, (match, entity) => {
+    const normalized = String(entity || "").toLowerCase();
+    return entities[normalized] || match;
+  });
+}
+
+function htmlSummaryToPlainText(value) {
+  const source = String(value || "");
+  let output = "";
+  let inTag = false;
+  let tagName = "";
+  let readingTagName = false;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (inTag) {
+      if (readingTagName && isAsciiAlphaNumeric(char)) {
+        tagName += char.toLowerCase();
+        continue;
+      }
+      readingTagName = false;
+      if (char === ">") {
+        if (tagName === "br" || tagName === "div" || tagName === "p") output += "\n";
+        inTag = false;
+        tagName = "";
+      }
+      continue;
+    }
+
+    if (char === "<") {
+      inTag = true;
+      tagName = "";
+      const next = source[index + 1] || "";
+      readingTagName = next !== "/" && next !== "!" && next !== "?";
+      continue;
+    }
+
+    output += char;
+  }
+
+  return decodeBasicHtmlEntities(output)
+    .split(/\n+/u)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function isAsciiAlphaNumeric(char) {
+  const code = String(char || "").charCodeAt(0);
+  return (code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+}
+
+function appendTextLines(container, text) {
+  const lines = String(text || "").split(/\n/u);
+  lines.forEach((line, index) => {
+    if (index > 0) container.appendChild(document.createElement("br"));
+    container.appendChild(document.createTextNode(line));
+  });
+}
+
+function appendGeometryResult(container, resultParts, allOk, regulatoryOptions) {
+  container.textContent = "";
+
+  resultParts.forEach((part, index) => {
+    if (index > 0) container.appendChild(document.createElement("br"));
+    appendTextLines(container, htmlSummaryToPlainText(part));
+  });
+
+  container.appendChild(document.createElement("br"));
+
+  const status = document.createElement("b");
+  status.textContent = allOk
+    ? "Геометрия соответствует допускам."
+    : "Есть превышения допусков.";
+  container.appendChild(status);
+
+  const entries = getRegulatoryBasisEntries(
+    regulatoryOptions.moduleKey,
+    regulatoryOptions.checkKind,
+    regulatoryOptions.subtype
+  );
+  if (!entries.length) return;
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "reg-basis";
+
+  const title = document.createElement("div");
+  title.className = "reg-basis-title";
+  title.textContent = "Нормативное основание";
+  wrapper.appendChild(title);
+
+  const list = document.createElement("div");
+  list.className = "reg-basis-list";
+
+  entries.forEach((entry) => {
+    const item = document.createElement("div");
+    item.className = "reg-basis-item";
+
+    [
+      ["Документ:", entry.document || "—"],
+      ["Пункт:", entry.clause || "—"],
+      entry.tolerance ? ["Допуск:", entry.tolerance] : null
+    ].filter(Boolean).forEach(([label, value]) => {
+      const field = document.createElement("span");
+      field.className = "reg-basis-item-field";
+
+      const labelEl = document.createElement("span");
+      labelEl.className = "reg-basis-item-label";
+      labelEl.textContent = label;
+
+      const valueEl = document.createElement("span");
+      valueEl.className = "reg-basis-item-value";
+      valueEl.textContent = value;
+
+      field.append(labelEl, valueEl);
+      item.appendChild(field);
+    });
+
+    const source = document.createElement("span");
+    source.className = "reg-basis-item-field reg-basis-source";
+    const sourceUrl = typeof entry.url === "string" ? entry.url.trim() : "";
+    if (sourceUrl) {
+      const link = document.createElement("a");
+      link.className = "reg-basis-source-link reg-basis-more";
+      link.href = sourceUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.title = "Открыть нормативный документ";
+      link.textContent = "Подробнее";
+      source.appendChild(link);
+    } else {
+      const fallback = document.createElement("span");
+      fallback.className = "reg-basis-source-fallback";
+      fallback.textContent = "Источник не задан";
+      source.appendChild(fallback);
+    }
+    item.appendChild(source);
+    list.appendChild(item);
+  });
+
+  wrapper.appendChild(list);
+  container.appendChild(wrapper);
+}
+
 function runGeomCheck() {
   const projectId = getCurrentProjectId();
   if (!validateProject(projectId)) return;
@@ -4408,22 +4564,11 @@ function runGeomCheck() {
   res.className = "result " + (allOk ? "ok" : "not-ok");
 
   const constructionValue = construction ? construction.value : "";
-  const regulatoryInfo = renderRegulatoryBasisHtml({
+  appendGeometryResult(res, parts, allOk, {
     moduleKey: "geometry",
     checkKind: getSelectedConstructionKey() || constructionValue || "default",
-    subtype: getSelectedConstructionSubtype(),
-    helpTargetId: "geomHelpContent"
+    subtype: getSelectedConstructionSubtype()
   });
-
-  res.innerHTML = `
-    ${parts.join("<br/>")}<br/>
-    <b>${
-      allOk
-        ? "Геометрия соответствует допускам."
-        : "Есть превышения допусков."
-    }</b>
-    ${regulatoryInfo}
-  `;
   state.geometry = allOk;
   checked.geometry = true;
 
