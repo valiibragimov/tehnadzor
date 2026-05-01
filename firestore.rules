@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isProjectOwner(projectId) {
+      let projectPath = /databases/$(database)/documents/projects/$(projectId);
+      let project = get(projectPath);
+      return signedIn()
+        && exists(projectPath)
+        && (
+          project.data.ownerUid == request.auth.uid ||
+          project.data.createdBy == request.auth.uid
+        );
+    }
+
+    match /users/{userId} {
+      allow read, write: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /projects/{projectId} {
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow read, update, delete: if isProjectOwner(projectId);
+
+      match /{subCollection}/{docId} {
+        allow read, write: if isProjectOwner(projectId);
+      }
+    }
+
+    match /journal/{entryId} {
+      allow create: if signedIn()
+        && request.resource.data.projectId is string
+        && isProjectOwner(request.resource.data.projectId);
+
+      allow read, update, delete: if signedIn()
+        && resource.data.projectId is string
+        && isProjectOwner(resource.data.projectId);
+    }
+  }
+}

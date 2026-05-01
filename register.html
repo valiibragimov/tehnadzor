@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Регистрация — SCOPE</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+    <link rel="shortcut icon" href="favicon.ico">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page">
+
+<div class="auth-card">
+    <h2 class="auth-title">Регистрация</h2>
+
+    <div class="auth-field">
+        <input id="registerEmail" type="email" placeholder="Email">
+    </div>
+
+    <div class="auth-field">
+        <input id="registerPassword" type="password" placeholder="Пароль">
+    </div>
+
+    <button id="btnRegister" type="button">Создать</button>
+
+    <div class="auth-divider">
+        <span>или</span>
+    </div>
+
+    <button id="btnGoogleRegister" class="btn-google">
+        <svg width="18" height="18" viewBox="0 0 18 18" style="margin-right: 8px;">
+            <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+            <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.348 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
+            <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z"/>
+        </svg>
+        Продолжить с Google
+    </button>
+
+    <p class="link">
+        Уже есть аккаунт? <a href="login.html">Войти</a>
+    </p>
+</div>
+
+<!-- Скрипты в самом конце body -->
+<script type="module" src="dist/firebase.js"></script>
+<script type="module" src="dist/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Quality control screenshot placeholder</title>
+  <desc id="desc">Placeholder for construction quality control modules.</desc>
+  <rect width="1280" height="720" fill="#f7f7f4"/>
+  <rect x="64" y="56" width="1152" height="608" rx="12" fill="#ffffff" stroke="#d7dce2"/>
+  <rect x="104" y="112" width="1072" height="72" rx="8" fill="#17324d"/>
+  <rect x="104" y="224" width="244" height="320" rx="8" fill="#eef6f3" stroke="#c7ddd5"/>
+  <rect x="384" y="224" width="244" height="320" rx="8" fill="#fff7ed" stroke="#fed7aa"/>
+  <rect x="664" y="224" width="244" height="320" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+  <rect x="944" y="224" width="232" height="320" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+  <circle cx="164" cy="292" r="28" fill="#10b981"/>
+  <circle cx="444" cy="292" r="28" fill="#f59e0b"/>
+  <circle cx="724" cy="292" r="28" fill="#2563eb"/>
+  <circle cx="1004" cy="292" r="28" fill="#64748b"/>
+  <text x="128" y="158" fill="#ffffff" font-family="Arial, sans-serif" font-size="30" font-weight="700">Construction Quality Control</text>
+  <text x="104" y="650" fill="#6b7280" font-family="Arial, sans-serif" font-size="22">Replace with anonymized inspection modules screenshot</text>
+</svg>

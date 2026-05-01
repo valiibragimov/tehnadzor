@@ -1,0 +1,205 @@
+<div id="analyticsBlock" class="analytics-block" aria-live="polite">
+  <div id="analyticsLoader" class="analytics-state analytics-loader">
+    <div class="analytics-spinner" aria-hidden="true"></div>
+    <span>Загрузка аналитики...</span>
+  </div>
+
+  <div id="analyticsEmpty" class="analytics-state analytics-empty" hidden></div>
+  <div id="analyticsError" class="analytics-state analytics-error" hidden></div>
+
+  <div id="analyticsContent" hidden>
+    <div class="analytics-toolbar">
+      <div class="analytics-toolbar-group">
+        <label class="analytics-select-label" for="analyticsProjectSelect">Объект для аналитики</label>
+        <select id="analyticsProjectSelect" class="analytics-project-select"></select>
+      </div>
+      <div class="analytics-toolbar-actions">
+        <button id="analyticsExportPdfBtn" class="analytics-export-btn" type="button">Экспорт PDF</button>
+      </div>
+    </div>
+
+    <div class="analytics-carousel">
+      <div id="analyticsPagesTrack" class="analytics-pages-track">
+        <section class="analytics-section analytics-page analytics-page--hero">
+          <h3>Аналитика качества: выбранный объект</h3>
+          <div class="analytics-metrics-grid">
+            <article class="analytics-quality-card">
+              <div class="analytics-card-label analytics-label-with-help">
+                <span>Индекс качества</span>
+                <button
+                  type="button"
+                  class="analytics-help-btn"
+                  data-tooltip-key="quality"
+                  aria-label="Пояснение: индекс качества"
+                  aria-describedby="analyticsQualityIndexHint"
+                >?</button>
+                <span class="analytics-help-tooltip" id="analyticsQualityIndexHint" role="tooltip">
+                  Комплексный балл от 0 до 100. Учитывает соответствие нормам (60%), стабильность замеров (40%) и штраф за критические нарушения. A+ = 95+, F = ниже 45.
+                </span>
+              </div>
+              <div class="analytics-quality-value" id="analyticsQualityIndex">0</div>
+              <div class="analytics-grade-badge" id="analyticsQualityGrade">F</div>
+              <p class="analytics-quality-note" id="analyticsQualityInterpretation">Недостаточно данных</p>
+            </article>
+
+            <article class="analytics-metric-card">
+              <div class="analytics-card-label analytics-label-with-help">
+                <span>Среднее отклонение</span>
+                <button
+                  type="button"
+                  class="analytics-help-btn"
+                  data-tooltip-key="mean"
+                  aria-label="Пояснение: среднее отклонение от допуска"
+                  aria-describedby="analyticsMeanDeviationHint"
+                >?</button>
+                <span class="analytics-help-tooltip" id="analyticsMeanDeviationHint" role="tooltip">
+                  Среднее значение |факт − проект| / допуск по всем замерам, выраженное в процентах. 100% означает что отклонение в среднем равно допуску. Чем меньше значение — тем лучше качество работ.
+                </span>
+              </div>
+              <div class="analytics-metric-value" id="analyticsMeanDeviation">0%</div>
+              <p class="analytics-card-note" id="analyticsMeasurementsCount">Измерений: 0</p>
+            </article>
+
+            <article class="analytics-metric-card">
+              <div class="analytics-card-label analytics-label-with-help">
+                <span>Соответствие нормам</span>
+                <button
+                  type="button"
+                  class="analytics-help-btn"
+                  data-tooltip-key="compliance"
+                  aria-label="Пояснение: соответствие нормам"
+                  aria-describedby="analyticsComplianceHint"
+                >?</button>
+                <span class="analytics-help-tooltip" id="analyticsComplianceHint" role="tooltip">
+                  Доля замеров, у которых отклонение не превышает допуск. 93.3% означает, что 14 из 15 замеров в пределах нормы.
+                </span>
+              </div>
+              <div class="analytics-metric-value" id="analyticsComplianceRate">0%</div>
+              <p class="analytics-card-note" id="analyticsComplianceNote">В пределах допуска</p>
+            </article>
+          </div>
+
+          <div class="analytics-recommendations">
+            <h4 class="analytics-subtitle">Выводы и рекомендации</h4>
+            <ul class="analytics-recommendations-list" id="analyticsRecommendationsList">
+              <li>Недостаточно данных для рекомендаций.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="analytics-section analytics-page analytics-page--wide">
+          <h3>Drill-down: конструкции и модули</h3>
+          <p class="analytics-description" id="analyticsDrilldownSummary">Недостаточно данных для детализации.</p>
+          <p class="analytics-drilldown-hint">Подсказка: клик по строке открывает детализацию.</p>
+
+          <div class="analytics-drilldown-grid">
+            <article class="analytics-drilldown-card">
+              <h4>По конструкциям</h4>
+              <div class="analytics-table-wrap">
+                <table class="analytics-table analytics-drilldown-table">
+                  <thead>
+                    <tr>
+                      <th>Конструкция</th>
+                      <th>Замеров</th>
+                      <th>Нарушений</th>
+                      <th>% нарушений</th>
+                    </tr>
+                  </thead>
+                  <tbody id="analyticsConstructionTableBody"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="analytics-drilldown-card">
+              <h4>По модулям</h4>
+              <div class="analytics-table-wrap">
+                <table class="analytics-table analytics-drilldown-table">
+                  <thead>
+                    <tr>
+                      <th>Модуль</th>
+                      <th>Замеров</th>
+                      <th>Нарушений</th>
+                      <th>% нарушений</th>
+                    </tr>
+                  </thead>
+                  <tbody id="analyticsModuleTableBody"></tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="analytics-section analytics-page">
+          <h3>Сравнение объектов</h3>
+          <p class="analytics-description">
+            Объекты ранжированы по среднему отклонению. Чем меньше, тем лучше качество.
+          </p>
+          <div class="analytics-chart-wrap">
+            <canvas id="analyticsProjectsChart" height="240"></canvas>
+          </div>
+          <div class="analytics-position" id="analyticsPositionText">Позиция не определена</div>
+        </section>
+
+        <section class="analytics-section analytics-page analytics-page--wide">
+          <h3>Рейтинг объектов</h3>
+          <div class="analytics-table-wrap">
+            <table class="analytics-table" id="analyticsProjectsTable">
+              <thead>
+                <tr>
+                  <th>Место</th>
+                  <th>Объект</th>
+                  <th>Подрядчик</th>
+                  <th>Ср. отклонение</th>
+                  <th>Проверок</th>
+                  <th>В допуске</th>
+                  <th>Оценка</th>
+                </tr>
+              </thead>
+              <tbody id="analyticsProjectsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="analytics-section analytics-page">
+          <h3>Анализ подрядчиков</h3>
+          <div class="analytics-contractors-grid" id="analyticsContractorsGrid"></div>
+        </section>
+
+        <section class="analytics-section analytics-page analytics-page--wide">
+          <h3>Детальная статистика выбранного объекта</h3>
+          <div class="analytics-stats-grid">
+            <article class="analytics-stat-tile">
+              <div class="analytics-stat-label">Среднее</div>
+              <div class="analytics-stat-value" id="analyticsStatMean">0%</div>
+            </article>
+            <article class="analytics-stat-tile">
+              <div class="analytics-stat-label">Медиана</div>
+              <div class="analytics-stat-value" id="analyticsStatMedian">0%</div>
+            </article>
+            <article class="analytics-stat-tile">
+              <div class="analytics-stat-label">Станд. отклонение</div>
+              <div class="analytics-stat-value" id="analyticsStatStdDev">0%</div>
+            </article>
+            <article class="analytics-stat-tile">
+              <div class="analytics-stat-label">Коэфф. вариации</div>
+              <div class="analytics-stat-value" id="analyticsStatCV">0</div>
+            </article>
+          </div>
+
+          <div class="analytics-chart-wrap">
+            <canvas id="analyticsDistributionChart" height="220"></canvas>
+          </div>
+
+          <h4 class="analytics-subtitle">Динамика качества во времени</h4>
+          <p class="analytics-description">
+            Линия показывает индекс качества по проверкам, столбики - количество нарушений.
+          </p>
+          <div class="analytics-chart-wrap">
+            <canvas id="analyticsTrendChart" height="240"></canvas>
+          </div>
+          <p class="analytics-card-note" id="analyticsTrendNote">Недостаточно данных для построения тренда.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>

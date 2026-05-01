@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script>
+    (function () {
+      const theme = localStorage.getItem("app_theme") || "dark";
+      const normalized = theme === "light" ? "light" : "dark";
+      const className = normalized === "light" ? "theme-light" : "theme-dark";
+      window.__appThemeClass = className;
+      document.documentElement.classList.add(className);
+      document.documentElement.style.colorScheme = normalized;
+      document.addEventListener("DOMContentLoaded", () => {
+        document.body.classList.add(className);
+      }, { once: true });
+    })();
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>О проекте — SCOPE</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="shortcut icon" href="favicon.ico">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="liquid-glass.css?v=1">
+  <link rel="stylesheet" href="style.css?v=28">
+</head>
+<body class="about-page">
+  <script>
+    document.body.classList.add(window.__appThemeClass || "theme-dark");
+  </script>
+  <svg class="lg-filter-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <filter id="liquidGlass">
+      <feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="2" seed="2" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </svg>
+
+  <header>
+    <a class="brand" href="index.html" aria-label="Вернуться в приложение">
+      <svg width="24" height="24" viewBox="0 0 40 30" class="brand-icon">
+        <rect x="2" y="2" width="12" height="6" class="brand-brick brand-brick-1" rx="1" />
+        <rect x="16" y="2" width="12" height="6" class="brand-brick brand-brick-2" rx="1" />
+        <rect x="30" y="2" width="8" height="6" class="brand-brick brand-brick-3" rx="1" />
+        <rect x="9" y="10" width="12" height="6" class="brand-brick brand-brick-4" rx="1" />
+        <rect x="23" y="10" width="12" height="6" class="brand-brick brand-brick-5" rx="1" />
+        <rect x="2" y="18" width="12" height="6" class="brand-brick brand-brick-6" rx="1" />
+        <rect x="16" y="18" width="12" height="6" class="brand-brick brand-brick-7" rx="1" />
+        <rect x="30" y="18" width="8" height="6" class="brand-brick brand-brick-8" rx="1" />
+        <rect x="9" y="26" width="12" height="4" class="brand-brick brand-brick-9" rx="1" />
+        <rect x="23" y="26" width="12" height="4" class="brand-brick brand-brick-10" rx="1" />
+      </svg>
+      <h1>SCOPE</h1>
+    </a>
+    <div class="header-actions">
+      <a href="index.html" class="header-icon-btn" title="Главная" aria-label="Главная">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </a>
+      <button id="themeToggleBtn" class="header-icon-btn theme-toggle-btn" aria-label="Сменить тему" title="Сменить тему">
+        <span class="theme-toggle-icon"></span>
+      </button>
+      <a href="profile.html" class="header-icon-btn" title="Профиль" aria-label="Профиль">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </a>
+    </div>
+  </header>
+
+  <main class="about-main">
+    <section class="about-hero about-stage">
+      <div class="scroll-reveal is-visible" data-reveal-delay="0ms" data-parallax="10">
+        <div class="about-hero__eyebrow">О проекте</div>
+        <h2 class="about-hero__title">Сервис для строительного контроля, где всё нужное собрано в одном месте.</h2>
+        <p class="about-hero__lead">
+          В Технадзор Онлайн собраны проверки, BIM-контекст, проектные данные и база знаний. Идея простая: чтобы по ходу работы не приходилось прыгать между таблицами, файлами, заметками и разными экранами.
+        </p>
+        <div class="about-hero__meta">
+          <span class="about-chip">Проверки</span>
+          <span class="about-chip">BIM / IFC</span>
+          <span class="about-chip">База знаний</span>
+        </div>
+      </div>
+      <div class="about-hero__visual scroll-reveal" data-reveal-delay="120ms" data-parallax="-14">
+        <div class="about-hero__visual-grid">
+          <div class="about-panel" data-parallax="8">
+            <div class="about-panel__kicker">Один рабочий экран</div>
+            <div class="about-panel__title">Проект, данные и результат рядом</div>
+            <div class="about-panel__text">Можно выбрать проект, подтянуть BIM-элементы, пройти проверку и сразу зафиксировать результат без лишних переходов.</div>
+          </div>
+          <div class="about-panel" data-parallax="14">
+            <div class="about-panel__kicker">Меньше рутины</div>
+            <div class="about-panel__title">Легче держать порядок в работе</div>
+            <div class="about-panel__text">Когда нужная информация уже под рукой, проще не терять контекст и не собирать картину проекта заново каждый раз.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="about-story about-stage">
+      <div class="about-section-grid">
+        <div class="scroll-reveal about-section-pin" data-reveal-delay="0ms">
+          <div class="about-hero__eyebrow">Зачем это сделано</div>
+          <h3 class="about-section__title">Технадзор и так сложный. Интерфейс не должен делать его ещё сложнее.</h3>
+        </div>
+        <div class="about-section__body scroll-reveal" data-reveal-delay="110ms" data-parallax="10">
+          <p>На практике данные по проекту часто разбросаны: что-то в BIM, что-то в таблицах, что-то в переписке, что-то просто держится в голове. Из-за этого даже простая проверка иногда занимает больше времени, чем должна.</p>
+          <p>Технадзор Онлайн сделан как попытка собрать всё основное в одном месте. Не для красоты, а чтобы с проектом было проще работать каждый день.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="about-feature-band about-stage">
+      <div class="about-feature-grid">
+        <article class="about-feature-card scroll-reveal" data-reveal-delay="0ms" data-parallax="8">
+          <div class="about-feature-card__index">01</div>
+          <div class="about-feature-card__title">Работа с BIM</div>
+          <div class="about-feature-card__text">Можно загрузить IFC, выбрать нужные элементы и использовать их дальше в модулях контроля без ручного дублирования данных.</div>
+        </article>
+        <article class="about-feature-card scroll-reveal" data-reveal-delay="90ms" data-parallax="12">
+          <div class="about-feature-card__index">02</div>
+          <div class="about-feature-card__title">Проверки по модулям</div>
+          <div class="about-feature-card__text">Геодезия, армирование, геометрия, прочность и итог собраны в одном интерфейсе и не ощущаются как отдельные чужие инструменты.</div>
+        </article>
+        <article class="about-feature-card scroll-reveal" data-reveal-delay="180ms" data-parallax="16">
+          <div class="about-feature-card__index">03</div>
+          <div class="about-feature-card__title">Справка под рукой</div>
+          <div class="about-feature-card__text">База знаний встроена прямо в продукт, поэтому нормативная и справочная информация не отрывается от самой работы.</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="about-showcase about-stage">
+      <div class="about-section-grid">
+        <div class="scroll-reveal about-section-pin" data-reveal-delay="0ms">
+          <div class="about-hero__eyebrow">Как это ощущается</div>
+          <h3 class="about-section__title">Сервис помогает не распыляться и держать проект в собранном виде.</h3>
+        </div>
+        <div class="about-showcase__stack">
+          <div class="about-showcase__card scroll-reveal" data-reveal-delay="40ms" data-parallax="10">
+            <div class="about-panel__kicker">Проекты</div>
+            <div class="about-showcase__metric">Всё важное рядом</div>
+            <div class="about-showcase__caption">Данные по проекту, участники и история проверок остаются в одном месте, и это сильно упрощает повседневную работу.</div>
+          </div>
+          <div class="about-showcase__card scroll-reveal" data-reveal-delay="140ms" data-parallax="16">
+            <div class="about-panel__kicker">Интерфейс</div>
+            <div class="about-showcase__metric">Понятно, что делать дальше</div>
+            <div class="about-showcase__caption">Основные действия видны сразу, второстепенное не мешает, а сам интерфейс остаётся компактным и рабочим.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="about-closing about-stage">
+      <div class="about-closing__card scroll-reveal" data-reveal-delay="0ms" data-parallax="8">
+        <div class="about-hero__eyebrow">Итог</div>
+        <h3 class="about-section__title">Это сервис для тех, кому важно держать контроль над проектом, а не над кучей разрозненных файлов.</h3>
+        <p>Если коротко, Технадзор Онлайн помогает работать собраннее: видеть проект целиком, быстрее проходить проверки и не терять важные детали по дороге.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer" aria-label="Site footer">
+    <nav class="site-footer__nav" aria-label="Footer links">
+      <a class="site-footer__link" href="about.html">About</a>
+      <a class="site-footer__link" href="privacy.html">Privacy Policy</a>
+      <a class="site-footer__icon-link" href="https://t.me/valiibragimov" target="_blank" rel="noreferrer noopener" aria-label="Contact on Telegram">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21.5 4.4 18.3 19c-.2 1-1 1.2-1.8.8l-4.7-3.4-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.8 8.8-7.9c.4-.3-.1-.5-.6-.2L6.2 13 1.7 11.6c-1-.3-1-1 .2-1.5L20 3.1c.9-.3 1.7.2 1.5 1.3Z" />
+        </svg>
+      </a>
+    </nav>
+    <div class="site-footer__copy">© 2026 SCOPE</div>
+  </footer>
+
+  <script type="module">
+    import { initThemeControls } from "./app/ui/theme.js";
+
+    initThemeControls();
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const revealItems = document.querySelectorAll(".scroll-reveal");
+    const parallaxItems = document.querySelectorAll("[data-parallax]");
+
+    if (reduceMotion.matches) {
+      revealItems.forEach((item) => item.classList.add("is-visible"));
+    } else {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+          }
+        });
+      }, { threshold: 0.18, rootMargin: "0px 0px -8% 0px" });
+
+      revealItems.forEach((item) => {
+        const delay = item.dataset.revealDelay || "0ms";
+        item.style.setProperty("--reveal-delay", delay);
+        if (!item.classList.contains("is-visible")) {
+          observer.observe(item);
+        }
+      });
+
+      let ticking = false;
+
+      const updateParallax = () => {
+        const viewportHeight = window.innerHeight || 1;
+        parallaxItems.forEach((item) => {
+          const rect = item.getBoundingClientRect();
+          const depth = Number(item.dataset.parallax || 0);
+          const progress = ((rect.top + rect.height * 0.5) / viewportHeight) - 0.5;
+          const clamped = Math.max(-1, Math.min(1, progress));
+          item.style.setProperty("--parallax-y", `${clamped * depth * -1}px`);
+          item.style.setProperty("--parallax-scale", `${1 - Math.abs(clamped) * 0.018}`);
+        });
+        ticking = false;
+      };
+
+      const requestParallax = () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(updateParallax);
+      };
+
+      updateParallax();
+      window.addEventListener("scroll", requestParallax, { passive: true });
+      window.addEventListener("resize", requestParallax);
+    }
+  </script>
+</body>
+</html>

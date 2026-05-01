@@ -1,0 +1,393 @@
+    <section class="section active" id="geo">
+      <div id="sectionGeo" class="wizard" data-wizard="geo" data-steps="2">
+        <div class="module-title-row">
+          <h2>
+            Геодезическая привязка
+          </h2>
+          <button type="button" class="module-help-toggle" data-help-target="geoHelpContent" aria-label="Показать описание"></button>
+        </div>
+        <div class="subtitle module-help-content" id="geoHelpContent" hidden>
+          Геодезическая привязка выполняется по пересечениям буквенных и цифровых разбивочных осей с определением фактических координат в плане (X, Y) и высотной отметки (H).
+          Допустимые отклонения составляют: по координатам X/Y — не более ±8 мм, по высоте H — не более ±10 мм; контроль выполняется в соответствии с
+          <a id="linkSP70" href="#" target="_blank" style="color: #3b82f6; text-decoration: underline;">СП 70.13330.2012</a> и
+          <a id="linkSP126" href="#" target="_blank" style="color: #3b82f6; text-decoration: underline;">СП 126.13330.2017</a>.
+        </div>
+
+        <div class="card geo-bim-card">
+          <div class="geo-bim-header">
+            <h3 class="card-title">BIM-элемент</h3>
+            <div class="geo-bim-filter">
+              <label for="geoBimTypeFilter">Тип BIM-элемента</label>
+              <select id="geoBimTypeFilter" class="ui-select">
+                <option value="all">Все типы</option>
+              </select>
+            </div>
+            <div class="geo-bim-filter">
+              <label for="geoBimAxesFilter">Фильтр по осям</label>
+              <select id="geoBimAxesFilter" class="ui-select">
+                <option value="all">Все оси</option>
+              </select>
+            </div>
+            <div class="geo-bim-filter geo-bim-filter--search">
+              <label for="geoBimSearchInput">Поиск по BIM</label>
+              <input
+                type="search"
+                id="geoBimSearchInput"
+                placeholder="Марка, оси, этаж, GUID или ID элемента"
+                autocomplete="off"
+              />
+            </div>
+            <div class="bim-viewer-action-stack">
+              <button type="button" id="btnClearGeoBimSelection" class="btn-small btn-secondary lg-btn lg-btn--pill bim-import-action">
+                <span class="lg-btn__label">Сбросить BIM</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+              <div class="bim-viewer-launcher-slot" data-bim-viewer-slot="geo">
+                <div class="bim-viewer-launcher bim-viewer-launcher--placeholder" aria-hidden="true">
+                  <button
+                    type="button"
+                    class="btn-small btn-secondary lg-btn lg-btn--pill bim-viewer-launcher__button"
+                    tabindex="-1"
+                    title="Открыть BIM-viewer"
+                  >
+                    <span class="lg-btn__label">Открыть BIM-viewer</span>
+                    <span class="lg-btn__glow" aria-hidden="true"></span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="geo-bim-mainrow mt8">
+            <div>
+              <label>Выбор элемента из BIM</label>
+              <select id="geoBimElementSelect" class="ui-select">
+                <option value="">Ручной ввод без BIM</option>
+              </select>
+            </div>
+            <div class="geo-bim-status-field" hidden>
+              <label>Статус BIM-привязки</label>
+              <div id="geoBimElementStatus" class="subtitle geo-bim-status" hidden data-empty="1"></div>
+            </div>
+          </div>
+          <div id="geoBimSourceCard" class="geo-bim-source bim-panel-redundant mt8" hidden>
+            <div class="geo-bim-source__header">
+              <div class="geo-bim-source__heading">
+                <div class="geo-bim-source__eyebrow">Источник BIM</div>
+                <div id="geoBimSourceTitle" class="geo-bim-source__title">BIM-элемент не выбран</div>
+              </div>
+              <div id="geoBimSourceState" class="geo-bim-source__state"></div>
+            </div>
+            <div id="geoBimSourceMeta" class="geo-bim-source__meta"></div>
+            <div class="geo-bim-source__grid mt8">
+              <div class="geo-bim-source__chip">
+                <span>Тип конструкции</span>
+                <strong id="geoBimAppliedType">Нет данных</strong>
+              </div>
+              <div class="geo-bim-source__chip">
+                <span>Проектная X</span>
+                <strong id="geoBimAppliedProjX">Нет данных</strong>
+              </div>
+              <div class="geo-bim-source__chip">
+                <span>Проектная Y</span>
+                <strong id="geoBimAppliedProjY">Нет данных</strong>
+              </div>
+              <div class="geo-bim-source__chip">
+                <span>Проектная H</span>
+                <strong id="geoBimAppliedProjH">Нет данных</strong>
+              </div>
+              <div class="geo-bim-source__chip">
+                <span>Марка</span>
+                <strong id="geoBimAppliedMark">Нет данных</strong>
+              </div>
+              <div class="geo-bim-source__chip">
+                <span>Оси</span>
+                <strong id="geoBimAppliedAxes">Нет данных</strong>
+              </div>
+            </div>
+            <div id="geoBimSourceHint" class="geo-bim-source__hint">
+              Подсвеченные поля ниже подставлены из BIM. Их можно скорректировать вручную, BIM-привязка сохранится отдельно.
+            </div>
+          </div>
+          <div class="geo-bim-meta-row bim-panel-redundant mt8">
+            <div>
+              <label>Марка BIM</label>
+              <input type="text" id="geoBimMark" placeholder="Подставляется из BIM при выборе элемента" />
+            </div>
+            <div>
+              <label>Оси BIM</label>
+              <input type="text" id="geoBimAxes" placeholder="Подставляются из BIM при наличии" />
+            </div>
+          </div>
+        </div>
+        <div class="wizard-header">
+          <div class="wizard-progress" data-wizard-progress>Шаг 1 из 2</div>
+          <div class="wizard-steps-nav" role="tablist" aria-label="Шаги геодезии">
+            <button type="button" class="wizard-step-btn is-active btn-small btn-secondary lg-btn lg-btn--pill" data-wizard-step="1">
+              <span class="lg-btn__label">Узлы</span>
+              <span class="lg-btn__glow" aria-hidden="true"></span>
+            </button>
+            <button type="button" class="wizard-step-btn btn-small btn-secondary lg-btn lg-btn--pill" data-wizard-step="2">
+              <span class="lg-btn__label">Параметры</span>
+              <span class="lg-btn__glow" aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="split wizard-steps">
+          <div class="col wizard-step" data-step="1">
+            <div class="card">
+              <h3 class="card-title">Узлы</h3>
+              <div class="nodes" id="nodesList"></div>
+
+              <!-- Кнопки управления -->
+              <div class="actions">
+                <div class="row">
+                  <button id="btnGeo" class="btn-primary lg-btn lg-btn--pill wizard-hide-mobile" data-ignore-lock="1">
+                    <span class="lg-btn__label">Проверить и сохранить</span>
+                    <span class="lg-btn__glow" aria-hidden="true"></span>
+                  </button>
+                </div>
+                <div class="row">
+                  <button id="btnClearForm" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                    <span class="lg-btn__label">Очистить форму</span>
+                    <span class="lg-btn__glow" aria-hidden="true"></span>
+                  </button>
+                  <button id="btnUpdateNode" class="btn-small btn-secondary" style="display:none;">Обновить выбранный</button>
+                </div>
+                <div class="row">
+                  <button id="btnClearNodes" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                    <span class="lg-btn__label">Очистить проверки</span>
+                    <span class="lg-btn__glow" aria-hidden="true"></span>
+                  </button>
+                </div>
+                <button id="btnSaveNode" class="btn-small" style="display:none;">💾 Сохранить узел в меню</button>
+              </div>
+            </div>
+          </div>
+
+      <div class="card wizard-step" data-step="2">
+            <div id="geoManualAssistNote" class="geo-manual-note" hidden></div>
+            <div id="geoBehaviorMessage" class="geo-manual-note" hidden></div>
+            <!-- Поле маркировки для колонны -->
+            <div id="columnMarkField" style="display: none;">
+              <label>Маркировка колонны</label>
+              <input type="text" id="columnMark" placeholder="Напр.: К 1.12" />
+            </div>
+            <div id="geoStairNameField" style="display: none;">
+              <label>Наименование лестницы</label>
+              <input type="text" id="geoStairName" placeholder="Напр.: Лестница Л3" />
+            </div>
+            <div>
+              <label>Этаж </label>
+              <input type="text" id="floor" placeholder="Напр.: 1, 2, 3..." required />
+            </div>
+            <div class="grid-3 mt8" id="axisFields">
+              <div id="geoStripAxisModeField" style="display: none;">
+                <label>Режим осей</label>
+                <select id="geoStripAxisMode" class="ui-select">
+                  <option value="letter_numbers">Одна цифровая + две буквенные</option>
+                  <option value="number_letters">Две цифровые + одна буквенная</option>
+                </select>
+              </div>
+              <div id="axisLetterSingleField">
+                <label>Буквенная ось</label>
+                <select id="axisLetter" class="ui-select"></select>
+              </div>
+              <div id="axisNumberSingleField">
+                <label>Цифровая ось</label>
+                <select id="axisNumber" class="ui-select"></select>
+              </div>
+              <div id="axisLetterFromField" style="display: none;">
+                <label>От буквенной оси</label>
+                <select id="axisLetterFrom" class="ui-select"></select>
+              </div>
+              <div id="axisLetterToField" style="display: none;">
+                <label>До буквенной оси</label>
+                <select id="axisLetterTo" class="ui-select"></select>
+              </div>
+              <div id="axisNumberFromField" style="display: none;">
+                <label>От цифровой оси</label>
+                <select id="axisNumberFrom" class="ui-select"></select>
+              </div>
+              <div id="axisNumberToField" style="display: none;">
+                <label>До цифровой оси</label>
+                <select id="axisNumberTo" class="ui-select"></select>
+              </div>
+              <div id="nodeIdField">
+                <label>Идентификатор узла</label>
+                <input id="nodeId" placeholder="Авто: А × 1" readonly aria-readonly="true" />
+              </div>
+            </div>
+
+            <div class="wizard-sheet-trigger-row mt8">
+              <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="geoElementsSheet">Элементы (колонны, стены, балки)</button>
+              <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="geoCoordinatesSheet">Координаты X/Y/H</button>
+            </div>
+
+            <div class="wizard-sheet" id="geoElementsSheet" data-sheet aria-hidden="true">
+              <div class="wizard-sheet-overlay" data-sheet-close></div>
+              <div class="wizard-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="geoElementsSheetTitle">
+                <div class="wizard-sheet-header">
+                  <h3 id="geoElementsSheetTitle">Элементы конструкции</h3>
+                  <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
+                </div>
+                <div class="wizard-sheet-body">
+                  <!-- Блок для множественных колонн -->
+                  <div id="columnsBlock" style="display: none; margin-top: 12px;">
+                    <div class="add-btn-row add-btn-row--between">
+                      <label><b>Колонны (до 20)</b></label>
+                      <button type="button" id="btnAddColumn" class="btn-small btn-secondary lg-btn lg-btn--pill lg-btn--compact">
+                        <span class="lg-btn__label">+ Добавить колонну</span>
+                        <span class="lg-btn__glow" aria-hidden="true"></span>
+                      </button>
+                    </div>
+                    <div id="columnsList" class="scroll-list"></div>
+                  </div>
+                  <!-- Блок для множественных стен -->
+                  <div id="wallsBlock" style="display: none; margin-top: 12px;">
+                    <div class="add-btn-row add-btn-row--between">
+                      <label><b id="geoWallsLimitLabel">Стены</b></label>
+                      <button type="button" id="btnAddWall" class="btn-small btn-secondary lg-btn lg-btn--pill lg-btn--compact">
+                        <span class="lg-btn__label">+ Добавить стену</span>
+                        <span class="lg-btn__glow" aria-hidden="true"></span>
+                      </button>
+                    </div>
+                    <div id="wallsList" class="scroll-list"></div>
+                    <div style="margin-top: 12px;">
+                      <button type="button" id="btnGeoWalls" class="btn-small" style="display:none;">Проверить стены</button>
+                    </div>
+                  </div>
+                  <!-- Блок для множественных балок -->
+                  <div id="beamsBlock" style="display: none; margin-top: 12px;">
+                    <div class="add-btn-row add-btn-row--between">
+                      <label><b>Балки (до 20)</b></label>
+                      <button type="button" id="btnAddBeam" class="btn-small btn-secondary lg-btn lg-btn--pill lg-btn--compact">
+                        <span class="lg-btn__label">+ Добавить балку</span>
+                        <span class="lg-btn__glow" aria-hidden="true"></span>
+                      </button>
+                    </div>
+                    <div id="beamsList" class="scroll-list"></div>
+                    <div style="margin-top: 12px;">
+                      <button type="button" id="btnGeoBeams" class="btn-small" style="display:none;">Проверить балки</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="wizard-sheet-footer">
+                  <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="wizard-sheet" id="geoCoordinatesSheet" data-sheet aria-hidden="true">
+              <div class="wizard-sheet-overlay" data-sheet-close></div>
+              <div class="wizard-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="geoCoordinatesSheetTitle">
+                <div class="wizard-sheet-header">
+                  <h3 id="geoCoordinatesSheetTitle">Координаты</h3>
+                  <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
+                </div>
+                <div class="wizard-sheet-body">
+                  <div class="grid-3 mt8" id="coordinatesBlock">
+                    <div>
+                      <label>Проектная X</label>
+                      <input type="number" id="projX" inputmode="decimal" placeholder="м" />
+                    </div>
+                    <div>
+                      <label>Фактическая X</label>
+                      <input type="number" id="factX" inputmode="decimal" placeholder="м" />
+                    </div>
+                    <div>
+                      <label>Допуск X/Y</label>
+                      <input value="8 мм" readonly disabled />
+                    </div>
+
+                    <div>
+                      <label>Проектная Y</label>
+                      <input type="number" id="projY" inputmode="decimal" placeholder="м" />
+                    </div>
+                    <div>
+                      <label>Фактическая Y</label>
+                      <input type="number" id="factY" inputmode="decimal" placeholder="м" />
+                    </div>
+                    <div class="coordinate-grid-spacer" aria-hidden="true"></div>
+
+                    <div id="projHField">
+                      <label>Проектная H</label>
+                      <input type="number" id="projH" inputmode="decimal" placeholder="м" />
+                    </div>
+                    <div id="factHField">
+                      <label>Фактическая H</label>
+                      <input type="number" id="factH" inputmode="decimal" placeholder="м" />
+                    </div>
+                    <div id="tolHFieldWrap">
+                      <label>Допуск H</label>
+                      <input value="10 мм" readonly disabled id="tolHField" />
+                    </div>
+                  </div>
+
+                  <div id="geoPlateOpeningPointsField" class="mt8" style="display: none;">
+                    <label>Координаты характерных точек проёма</label>
+                    <div class="caption mt8">Добавьте столько точек, сколько углов у проёма.</div>
+                    <div id="geoPlateOpeningPointsList" class="mt8 scroll-list"></div>
+                    <div class="add-btn-row mt8">
+                      <button type="button" id="btnAddGeoPlateOpeningPoint" class="btn-small btn-secondary lg-btn lg-btn--pill lg-btn--compact lg-btn--micro">
+                        <span class="lg-btn__label">+ Добавить точку</span>
+                        <span class="lg-btn__glow" aria-hidden="true"></span>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="geoPlateFlatnessField" class="mt8" style="display: none;">
+                    <div class="geo-flatness-panel">
+                      <div class="geo-flatness-panel__header">
+                        <div>
+                          <div class="geo-flatness-panel__title">Проверка плоскостности плиты перекрытия</div>
+                          <div class="geo-flatness-panel__meta">СП 70.13330.2012, приложение Х</div>
+                        </div>
+                      </div>
+                      <div class="grid-2 mt8">
+                        <div>
+                          <label for="geoPlateFlatnessActual">Фактическое отклонение от плоскостности, мм</label>
+                          <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="geoPlateFlatnessActual" placeholder="мм" />
+                        </div>
+                        <div>
+                          <label for="geoPlateFlatnessBase">База измерения</label>
+                          <select id="geoPlateFlatnessBase" class="ui-select">
+                            <option value="2">2 м</option>
+                            <option value="3">3 м</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label for="geoPlateFlatnessClass">Класс поверхности / основание</label>
+                          <select id="geoPlateFlatnessClass" class="ui-select">
+                            <option value="project">По проекту</option>
+                            <option value="A3">A3</option>
+                            <option value="A4">A4</option>
+                            <option value="A6">A6</option>
+                            <option value="A7">A7</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label for="geoPlateFlatnessTolerance">Предельное отклонение, мм</label>
+                          <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="geoPlateFlatnessTolerance" placeholder="мм" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="wizard-sheet-footer">
+                  <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="geoResult" class="result"></div>
+          </div>
+        </div>
+
+        <div class="wizard-footer" data-wizard-footer>
+          <button type="button" class="btn-primary lg-btn lg-btn--pill wizard-primary-btn" data-trigger="#btnGeo">Сохранить</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Армирование -->
+

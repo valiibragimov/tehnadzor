@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BIM Viewer Harness</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Segoe UI", system-ui, sans-serif;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top, rgba(14, 165, 233, 0.2), transparent 40%),
+          linear-gradient(180deg, #0f172a, #020617);
+        color: #e2e8f0;
+      }
+
+      .shell {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 32px 24px 80px;
+      }
+
+      .panel {
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        border-radius: 24px;
+        padding: 24px;
+        background: rgba(15, 23, 42, 0.82);
+        box-shadow: 0 24px 80px rgba(2, 6, 23, 0.45);
+        backdrop-filter: blur(18px);
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 32px;
+      }
+
+      .subtitle {
+        margin: 0 0 24px;
+        color: #94a3b8;
+      }
+
+      .controls {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      button,
+      input[type="file"]::file-selector-button {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 16px;
+        background: #0ea5e9;
+        color: white;
+        cursor: pointer;
+        font: inherit;
+      }
+
+      input[type="file"] {
+        color: #cbd5e1;
+      }
+
+      .secondary {
+        background: rgba(148, 163, 184, 0.18);
+      }
+
+      .status {
+        min-height: 24px;
+        color: #cbd5e1;
+      }
+
+      .meta {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        color: #94a3b8;
+        font-size: 14px;
+        margin-top: 12px;
+      }
+
+      .host {
+        margin-top: 24px;
+        min-height: 160px;
+      }
+
+      .autotest {
+        margin-top: 20px;
+        padding: 16px;
+        border-radius: 16px;
+        background: rgba(2, 6, 23, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        font-size: 13px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="panel">
+        <h1>BIM Viewer Harness</h1>
+        <p class="subtitle">
+          Локальный стенд для воспроизведения и проверки That Open viewer на IFC-модели без Firebase-авторизации.
+        </p>
+        <div class="controls">
+          <input id="ifcFile" type="file" accept=".ifc" />
+          <button id="loadSample" type="button">Загрузить sample IFC</button>
+          <button id="openViewer" type="button" class="secondary">Открыть viewer</button>
+        </div>
+        <div id="status" class="status">Ожидаю IFC-файл.</div>
+        <div class="meta">
+          <span id="metaElements">Элементы: 0</span>
+          <span id="metaFloors">Этажи: 0</span>
+          <span id="metaSelected">Выбрано: ничего</span>
+        </div>
+        <pre id="autotestResult" class="autotest">Autotest idle.</pre>
+        <div id="host" class="host">
+          <div id="sourceCard"></div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module">
+      import { ensureBimVisualPanel } from "../../dist/app/services/bim-visual-panel.js";
+      import { parseIfcElements } from "../../dist/app/services/ifc-parser.js";
+      import { createSourceModelIdFromFile } from "../../dist/app/services/ifc-import.js";
+
+      const ifcFileInput = document.getElementById("ifcFile");
+      const loadSampleButton = document.getElementById("loadSample");
+      const openViewerButton = document.getElementById("openViewer");
+      const statusEl = document.getElementById("status");
+      const metaElementsEl = document.getElementById("metaElements");
+      const metaFloorsEl = document.getElementById("metaFloors");
+      const metaSelectedEl = document.getElementById("metaSelected");
+      const autotestResultEl = document.getElementById("autotestResult");
+      const host = document.getElementById("host");
+      const sourceCard = document.getElementById("sourceCard");
+      const query = new URLSearchParams(window.location.search);
+      const samplePath = query.get("sample") || "./assets/cottage.ifc";
+
+      let currentIfcFile = null;
+      let parsedElements = [];
+      let selectedElementId = "";
+      const capturedErrors = [];
+      const autotestSteps = [];
+
+      const originalConsoleError = console.error.bind(console);
+      console.error = (...args) => {
+        capturedErrors.push(args.map((arg) => String(arg && arg.message ? arg.message : arg)).join(" "));
+        originalConsoleError(...args);
+      };
+
+      window.addEventListener("error", (event) => {
+        capturedErrors.push(event.message || "window error");
+      });
+
+      window.addEventListener("unhandledrejection", (event) => {
+        const reason = event.reason;
+        capturedErrors.push(reason && reason.message ? reason.message : String(reason));
+      });
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+
+      function logStep(message) {
+        autotestSteps.push(message);
+        autotestResultEl.textContent = autotestSteps.join("\n");
+      }
+
+      function stringifyDebug(value) {
+        try {
+          return JSON.stringify(value, null, 2);
+        } catch {
+          return String(value);
+        }
+      }
+
+      function getSelectedElement() {
+        return parsedElements.find((element) => element.elementId === selectedElementId) || null;
+      }
+
+      function updateMeta() {
+        metaElementsEl.textContent = `Элементы: ${parsedElements.length}`;
+        metaFloorsEl.textContent = `Этажи: ${new Set(parsedElements.map((element) => element.floor).filter(Boolean)).size}`;
+        const selected = getSelectedElement();
+        metaSelectedEl.textContent = selected
+          ? `Выбрано: ${selected.elementId}`
+          : "Выбрано: ничего";
+      }
+
+      const viewerApi = ensureBimVisualPanel({
+        host,
+        sourceCard,
+        getAllElements: () => parsedElements,
+        getFilteredElements: () => parsedElements,
+        getSelectedElement,
+        getSelectedId: () => selectedElementId,
+        getCurrentProjectId: () => "harness-project",
+        getCurrentIfcFile: () => currentIfcFile,
+        onSelect: (elementId) => {
+          selectedElementId = String(elementId || "");
+          updateMeta();
+        },
+        labelBuilder: (element) =>
+          `${element.type || "element"} ${element.mark || element.name || element.elementId || ""}`.trim(),
+        moduleKey: "harness"
+      });
+
+      async function loadIfcFile(file) {
+        currentIfcFile = file;
+        selectedElementId = "";
+        updateMeta();
+
+        setStatus(`Разбираю IFC: ${file.name}`);
+        const sourceModelId = createSourceModelIdFromFile(file);
+        const ifcText = await file.text();
+        const parsed = parseIfcElements(ifcText, {
+          sourceModelId,
+          fileName: file.name
+        });
+
+        parsedElements = parsed.elements;
+        updateMeta();
+
+        setStatus(`Загружено ${parsed.importedCount} элементов из ${file.name}`);
+        await viewerApi.render();
+        viewerApi.open();
+        await viewerApi.render();
+      }
+
+      async function waitFor(getValue, timeout = 15000) {
+        const started = Date.now();
+        while (Date.now() - started < timeout) {
+          const value = getValue();
+          if (value) {
+            return value;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        throw new Error("waitFor timeout");
+      }
+
+      async function clickAndRender(button) {
+        button.click();
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        await viewerApi.render();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+
+      async function runAutotest() {
+        capturedErrors.length = 0;
+        autotestSteps.length = 0;
+
+        try {
+          logStep("1. load sample IFC");
+          await loadSampleIfc();
+
+          const workspace = await waitFor(() =>
+            document.querySelector('.bim-workspace[data-bim-visual-module="harness"][data-open="true"]')
+          );
+          logStep("2. viewer opened");
+          logStep(`debug after open:\n${stringifyDebug(await viewerApi.debug())}`);
+
+          const floorButtons = await waitFor(() => {
+            const buttons = Array.from(workspace.querySelectorAll("[data-bim-floor-key]"));
+            return buttons.length ? buttons : null;
+          });
+          logStep(`3. floor buttons: ${floorButtons.length}`);
+
+          for (const button of floorButtons.slice(0, 3)) {
+            const errorCountBefore = capturedErrors.length;
+            logStep(`4. click floor: ${button.textContent.trim()}`);
+            await clickAndRender(button);
+            if (capturedErrors.length > errorCountBefore) {
+              logStep(`error after floor click: ${capturedErrors.slice(errorCountBefore).join(" | ")}`);
+            }
+          }
+
+          const mode3dButton = workspace.querySelector('[data-bim-view-mode="3d"]');
+          const mode2dButton = workspace.querySelector('[data-bim-view-mode="2d"]');
+          if (!mode3dButton || !mode2dButton) {
+            throw new Error("mode buttons not found");
+          }
+
+          let errorCountBefore = capturedErrors.length;
+          logStep("5. switch to 3D");
+          await clickAndRender(mode3dButton);
+          if (capturedErrors.length > errorCountBefore) {
+            logStep(`error after 3D switch: ${capturedErrors.slice(errorCountBefore).join(" | ")}`);
+          }
+          errorCountBefore = capturedErrors.length;
+          logStep("6. switch back to 2D");
+          await clickAndRender(mode2dButton);
+          if (capturedErrors.length > errorCountBefore) {
+            logStep(`error after 2D switch: ${capturedErrors.slice(errorCountBefore).join(" | ")}`);
+          }
+
+          if (parsedElements[0]) {
+            errorCountBefore = capturedErrors.length;
+            selectedElementId = parsedElements[0].elementId;
+            await viewerApi.render();
+            updateMeta();
+            logStep(`7. selected element: ${selectedElementId}`);
+            if (capturedErrors.length > errorCountBefore) {
+              logStep(`error after selection sync: ${capturedErrors.slice(errorCountBefore).join(" | ")}`);
+            }
+          }
+
+          if (capturedErrors.length > 0) {
+            throw new Error(`console/window errors: ${capturedErrors.join(" | ")}`);
+          }
+
+          logStep("RESULT: PASS");
+        } catch (error) {
+          logStep(`RESULT: FAIL`);
+          logStep(error && error.stack ? error.stack : String(error));
+        }
+      }
+
+      async function loadSampleIfc() {
+        setStatus(`Загружаю sample IFC: ${samplePath}`);
+        const response = await fetch(samplePath);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const blob = await response.blob();
+        const fileName = samplePath.split("/").filter(Boolean).pop() || "sample.ifc";
+        const file = new File([blob], fileName, {
+          type: "application/octet-stream"
+        });
+        await loadIfcFile(file);
+      }
+
+      ifcFileInput.addEventListener("change", async () => {
+        const file = ifcFileInput.files?.[0];
+        if (!file) {
+          return;
+        }
+        try {
+          await loadIfcFile(file);
+        } catch (error) {
+          console.error("[viewer-harness] loadIfcFile failed", error);
+          setStatus(`Ошибка загрузки IFC: ${error.message}`);
+        }
+      });
+
+      loadSampleButton.addEventListener("click", async () => {
+        try {
+          await loadSampleIfc();
+        } catch (error) {
+          console.error("[viewer-harness] loadSampleIfc failed", error);
+          setStatus(`Ошибка загрузки sample IFC: ${error.message}`);
+        }
+      });
+
+      openViewerButton.addEventListener("click", async () => {
+        viewerApi.open();
+        await viewerApi.render();
+      });
+
+      updateMeta();
+
+      if (query.get("autotest") === "1") {
+        void runAutotest();
+      }
+    </script>
+  </body>
+</html>

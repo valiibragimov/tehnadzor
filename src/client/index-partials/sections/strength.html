@@ -1,0 +1,299 @@
+    <section class="section" id="strength">
+  <div class="wizard" data-wizard="strength" data-steps="2">
+    <div class="module-title-row">
+      <h2>
+        Контроль прочности бетона
+      </h2>
+      <button type="button" class="module-help-toggle" data-help-target="strengthHelpContent" aria-label="Показать описание"></button>
+    </div>
+    <div class="subtitle module-help-content" id="strengthHelpContent" hidden>
+      Сравнение фактической прочности с нормативной кривой твердения на заданный срок.
+    </div>
+    <div id="strengthUnsupportedOnlyMessage" class="geo-manual-note" hidden></div>
+
+    <div class="card geo-bim-card">
+      <div class="geo-bim-header">
+        <h3 class="card-title">BIM-элемент</h3>
+        <div class="geo-bim-filter">
+          <label for="strengthBimTypeFilter">Тип BIM-элемента</label>
+          <select id="strengthBimTypeFilter" class="ui-select">
+            <option value="all">Все типы</option>
+          </select>
+        </div>
+        <div class="geo-bim-filter">
+          <label for="strengthBimAxesFilter">Фильтр по осям</label>
+          <select id="strengthBimAxesFilter" class="ui-select">
+            <option value="all">Все оси</option>
+          </select>
+        </div>
+        <div class="geo-bim-filter geo-bim-filter--search">
+          <label for="strengthBimSearchInput">Поиск по BIM</label>
+          <input
+            type="search"
+            id="strengthBimSearchInput"
+            placeholder="Марка, оси, этаж, GUID или ID элемента"
+            autocomplete="off"
+          />
+        </div>
+        <div class="bim-viewer-action-stack">
+          <button type="button" id="btnClearStrengthBimSelection" class="btn-small btn-secondary lg-btn lg-btn--pill bim-import-action">
+            <span class="lg-btn__label">Сбросить BIM</span>
+            <span class="lg-btn__glow" aria-hidden="true"></span>
+          </button>
+          <div class="bim-viewer-launcher-slot" data-bim-viewer-slot="strength">
+            <div class="bim-viewer-launcher bim-viewer-launcher--placeholder" aria-hidden="true">
+              <button
+                type="button"
+                class="btn-small btn-secondary lg-btn lg-btn--pill bim-viewer-launcher__button"
+                tabindex="-1"
+                title="Открыть BIM-viewer"
+              >
+                <span class="lg-btn__label">Открыть BIM-viewer</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="geo-bim-mainrow mt8">
+        <div>
+          <label>Выбор элемента из BIM</label>
+          <select id="strengthBimElementSelect" class="ui-select">
+            <option value="">Ручной ввод без BIM</option>
+          </select>
+        </div>
+        <div class="geo-bim-status-field" hidden>
+          <label>Статус BIM-привязки</label>
+          <div id="strengthBimElementStatus" class="subtitle geo-bim-status" hidden data-empty="1"></div>
+        </div>
+      </div>
+      <div id="strengthBimSourceCard" class="geo-bim-source bim-panel-redundant mt8" hidden>
+        <div class="geo-bim-source__header">
+          <div class="geo-bim-source__heading">
+            <div class="geo-bim-source__eyebrow">Источник BIM</div>
+            <div id="strengthBimSourceTitle" class="geo-bim-source__title">BIM-элемент не выбран</div>
+          </div>
+          <div id="strengthBimSourceState" class="geo-bim-source__state"></div>
+        </div>
+        <div id="strengthBimSourceMeta" class="geo-bim-source__meta"></div>
+        <div class="geo-bim-source__grid mt8">
+          <div class="geo-bim-source__chip">
+            <span>Тип конструкции</span>
+            <strong id="strengthBimAppliedType">Нет данных</strong>
+          </div>
+          <div class="geo-bim-source__chip">
+            <span>Этаж</span>
+            <strong id="strengthBimAppliedFloor">Нет данных</strong>
+          </div>
+          <div class="geo-bim-source__chip">
+            <span>Марка</span>
+            <strong id="strengthBimAppliedMark">Нет данных</strong>
+          </div>
+          <div class="geo-bim-source__chip">
+            <span>Оси</span>
+            <strong id="strengthBimAppliedAxes">Нет данных</strong>
+          </div>
+          <div class="geo-bim-source__chip">
+            <span>Прочность из BIM</span>
+            <strong id="strengthBimAppliedStrength">Пока ручной ввод</strong>
+          </div>
+        </div>
+        <div id="strengthBimSourceHint" class="geo-bim-source__hint">
+          Из текущего BIM-MVP в прочность надёжно приходят тип, этаж, BIM-оси и марка для колонн/балок. Класс бетона и количество дней пока вводятся вручную.
+        </div>
+      </div>
+      <div class="geo-bim-meta-row bim-panel-redundant mt8">
+        <div>
+          <label>Марка BIM</label>
+          <input type="text" id="strengthBimMark" placeholder="Подставляется из BIM при выборе элемента" />
+        </div>
+        <div>
+          <label>Оси BIM</label>
+          <input type="text" id="strengthBimAxes" placeholder="Подставляются из BIM при наличии" />
+        </div>
+      </div>
+    </div>
+
+    <div class="wizard-header">
+      <div class="wizard-progress" data-wizard-progress>Шаг 1 из 2</div>
+      <div class="wizard-steps-nav" role="tablist" aria-label="Шаги прочности">
+        <button type="button" class="wizard-step-btn is-active btn-small btn-secondary lg-btn lg-btn--pill" data-wizard-step="1">
+          <span class="lg-btn__label">Проверки</span>
+          <span class="lg-btn__glow" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="wizard-step-btn btn-small btn-secondary lg-btn lg-btn--pill" data-wizard-step="2">
+          <span class="lg-btn__label">Параметры</span>
+          <span class="lg-btn__glow" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="split wizard-steps">
+      <div class="col wizard-step" data-step="1">
+        <div class="card">
+          <h3 class="card-title">Сохранённые проверки прочности</h3>
+          <div class="nodes" id="strengthChecksList"></div>
+          <div class="caption">
+            Выберите проверку, чтобы загрузить значения в форму.
+          </div>
+          
+          <!-- Кнопки управления -->
+          <div class="actions">
+            <div class="row">
+              <button id="btnStrength" class="btn-primary lg-btn lg-btn--pill wizard-hide-mobile" data-ignore-lock="1">
+                <span class="lg-btn__label">Проверить и сохранить</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+            </div>
+            <div class="row">
+              <button id="btnClearStrengthForm" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                <span class="lg-btn__label">Очистить форму</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+            </div>
+            <div class="row">
+              <button id="btnClearStrengthChecks" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                <span class="lg-btn__label">Очистить проверки</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+            </div>
+            <button id="btnSaveStrengthCheck" class="btn-small" style="display:none;">💾 Сохранить проверку</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card wizard-step" data-step="2">
+        <div id="strengthManualAssistNote" class="geo-manual-note" hidden></div>
+        <div id="strengthBehaviorMessage" class="geo-manual-note" hidden></div>
+        <div id="strengthStairNameField" style="display: none;">
+          <label>Наименование лестницы</label>
+          <input type="text" id="strengthStairName" placeholder="Напр.: Лестница Л3" />
+        </div>
+        <div>
+          <label>Этаж </label>
+          <input type="text" id="strengthFloor" placeholder="Напр.: 1, 2, 3..." required />
+        </div>
+        
+        <!-- Поля для плиты и лестницы: две буквенные и две цифровые оси -->
+        <div id="strengthLocationFields" style="display: none;">
+          <hr class="sep mt8" />
+          <div class="grid-4 mt8">
+            <div>
+              <label>От буквенной оси</label>
+              <select id="strengthAxisLetterFrom" class="ui-select"></select>
+            </div>
+            <div>
+              <label>До буквенной оси</label>
+              <select id="strengthAxisLetterTo" class="ui-select"></select>
+            </div>
+            <div>
+              <label>От цифровой оси</label>
+              <select id="strengthAxisNumberFrom" class="ui-select"></select>
+            </div>
+            <div>
+              <label>До цифровой оси</label>
+              <select id="strengthAxisNumberTo" class="ui-select"></select>
+            </div>
+          </div>
+          <div class="mt8">
+            <label>Местоположение</label>
+            <input type="text" id="strengthLocation" placeholder="Автоматически: В-Г, 6-7" readonly disabled />
+          </div>
+        </div>
+        
+        <!-- Поля для колонн и балок: буквенно-цифровая маркировка -->
+        <div id="strengthMarkingFields" style="display: none;">
+          <hr class="sep mt8" />
+          <div>
+            <label>Маркировка </label>
+            <input type="text" id="strengthMarking" placeholder="Напр.: К 1.12 или БМ 1" required />
+          </div>
+        </div>
+        
+        <!-- Поля для стен: одна буквенная и две цифровые или одна цифровая и две буквенные -->
+        <div id="strengthWallFields" style="display: none;">
+          <hr class="sep mt8" />
+          <div>
+            <label>Тип привязки</label>
+            <select id="strengthWallBindingType" class="ui-select" style="width: 100%;">
+              <option value="letter_numbers">Одна буквенная, две цифровые (например, Г, 6-7)</option>
+              <option value="number_letters">Одна цифровая, две буквенные (например, 6, В-Г)</option>
+            </select>
+          </div>
+          <div id="strengthWallLetterNumbers" style="display: none;" class="grid-3 mt8">
+            <div>
+              <label>Буквенная ось </label>
+              <select id="strengthWallLetterAxis" class="ui-select" style="width: 100%;"></select>
+            </div>
+            <div>
+              <label>Цифровая ось 1 </label>
+              <select id="strengthWallNumberAxis1" class="ui-select" style="width: 100%;"></select>
+            </div>
+            <div>
+              <label>Цифровая ось 2 </label>
+              <select id="strengthWallNumberAxis2" class="ui-select" style="width: 100%;"></select>
+            </div>
+          </div>
+          <div id="strengthWallNumberLetters" style="display: none;" class="grid-3 mt8">
+            <div>
+              <label>Цифровая ось </label>
+              <select id="strengthWallNumberAxis" class="ui-select" style="width: 100%;"></select>
+            </div>
+            <div>
+              <label>Буквенная ось 1 </label>
+              <select id="strengthWallLetterAxis1" class="ui-select" style="width: 100%;"></select>
+            </div>
+            <div>
+              <label>Буквенная ось 2 </label>
+              <select id="strengthWallLetterAxis2" class="ui-select" style="width: 100%;"></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="wizard-sheet-trigger-row mt8">
+          <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="strengthNumbersSheet">Параметры прочности</button>
+        </div>
+        <div class="wizard-sheet" id="strengthNumbersSheet" data-sheet aria-hidden="true">
+          <div class="wizard-sheet-overlay" data-sheet-close></div>
+          <div class="wizard-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="strengthNumbersSheetTitle">
+            <div class="wizard-sheet-header">
+              <h3 id="strengthNumbersSheetTitle">Параметры прочности</h3>
+              <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
+            </div>
+            <div class="wizard-sheet-body">
+              <div class="grid-2">
+                <div>
+                  <label>Проектная прочность / класс бетона</label>
+                  <select id="mark" class="ui-select" style="width: 100%;"></select>
+                </div>
+                <div>
+                  <label>Фактическая прочность</label>
+                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="actual" placeholder="МПа" />
+                </div>
+                <div>
+                  <label>Количество дней после бетонирования</label>
+                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="days" placeholder="—" />
+                </div>
+              </div>
+            </div>
+            <div class="wizard-sheet-footer">
+              <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="caption">Примечание: кривая — приближённая модель.</div>
+        <div id="strengthResult" class="result"></div>
+        <canvas id="strengthChart"></canvas>
+      </div>
+    </div>
+
+    <div class="wizard-footer" data-wizard-footer>
+      <button type="button" class="btn-primary lg-btn lg-btn--pill wizard-primary-btn" data-trigger="#btnStrength">Сохранить</button>
+    </div>
+  </div>
+</section>
+
+
+    <!-- Итог -->
+

@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "rootDir": "./src/client",
+    "noCheck": false,
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+    "types": ["node"]
+  },
+  "include": [
+    "src/client/types/**/*.ts",
+    "src/client/types/**/*.d.ts",
+    "src/client/app/services/bim-elements.ts",
+    "src/client/app/services/bim-visual-panel.ts",
+    "src/client/app/services/ifc-file-cache.ts",
+    "src/client/app/services/ifc-import.ts",
+    "src/client/app/services/ifc-parser.ts",
+    "src/client/app/vendor-src/thatopen-bim-visual-panel.ts"
+  ]
+}

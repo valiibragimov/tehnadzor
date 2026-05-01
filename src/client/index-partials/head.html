@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script>
+    (function () {
+      const theme = localStorage.getItem("app_theme") || "dark";
+      const normalizedTheme = theme === "light" ? "light" : "dark";
+      const className = normalizedTheme === "light" ? "theme-light" : "theme-dark";
+
+      document.documentElement.classList.add(className);
+
+      if (document.body) {
+        document.body.classList.add(className);
+        return;
+      }
+
+      document.addEventListener(
+        "DOMContentLoaded",
+        () => {
+          document.body.classList.add(className);
+        },
+        { once: true }
+      );
+    })();
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>SCOPE</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="shortcut icon" href="favicon.ico">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e293b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SCOPE">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" onerror="this.onerror=null; console.warn('Google Fonts не загружен, используется системный шрифт');" />
+  <link rel="stylesheet" href="style.css?v=76" />
+  <link rel="stylesheet" href="liquid-glass.css?v=1" />
+  <link rel="stylesheet" href="dist/modules/summary/analytics-block.css?v=3" />
+
+  <!-- Chart.js и jsPDF загружаются лениво по требованию -->
+</head>
+

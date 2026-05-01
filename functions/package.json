@@ -1,0 +1,16 @@
+{
+  "name": "tehnadzor-online-functions",
+  "private": true,
+  "main": "dist/functions/src/index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions",
+    "lint": "node -e \"console.log('No lint configured')\""
+  },
+  "dependencies": {
+    "firebase-functions": "^6.0.1"
+  }
+}

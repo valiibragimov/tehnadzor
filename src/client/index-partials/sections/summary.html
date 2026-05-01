@@ -1,0 +1,193 @@
+    <section class="section" id="summary">
+      <div id="sectionSummary">
+        <h2>Итоговое заключение</h2>
+        <p class="subtitle">Сводный результат по четырём модулям.</p>
+
+        <!-- Мини-карточки статуса модулей -->
+        <div class="summary-modules-grid">
+          <div class="summary-module-card" data-module="geo">
+            <div class="summary-module-header">
+              <span class="summary-module-icon">📍</span>
+              <span class="summary-module-name">Геодезия</span>
+              <div class="summary-module-status" id="summaryModuleStatusGeo">
+                <span class="summary-status-badge empty">Нет проверок</span>
+              </div>
+            </div>
+            <div class="summary-module-stats" id="summaryModuleStatsGeo">
+              <span class="summary-module-stat">
+                <span class="summary-module-stat-label">Проверок</span>
+                <strong class="summary-module-stat-value">Пока нет</strong>
+              </span>
+              <span class="summary-module-stat">
+                <span class="summary-module-stat-label">Отклонений</span>
+                <strong class="summary-module-stat-value">Нет данных</strong>
+              </span>
+              <span class="summary-module-stat summary-module-stat--wide">
+                <span class="summary-module-stat-label">Последняя проверка</span>
+                <strong class="summary-module-stat-value">Пока не проводилась</strong>
+              </span>
+            </div>
+          </div>
+
+          <div class="summary-module-card" data-module="reinforcement">
+            <div class="summary-module-header">
+              <span class="summary-module-icon">🔩</span>
+              <span class="summary-module-name">Армирование</span>
+              <div class="summary-module-status" id="summaryModuleStatusReinf">
+                <span class="summary-status-badge empty">Нет проверок</span>
+              </div>
+            </div>
+            <div class="summary-module-stats" id="summaryModuleStatsReinf">
+              <span class="summary-module-stat">
+                <span class="summary-module-stat-label">Проверок</span>
+                <strong class="summary-module-stat-value">Пока нет</strong>
+              </span>
+              <span class="summary-module-stat">
+                <span class="summary-module-stat-label">Отклонений</span>
+                <strong class="summary-module-stat-value">Нет данных</strong>
+              </span>
+              <span class="summary-module-stat summary-module-stat--wide">
+                <span class="summary-module-stat-label">Последняя проверка</span>
+                <strong class="summary-module-stat-value">Пока не проводилась</strong>
+              </span>
+            </div>
+          </div>
+
+          <div class="summary-module-card" data-module="geometry">
+            <div class="summary-module-header">
+              <span class="summary-module-icon">📐</span>
+              <span class="summary-module-name">Геометрия</span>
+              <div class="summary-module-status" id="summaryModuleStatusGeom">
+                <span class="summary-status-badge empty">Нет проверок</span>
+              </div>
+            </div>
+            <div class="summary-module-stats" id="summaryModuleStatsGeom">
+              <span class="summary-module-stat">
+                <span class="summary-module-stat-label">Проверок</span>
+                <strong class="summary-module-stat-value">Пока нет</strong>
+              </span>
+              <span class="summary-module-stat">
+                <span class="summary-module-stat-label">Отклонений</span>
+                <strong class="summary-module-stat-value">Нет данных</strong>
+              </span>
+              <span class="summary-module-stat summary-module-stat--wide">
+                <span class="summary-module-stat-label">Последняя проверка</span>
+                <strong class="summary-module-stat-value">Пока не проводилась</strong>
+              </span>
+            </div>
+          </div>
+
+          <div class="summary-module-card" data-module="strength">
+            <div class="summary-module-header">
+              <span class="summary-module-icon">💪</span>
+              <span class="summary-module-name">Прочность</span>
+              <div class="summary-module-status" id="summaryModuleStatusStrength">
+                <span class="summary-status-badge empty">Нет проверок</span>
+              </div>
+            </div>
+            <div class="summary-module-stats" id="summaryModuleStatsStrength">
+              <span class="summary-module-stat">
+                <span class="summary-module-stat-label">Проверок</span>
+                <strong class="summary-module-stat-value">Пока нет</strong>
+              </span>
+              <span class="summary-module-stat">
+                <span class="summary-module-stat-label">Отклонений</span>
+                <strong class="summary-module-stat-value">Нет данных</strong>
+              </span>
+              <span class="summary-module-stat summary-module-stat--wide">
+                <span class="summary-module-stat-label">Последняя проверка</span>
+                <strong class="summary-module-stat-value">Пока не проводилась</strong>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="summary-content-row">
+          <div class="summary-workspace-card">
+            <div class="summary-workspace-header">
+              <div class="summary-workspace-copy">
+                <h3 class="summary-workspace-title">Формирование итогового заключения</h3>
+                <p class="summary-workspace-description">
+                  Центральная рабочая зона для генерации текста заключения, просмотра аналитики и выпуска итогового документа.
+                </p>
+              </div>
+              <div class="summary-meta-strip" aria-label="Метаданные итогового заключения">
+                <div class="summary-meta-item">
+                  <span class="summary-meta-label">Объект</span>
+                  <span class="summary-meta-value" id="summaryParamProject">—</span>
+                </div>
+                <div class="summary-meta-item">
+                  <span class="summary-meta-label">Дата</span>
+                  <span class="summary-meta-value" id="summaryParamDate">—</span>
+                </div>
+                <div class="summary-meta-item summary-meta-item--engineer">
+                  <span class="summary-meta-label">Инженер</span>
+                  <span class="summary-meta-value" id="summaryParamEngineer">—</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="summary-text-controls">
+              <button id="btnSummaryGenerate" type="button" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                <span class="lg-btn__label">Сформировать</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+              <button id="btnSummaryCopy" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                <span class="lg-btn__label">Скопировать текст</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+              <button id="btnSummaryExportPdf" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                <span class="lg-btn__label">Экспорт PDF</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+              <button id="btnSummaryClear" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                <span class="lg-btn__label">Очистить</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+              <button id="btnSummaryDebug" class="btn-small btn-secondary lg-btn lg-btn--pill" style="display:none;">
+                <span class="lg-btn__label">DEBUG: Пересчитать итог</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+              <div class="summary-workspace-nav" aria-label="Навигация по слайдам заключения">
+                <button id="summaryWorkspacePrev" class="analytics-nav-btn summary-workspace-nav-btn" type="button" aria-label="Предыдущий слайд">‹</button>
+                <span id="summaryWorkspaceIndicator" class="analytics-page-indicator summary-workspace-indicator">1 / 1</span>
+                <button id="summaryWorkspaceNext" class="analytics-nav-btn summary-workspace-nav-btn" type="button" aria-label="Следующий слайд">›</button>
+              </div>
+            </div>
+            <div class="summary-workspace-carousel" id="summaryWorkspaceCarousel">
+              <div class="summary-workspace-track" id="summaryWorkspaceTrack">
+                <section class="summary-workspace-page summary-workspace-page--report">
+                  <div class="summary-stage-header">
+                    <div>
+                      <h4 class="summary-stage-title">Формирование заключения</h4>
+                      <p class="summary-stage-description">
+                        Основной рабочий лист для генерации итогового текста и выпуска документа.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="summary-text-content" id="summaryTextContent">
+                    <div class="summary-text-placeholder">
+                      Нет сохранённых проверок для формирования итога.
+                    </div>
+                  </div>
+                </section>
+
+                <section class="summary-workspace-page summary-workspace-page--analytics">
+                  <div class="summary-analytics-panel">
+                    <div class="summary-analytics-panel-header">
+                    <div>
+                        <h4 class="summary-analytics-title">Аналитика по объекту</h4>
+                    </div>
+                  </div>
+                    <div id="analyticsBlockContainer"></div>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Журнал -->
+

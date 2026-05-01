@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">BIM IFC screenshot placeholder</title>
+  <desc id="desc">Placeholder for a BIM and IFC viewer screenshot.</desc>
+  <rect width="1280" height="720" fill="#f5f7fb"/>
+  <rect x="64" y="56" width="1152" height="608" rx="12" fill="#ffffff" stroke="#d7dce2"/>
+  <rect x="96" y="96" width="760" height="528" rx="8" fill="#e9eef5" stroke="#cbd5e1"/>
+  <path d="M330 470 L520 360 L710 470 L520 580 Z" fill="#dbeafe" stroke="#2563eb" stroke-width="3"/>
+  <path d="M520 170 L710 280 L710 470 L520 360 Z" fill="#bfdbfe" stroke="#2563eb" stroke-width="3"/>
+  <path d="M330 280 L520 170 L520 360 L330 470 Z" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <rect x="888" y="96" width="256" height="528" rx="8" fill="#111827"/>
+  <rect x="920" y="140" width="192" height="18" rx="4" fill="#94a3b8"/>
+  <rect x="920" y="188" width="156" height="14" rx="4" fill="#64748b"/>
+  <rect x="920" y="224" width="180" height="14" rx="4" fill="#64748b"/>
+  <rect x="920" y="260" width="132" height="14" rx="4" fill="#64748b"/>
+  <text x="96" y="650" fill="#6b7280" font-family="Arial, sans-serif" font-size="22">Replace with anonymized BIM/IFC screenshot</text>
+  <text x="126" y="142" fill="#1f2937" font-family="Arial, sans-serif" font-size="32" font-weight="700">BIM / IFC</text>
+</svg>

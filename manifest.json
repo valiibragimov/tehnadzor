@@ -1,0 +1,43 @@
+{
+  "name": "Технадзор Онлайн",
+  "short_name": "Технадзор",
+  "description": "Система технического надзора строительных конструкций",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "ru",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Плита перекрытия",
+      "short_name": "Плита",
+      "url": "/index.html?tab=geo&construction=plate",
+      "icons": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%2360a5fa' width='96' height='96' rx='16'/><text x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='50'>📋</text></svg>", "sizes": "96x96"}]
+    },
+    {
+      "name": "База знаний",
+      "short_name": "База",
+      "url": "/index.html?tab=knowledge",
+      "icons": [{"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%2322c55e' width='96' height='96' rx='16'/><text x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='50'>📚</text></svg>", "sizes": "96x96"}]
+    }
+  ]
+}
+

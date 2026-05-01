@@ -1,0 +1,31 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": ".",
+    "headers": [
+      {
+        "source": "/dist/profile-feed.json",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=900"
+          },
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
+          }
+        ]
+      }
+    ],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "server/**",
+      "functions/**"
+    ]
+  }
+}

@@ -1,0 +1,343 @@
+
+  <!-- =======================
+       ПРИВЕТСТВЕННАЯ АНИМАЦИЯ
+       ======================= -->
+  <div id="welcomeAnimation" class="welcome-animation hidden">
+    <div class="welcome-content">
+      <div class="welcome-icon">
+        <svg viewBox="0 0 120 80" class="welcome-svg">
+          <!-- Кирпичи - построчно -->
+          <g class="brick-row row-1">
+            <rect x="5" y="5" width="30" height="15" class="brick" rx="2" />
+            <rect x="40" y="5" width="30" height="15" class="brick" rx="2" />
+            <rect x="75" y="5" width="30" height="15" class="brick" rx="2" />
+          </g>
+          
+          <g class="brick-row row-2">
+            <rect x="22.5" y="25" width="30" height="15" class="brick" rx="2" />
+            <rect x="57.5" y="25" width="30" height="15" class="brick" rx="2" />
+          </g>
+          
+          <g class="brick-row row-3">
+            <rect x="5" y="45" width="30" height="15" class="brick" rx="2" />
+            <rect x="40" y="45" width="30" height="15" class="brick" rx="2" />
+            <rect x="75" y="45" width="30" height="15" class="brick" rx="2" />
+          </g>
+          
+          <g class="brick-row row-4">
+            <rect x="22.5" y="65" width="30" height="15" class="brick" rx="2" />
+            <rect x="57.5" y="65" width="30" height="15" class="brick" rx="2" />
+          </g>
+        </svg>
+      </div>
+      <h1 class="welcome-title">С возвращением!</h1>
+            <p class="welcome-subtitle">SCOPE</p>
+    </div>
+  </div>
+
+  <!-- =======================
+       SCRIPTS
+       ======================= -->
+    <script src="dist/liquid-glass.js"></script>
+    <!-- Регистрация Service Worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+            .then((reg) => {
+              console.log('[App] Service Worker зарегистрирован');
+              reg.update();
+            })
+            .catch(err => console.warn('[App] Service Worker не удалось зарегистрировать:', err));
+        });
+      }
+    </script>
+    <script type="module" src="dist/app.js"></script>
+    <script>
+      (() => {
+        const header = document.querySelector("header");
+        if (!header) return;
+        header.classList.remove("header-hidden");
+      })();
+    </script>
+    <script>
+      (() => {
+        const wizardMap = new Map();
+
+        const setWizardStep = (wizard, step) => {
+          const steps = [...wizard.querySelectorAll("[data-step]")];
+          if (!steps.length) return;
+          const total = steps.length;
+          const nextStep = Math.min(Math.max(step, 1), total);
+
+          wizard.dataset.currentStep = String(nextStep);
+          steps.forEach((el) => {
+            const isActive = Number(el.dataset.step) === nextStep;
+            el.classList.toggle("is-active", isActive);
+          });
+
+          wizard.querySelectorAll("[data-wizard-step]").forEach((btn) => {
+            const isActive = Number(btn.dataset.wizardStep) === nextStep;
+            btn.classList.toggle("is-active", isActive);
+          });
+
+          const progress = wizard.querySelector("[data-wizard-progress]");
+          if (progress) {
+            progress.textContent = `Шаг ${nextStep} из ${total}`;
+          }
+
+          const prevBtn = wizard.querySelector("[data-wizard-prev]");
+          const nextBtn = wizard.querySelector("[data-wizard-next]");
+          if (prevBtn) prevBtn.disabled = nextStep === 1;
+          if (nextBtn) nextBtn.disabled = nextStep === total;
+        };
+
+        const initWizard = (wizard) => {
+          const steps = wizard.querySelectorAll("[data-step]");
+          if (!steps.length) return;
+
+          wizard.querySelectorAll("[data-wizard-step]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              setWizardStep(wizard, Number(btn.dataset.wizardStep || 1));
+            });
+          });
+
+          const prevBtn = wizard.querySelector("[data-wizard-prev]");
+          if (prevBtn) {
+            prevBtn.addEventListener("click", () => {
+              const current = Number(wizard.dataset.currentStep || 1);
+              setWizardStep(wizard, current - 1);
+            });
+          }
+
+          const nextBtn = wizard.querySelector("[data-wizard-next]");
+          if (nextBtn) {
+            nextBtn.addEventListener("click", () => {
+              const current = Number(wizard.dataset.currentStep || 1);
+              setWizardStep(wizard, current + 1);
+            });
+          }
+
+          setWizardStep(wizard, 1);
+          wizardMap.set(wizard, (step) => setWizardStep(wizard, step));
+        };
+
+        const initWizards = () => {
+          document.querySelectorAll("[data-wizard]").forEach(initWizard);
+        };
+
+        const mobileQuery = window.matchMedia("(max-width: 768px)");
+        let scrollLockCount = 0;
+        let scrollLockY = 0;
+
+        const setPageScrollLocked = (locked) => {
+          const html = document.documentElement;
+          const body = document.body;
+          if (!html || !body) return;
+
+          if (locked) {
+            scrollLockCount += 1;
+            if (scrollLockCount > 1) return;
+            scrollLockY = window.scrollY || window.pageYOffset || 0;
+            body.style.top = `-${scrollLockY}px`;
+            body.style.width = "100%";
+            html.classList.add("scope-scroll-locked");
+            body.classList.add("scope-scroll-locked");
+            return;
+          }
+
+          scrollLockCount = Math.max(0, scrollLockCount - 1);
+          if (scrollLockCount > 0) return;
+          html.classList.remove("scope-scroll-locked");
+          body.classList.remove("scope-scroll-locked");
+          body.style.top = "";
+          body.style.width = "";
+          window.scrollTo(0, scrollLockY);
+          scrollLockY = 0;
+        };
+
+        const syncSheetAria = () => {
+          const isMobile = mobileQuery.matches;
+          if (!isMobile) {
+            while (scrollLockCount > 0) setPageScrollLocked(false);
+          }
+          document.querySelectorAll(".wizard-sheet").forEach((sheet) => {
+            if (!isMobile) {
+              sheet.setAttribute("aria-hidden", "false");
+              return;
+            }
+            if (!sheet.classList.contains("is-open")) {
+              sheet.setAttribute("aria-hidden", "true");
+            }
+          });
+        };
+
+        const shouldLockPageForSheet = (sheet) => {
+          return !(document.body.classList.contains("home-page") && sheet?.classList.contains("wizard-sheet"));
+        };
+
+        const openSheet = (sheet) => {
+          if (!sheet) return;
+          const shouldLockPage = shouldLockPageForSheet(sheet);
+          if (!sheet.classList.contains("is-open") && mobileQuery.matches && shouldLockPage) {
+            setPageScrollLocked(true);
+            sheet.dataset.pageScrollLocked = "true";
+          } else {
+            delete sheet.dataset.pageScrollLocked;
+          }
+          sheet.classList.add("is-open");
+          sheet.setAttribute("aria-hidden", "false");
+          const sheetBody = sheet.querySelector(".wizard-sheet-body");
+          if (sheetBody) {
+            sheetBody.scrollTop = 0;
+          }
+          const focusEl = sheet.querySelector("input, select, textarea, button");
+          if (focusEl) focusEl.focus({ preventScroll: true });
+        };
+
+        const closeSheet = (sheet) => {
+          if (!sheet) return;
+          const wasOpen = sheet.classList.contains("is-open");
+          sheet.classList.remove("is-open");
+          sheet.setAttribute("aria-hidden", "true");
+          if (wasOpen && mobileQuery.matches && sheet.dataset.pageScrollLocked === "true") {
+            setPageScrollLocked(false);
+          }
+          delete sheet.dataset.pageScrollLocked;
+        };
+
+        const initSheets = () => {
+          document.querySelectorAll("[data-sheet-target]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const sheetId = btn.dataset.sheetTarget;
+              const sheet = sheetId ? document.getElementById(sheetId) : null;
+              openSheet(sheet);
+            });
+          });
+
+          document.querySelectorAll("[data-sheet-close]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const sheet = btn.closest(".wizard-sheet");
+              closeSheet(sheet);
+            });
+          });
+
+          document.addEventListener("keydown", (event) => {
+            if (event.key !== "Escape") return;
+            document.querySelectorAll(".wizard-sheet.is-open").forEach((sheet) => {
+              closeSheet(sheet);
+            });
+          });
+        };
+
+        const initTriggers = () => {
+          document.querySelectorAll("[data-trigger]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const target = btn.dataset.trigger;
+              const targetEl = target ? document.querySelector(target) : null;
+              if (targetEl) targetEl.click();
+            });
+          });
+        };
+
+        const resetWizardForTarget = (targetId) => {
+          const section = document.getElementById(targetId);
+          if (!section) return;
+          const wizard = section.querySelector("[data-wizard]");
+          if (!wizard) return;
+          const setStep = wizardMap.get(wizard);
+          if (setStep) setStep(1);
+        };
+
+        document.addEventListener("click", (event) => {
+          const tabTrigger = event.target.closest("[data-target], [data-tab]");
+          if (!tabTrigger) return;
+          const target = tabTrigger.dataset.target || tabTrigger.dataset.tab;
+          if (target) resetWizardForTarget(target);
+          document.querySelectorAll(".wizard-sheet.is-open").forEach((sheet) => {
+            closeSheet(sheet);
+          });
+        });
+
+        initWizards();
+        initSheets();
+        initTriggers();
+        const initHelpToggles = () => {
+          const popover = document.createElement("div");
+          popover.className = "help-popover";
+          popover.setAttribute("role", "dialog");
+          popover.setAttribute("aria-hidden", "true");
+          document.body.appendChild(popover);
+
+          let activeBtn = null;
+
+          const closePopover = () => {
+            if (activeBtn && mobileQuery.matches) {
+              setPageScrollLocked(false);
+            }
+            popover.classList.remove("is-open");
+            popover.setAttribute("aria-hidden", "true");
+            activeBtn = null;
+          };
+
+          const positionPopover = (btn) => {
+            const rect = btn.getBoundingClientRect();
+            const padding = 12;
+            const popoverRect = popover.getBoundingClientRect();
+            let top = rect.bottom + 10 + window.scrollY;
+            let left = rect.right - popoverRect.width + window.scrollX;
+
+            if (left < padding + window.scrollX) {
+              left = padding + window.scrollX;
+            }
+            if (left + popoverRect.width > window.scrollX + window.innerWidth - padding) {
+              left = window.scrollX + window.innerWidth - padding - popoverRect.width;
+            }
+            if (top + popoverRect.height > window.scrollY + window.innerHeight - padding) {
+              top = rect.top - popoverRect.height - 10 + window.scrollY;
+            }
+
+            popover.style.top = `${top}px`;
+            popover.style.left = `${left}px`;
+          };
+
+          document.addEventListener("click", (event) => {
+            const btn = event.target.closest(".module-help-toggle");
+            if (btn) {
+              event.stopPropagation();
+              const targetId = btn.dataset.helpTarget;
+              const target = targetId ? document.getElementById(targetId) : null;
+              if (!target) return;
+
+              if (activeBtn === btn) {
+                closePopover();
+                return;
+              }
+
+              if (!activeBtn && mobileQuery.matches) {
+                setPageScrollLocked(true);
+              }
+              popover.innerHTML = target.innerHTML;
+              popover.classList.add("is-open");
+              popover.setAttribute("aria-hidden", "false");
+              activeBtn = btn;
+              positionPopover(btn);
+              return;
+            }
+
+            if (popover.classList.contains("is-open")) closePopover();
+          });
+
+          window.addEventListener("resize", () => {
+            if (activeBtn) positionPopover(activeBtn);
+          });
+        };
+        initHelpToggles();
+        syncSheetAria();
+
+        mobileQuery.addEventListener("change", syncSheetAria);
+      })();
+    </script>
+</body>
+</html>
+

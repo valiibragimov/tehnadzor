@@ -1,0 +1,82 @@
+    <section class="section" id="journal">
+      <div id="sectionJournal">
+        <div class="module-title-row">
+          <h2>Журнал проверок</h2>
+          <button
+            type="button"
+            class="module-help-toggle journal-help-toggle"
+            data-help-target="journalHelpContent"
+            aria-label="Показать описание журнала"
+          ></button>
+        </div>
+        <p class="subtitle">
+          Автоматически сохраняет результаты всех проверок. Можно сохранить текущий журнал в объект или загрузить данные из сохранённой проверки.
+        </p>
+        <div class="module-help-content" id="journalHelpContent">
+          Автоматически сохраняет результаты всех проверок. Можно сохранить текущий журнал в объект или загрузить данные из сохранённой проверки.
+        </div>
+
+        <div class="row" style="margin-bottom: 10px;">
+          <div>
+            <div class="meta">Загрузить параметры конструкций из сохранённой проверки</div>
+            <select id="checkSelector" data-ignore-lock="1" class="check-select ui-select">
+              <option disabled selected>Нет сохранённых проверок</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row journal-toolbar">
+          <button id="btnJournalSaveToProject" class="btn-small btn-secondary lg-btn lg-btn--pill">
+            <span class="lg-btn__label">Сохранить журнал в объект</span>
+            <span class="lg-btn__glow" aria-hidden="true"></span>
+          </button>
+          <div class="journal-status-filters" id="journalStatusFilters" role="group" aria-label="Фильтр по статусу">
+            <button type="button" class="journal-filter-btn is-active" data-status-filter="all" aria-pressed="true">Все</button>
+            <button type="button" class="journal-filter-btn" data-status-filter="exceeded" aria-pressed="false">Нарушения</button>
+            <button type="button" class="journal-filter-btn" data-status-filter="ok" aria-pressed="false">В норме</button>
+          </div>
+          <div class="journal-mini-analytics" id="journalMiniAnalytics" aria-live="polite">
+            <span class="journal-mini-analytics-item">
+              Всего проверок:
+              <strong id="journalStatTotal">0</strong>
+            </span>
+            <span class="journal-mini-analytics-item">
+              Нарушений:
+              <strong id="journalStatExceeded">0</strong>
+            </span>
+          </div>
+          <div class="action-menu action-menu-right" data-menu="journal">
+            <button class="menu-trigger btn-small" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-journal">⋯</button>
+            <div class="menu-panel" id="menu-journal" role="menu">
+              <button id="btnJournalExportCsv" class="menu-item" role="menuitem">Экспорт CSV</button>
+              <button id="btnJournalExportJson" class="menu-item" role="menuitem">Экспорт JSON</button>
+              <button id="btnJournalImportJson" class="menu-item" role="menuitem">Импорт JSON</button>
+              <button id="btnJournalClear" class="menu-item menu-danger" role="menuitem">Очистить журнал</button>
+            </div>
+          </div>
+        </div>
+
+        <input type="file" id="journalFileInput" accept=".json" style="display:none" />
+
+        <div class="card journal-table-wrap" style="margin-top:12px; overflow:auto;">
+          <table id="journalTable" class="table">
+  <thead>
+    <tr>
+      <th>Время</th>
+      <th>Модуль</th>
+      <th>Конструкция</th>
+      <th>Узел/Контекст</th>
+      <th>Статус</th>
+      <th>Детали</th>
+      <th class="journal-actions-head">Действия</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- База знаний -->
+

@@ -1,0 +1,435 @@
+    <section class="section" id="geometry">
+  <div class="wizard" data-wizard="geometry" data-steps="2">
+    <div class="module-title-row">
+      <h2>
+        Контроль геометрических параметров
+      </h2>
+      <button type="button" class="module-help-toggle" data-help-target="geomHelpContent" aria-label="Показать описание"></button>
+    </div>
+    <div class="subtitle module-help-content" id="geomHelpContent" hidden>Проверка сечения/толщины и отклонений по вертикали.</div>
+
+    <div class="card geo-bim-card">
+      <div class="geo-bim-header">
+        <h3 class="card-title">BIM-элемент</h3>
+        <div class="geo-bim-filter">
+          <label for="geomBimTypeFilter">Тип BIM-элемента</label>
+          <select id="geomBimTypeFilter" class="ui-select">
+            <option value="all">Все типы</option>
+          </select>
+        </div>
+        <div class="geo-bim-filter">
+          <label for="geomBimAxesFilter">Фильтр по осям</label>
+          <select id="geomBimAxesFilter" class="ui-select">
+            <option value="all">Все оси</option>
+          </select>
+        </div>
+        <div class="geo-bim-filter geo-bim-filter--search">
+          <label for="geomBimSearchInput">Поиск по BIM</label>
+          <input
+            type="search"
+            id="geomBimSearchInput"
+            placeholder="Марка, оси, этаж, GUID или ID элемента"
+            autocomplete="off"
+          />
+        </div>
+        <div class="bim-viewer-action-stack">
+          <button type="button" id="btnClearGeomBimSelection" class="btn-small btn-secondary lg-btn lg-btn--pill bim-import-action">
+            <span class="lg-btn__label">Сбросить BIM</span>
+            <span class="lg-btn__glow" aria-hidden="true"></span>
+          </button>
+          <div class="bim-viewer-launcher-slot" data-bim-viewer-slot="geometry">
+            <div class="bim-viewer-launcher bim-viewer-launcher--placeholder" aria-hidden="true">
+              <button
+                type="button"
+                class="btn-small btn-secondary lg-btn lg-btn--pill bim-viewer-launcher__button"
+                tabindex="-1"
+                title="Открыть BIM-viewer"
+              >
+                <span class="lg-btn__label">Открыть BIM-viewer</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="geo-bim-mainrow mt8">
+        <div>
+          <label>Выбор элемента из BIM</label>
+          <select id="geomBimElementSelect" class="ui-select">
+            <option value="">Ручной ввод без BIM</option>
+          </select>
+        </div>
+        <div class="geo-bim-status-field" hidden>
+          <label>Статус BIM-привязки</label>
+          <div id="geomBimElementStatus" class="subtitle geo-bim-status" hidden data-empty="1"></div>
+        </div>
+      </div>
+      <div id="geomBimSourceCard" class="geo-bim-source bim-panel-redundant mt8" hidden>
+        <div class="geo-bim-source__header">
+          <div class="geo-bim-source__heading">
+            <div class="geo-bim-source__eyebrow">Источник BIM</div>
+            <div id="geomBimSourceTitle" class="geo-bim-source__title">BIM-элемент не выбран</div>
+          </div>
+          <div id="geomBimSourceState" class="geo-bim-source__state"></div>
+        </div>
+        <div id="geomBimSourceMeta" class="geo-bim-source__meta"></div>
+        <div class="geo-bim-source__grid mt8">
+          <div class="geo-bim-source__chip">
+            <span>Тип конструкции</span>
+            <strong id="geomBimAppliedType">Нет данных</strong>
+          </div>
+          <div class="geo-bim-source__chip">
+            <span>Марка</span>
+            <strong id="geomBimAppliedMark">Нет данных</strong>
+          </div>
+          <div class="geo-bim-source__chip">
+            <span>Оси</span>
+            <strong id="geomBimAppliedAxes">Нет данных</strong>
+          </div>
+          <div class="geo-bim-source__chip">
+            <span>Геом. размеры из BIM</span>
+            <strong id="geomBimAppliedGeometry">Пока недоступны</strong>
+          </div>
+          <div class="geo-bim-source__chip">
+            <span>Проектная X</span>
+            <strong id="geomBimAppliedProjX">Нет данных</strong>
+          </div>
+          <div class="geo-bim-source__chip">
+            <span>Проектная Y / H</span>
+            <strong id="geomBimAppliedProjYH">Нет данных</strong>
+          </div>
+        </div>
+        <div id="geomBimSourceHint" class="geo-bim-source__hint">
+          Из текущего BIM-MVP в геометрию надёжно приходят тип, марка и BIM-оси. Размеры, толщина, плоскостность и параметры ступеней пока вводятся вручную.
+        </div>
+      </div>
+      <div class="geo-bim-meta-row bim-panel-redundant mt8">
+        <div>
+          <label>Марка BIM</label>
+          <input type="text" id="geomBimMark" placeholder="Подставляется из BIM при выборе элемента" />
+        </div>
+        <div>
+          <label>Оси BIM</label>
+          <input type="text" id="geomBimAxes" placeholder="Подставляются из BIM при наличии" />
+        </div>
+      </div>
+    </div>
+    <div class="wizard-header">
+      <div class="wizard-progress" data-wizard-progress>Шаг 1 из 2</div>
+      <div class="wizard-steps-nav" role="tablist" aria-label="Шаги геометрии">
+        <button type="button" class="wizard-step-btn is-active btn-small btn-secondary lg-btn lg-btn--pill" data-wizard-step="1">
+          <span class="lg-btn__label">Проверки</span>
+          <span class="lg-btn__glow" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="wizard-step-btn btn-small btn-secondary lg-btn lg-btn--pill" data-wizard-step="2">
+          <span class="lg-btn__label">Параметры</span>
+          <span class="lg-btn__glow" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="split wizard-steps">
+      <div class="col wizard-step" data-step="1">
+        <div class="card">
+          <h3 class="card-title">Сохранённые проверки геометрии</h3>
+          <div class="nodes" id="geomChecksList"></div>
+          <div class="caption">
+            Выберите проверку, чтобы подставить значения в форму справа.
+          </div>
+          
+          <!-- Кнопки управления -->
+          <div class="actions">
+            <div class="row">
+              <button id="btnGeom" class="btn-primary lg-btn lg-btn--pill wizard-hide-mobile" data-ignore-lock="1">
+                <span class="lg-btn__label">Проверить и сохранить</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+            </div>
+            <div class="row">
+              <button id="btnClearGeomForm" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                <span class="lg-btn__label">Очистить форму</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+            </div>
+            <div class="row">
+              <button id="btnClearGeomChecks" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                <span class="lg-btn__label">Очистить проверки</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+            </div>
+            <button id="btnSaveGeomCheck" class="btn-small" style="display:none;">💾 Сохранить проверку</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card wizard-step" data-step="2">
+        <div id="geomManualAssistNote" class="geo-manual-note" hidden></div>
+        <div id="geomBehaviorMessage" class="geo-manual-note" hidden></div>
+        <div id="geomFormworkFields" style="display: none;">
+          <div class="grid-2">
+            <div>
+              <label for="geomFormworkType">Тип опалубки</label>
+              <select id="geomFormworkType" class="ui-select">
+                <option value="temporary">Временная</option>
+                <option value="permanent">Несъёмная</option>
+              </select>
+            </div>
+            <div>
+              <label for="geomFormworkFloor">Этаж</label>
+              <input type="text" id="geomFormworkFloor" placeholder="Напр.: 1, 2, 3..." />
+            </div>
+            <div>
+              <label for="geomFormworkElementName">Наименование элемента</label>
+              <input type="text" id="geomFormworkElementName" placeholder="Напр.: опалубка стены Ст-1" />
+            </div>
+            <div>
+              <label for="geomFormworkArea">Участок контроля / захватка</label>
+              <input type="text" id="geomFormworkArea" placeholder="Напр.: захватка 2" />
+            </div>
+            <div>
+              <label for="geomFormworkProjHeight">Проектная высота, мм</label>
+              <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="geomFormworkProjHeight" placeholder="мм" />
+            </div>
+            <div>
+              <label for="geomFormworkFactHeight">Фактическая высота, мм</label>
+              <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="geomFormworkFactHeight" placeholder="мм" />
+            </div>
+            <div>
+              <label for="geomFormworkProjWidth">Проектная ширина, мм</label>
+              <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="geomFormworkProjWidth" placeholder="мм" />
+            </div>
+            <div>
+              <label for="geomFormworkFactWidth">Фактическая ширина, мм</label>
+              <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="geomFormworkFactWidth" placeholder="мм" />
+            </div>
+            <div>
+              <label for="geomFormworkProjThickness">Проектная толщина, мм</label>
+              <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="geomFormworkProjThickness" placeholder="мм" />
+            </div>
+            <div>
+              <label for="geomFormworkFactThickness">Фактическая толщина, мм</label>
+              <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="geomFormworkFactThickness" placeholder="мм" />
+            </div>
+            <div>
+              <label for="geomFormworkVerticalDeviation">Отклонение от вертикали, мм</label>
+              <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="geomFormworkVerticalDeviation" placeholder="мм" />
+            </div>
+            <div>
+              <label for="geomFormworkVerticalTolerance">Допуск по вертикали, мм</label>
+              <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="geomFormworkVerticalTolerance" placeholder="мм" />
+            </div>
+            <div>
+              <label for="geomFormworkBasis">Класс опалубки / основание</label>
+              <select id="geomFormworkBasis" class="ui-select">
+                <option value="project">По проекту</option>
+                <option value="ppr">По ППР</option>
+                <option value="sp_gost">По СП/ГОСТ</option>
+              </select>
+            </div>
+            <div style="grid-column: 1 / -1;">
+              <label for="geomFormworkNote">Примечание</label>
+              <textarea id="geomFormworkNote" rows="3" placeholder="Краткое примечание по опалубке"></textarea>
+            </div>
+          </div>
+        </div>
+        <div id="geomFloorField">
+          <label>Этаж </label>
+          <input type="text" id="geomFloor" placeholder="Напр.: 1, 2, 3..." required />
+        </div>
+        
+        <!-- Поля для плиты: оси -->
+        <div id="geomPlateFields" style="display: none;">
+          <hr class="sep mt8" />
+          <div id="geomStripAxisModeField" class="mt8" style="display: none;">
+            <label>Режим осей ленточного фундамента</label>
+            <select id="geomStripAxisMode" class="ui-select">
+              <option value="letter_numbers">Две буквенные + одна цифровая</option>
+              <option value="number_letters">Две цифровые + одна буквенная</option>
+            </select>
+          </div>
+          <div class="grid-4 mt8">
+            <div id="geomAxisLetterFromField">
+              <label id="geomAxisLetterFromLabel">От буквенной оси</label>
+              <select id="geomAxisLetterFrom" class="ui-select"></select>
+            </div>
+            <div id="geomAxisLetterToField">
+              <label id="geomAxisLetterToLabel">До буквенной оси</label>
+              <select id="geomAxisLetterTo" class="ui-select"></select>
+            </div>
+            <div id="geomAxisNumberFromField">
+              <label id="geomAxisNumberFromLabel">От цифровой оси</label>
+              <select id="geomAxisNumberFrom" class="ui-select"></select>
+            </div>
+            <div id="geomAxisNumberToField">
+              <label id="geomAxisNumberToLabel">До цифровой оси</label>
+              <select id="geomAxisNumberTo" class="ui-select"></select>
+            </div>
+          </div>
+          <div class="mt8">
+            <label>Местоположение</label>
+            <input type="text" id="geomLocation" placeholder="Автоматически: В-Г, 6-7" readonly disabled />
+          </div>
+          <hr class="sep mt8" />
+        </div>
+
+        <div class="wizard-sheet-trigger-row mt8" id="geomSheetTriggerRow">
+          <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="geomElementsSheet">Элементы (колонны, стены, лестницы, балки)</button>
+          <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="geomNumbersSheet">Размеры и отклонения</button>
+        </div>
+
+        <div class="wizard-sheet" id="geomElementsSheet" data-sheet aria-hidden="true">
+          <div class="wizard-sheet-overlay" data-sheet-close></div>
+          <div class="wizard-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="geomElementsSheetTitle">
+            <div class="wizard-sheet-header">
+              <h3 id="geomElementsSheetTitle">Элементы конструкции</h3>
+              <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
+            </div>
+            <div class="wizard-sheet-body">
+              <!-- Поля для колонны: маркировка, размеры и вертикаль -->
+              <div id="geomColumnFields" style="display: none;">
+                <hr class="sep mt8" />
+                <div class="add-btn-row">
+                  <button type="button" id="btnAddGeomColumn" class="btn-small btn-secondary lg-btn lg-btn--pill lg-btn--compact">
+                    <span class="lg-btn__label">+ Добавить колонну</span>
+                    <span class="lg-btn__glow" aria-hidden="true"></span>
+                  </button>
+                </div>
+                <div id="geomColumnsList" class="mt8 scroll-list"></div>
+              </div>
+              
+              <!-- Поля для стены: привязка по осям, толщина и вертикаль -->
+              <div id="geomWallFields" style="display: none;">
+                <hr class="sep mt8" />
+                <div class="add-btn-row add-btn-row--between">
+                  <label><b id="geomWallsLimitLabel">Стены</b></label>
+                  <button type="button" id="btnAddGeomWall" class="btn-small btn-secondary lg-btn lg-btn--pill lg-btn--compact">
+                    <span class="lg-btn__label">+ Добавить стену</span>
+                    <span class="lg-btn__glow" aria-hidden="true"></span>
+                  </button>
+                </div>
+                <div id="geomWallsList" class="mt8 scroll-list"></div>
+              </div>
+              
+              <!-- Поля для лестницы: привязка по осям, маркировка, ступени -->
+              <div id="geomStairFields" style="display: none;">
+                <hr class="sep mt8" />
+                <div class="mt8" id="geomStairNameField">
+                  <label>Наименование лестницы</label>
+                  <input type="text" id="geomStairName" placeholder="Лестница Л3" />
+                </div>
+                <div class="add-btn-row mt8">
+                  <button type="button" id="btnAddGeomStair" class="btn-small btn-secondary lg-btn lg-btn--pill lg-btn--compact">
+                    <span class="lg-btn__label">+ Добавить лестницу</span>
+                    <span class="lg-btn__glow" aria-hidden="true"></span>
+                  </button>
+                </div>
+                <div id="geomStairsList" class="mt8 scroll-list"></div>
+              </div>
+              
+              <!-- Поля для балки: маркировка, ширина и высота -->
+              <div id="geomBeamFields" style="display: none;">
+                <hr class="sep mt8" />
+                <div class="add-btn-row">
+                  <button type="button" id="btnAddGeomBeam" class="btn-small btn-secondary lg-btn lg-btn--pill lg-btn--compact">
+                    <span class="lg-btn__label">+ Добавить балку</span>
+                    <span class="lg-btn__glow" aria-hidden="true"></span>
+                  </button>
+                </div>
+                <div id="geomBeamsList" class="mt8 scroll-list"></div>
+              </div>
+            </div>
+            <div class="wizard-sheet-footer">
+              <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="wizard-sheet" id="geomNumbersSheet" data-sheet aria-hidden="true">
+          <div class="wizard-sheet-overlay" data-sheet-close></div>
+          <div class="wizard-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="geomNumbersSheetTitle">
+            <div class="wizard-sheet-header">
+              <h3 id="geomNumbersSheetTitle">Размеры и отклонения</h3>
+              <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
+            </div>
+            <div class="wizard-sheet-body">
+              <!-- Поля для плиты: толщина и плоскостность -->
+              <div id="geomPlateThickFields" style="display: none;">
+                <div class="grid-2">
+                  <div>
+                    <label id="geomProjPlateHeightLabel">Проектная толщина плиты</label>
+                    <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="projPlateHeight" placeholder="мм" />
+                  </div>
+                  <div>
+                    <label id="geomFactPlateHeightLabel">Фактическая толщина плиты</label>
+                    <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="factPlateHeight" placeholder="мм" />
+                  </div>
+                  <div id="geomProjOpeningSizesField">
+                    <div class="field-label-row">
+                      <label for="geomPlateOpeningSizes" id="geomProjOpeningSizesLabel">Проектные размеры проёмов</label>
+                      <button type="button" class="module-help-toggle" data-help-target="plateOpeningSizesHelpContent" aria-label="Как заполнять размеры проёмов"></button>
+                    </div>
+                    <input type="text" id="geomPlateOpeningSizes" placeholder="Ш×В, Ш×В" />
+                  </div>
+                  <div id="geomFactOpeningSizesField">
+                    <label for="geomPlateFactOpeningSizes" id="geomFactOpeningSizesLabel">Фактические размеры проёмов</label>
+                    <input type="text" id="geomPlateFactOpeningSizes" placeholder="Ш×В, Ш×В" />
+                  </div>
+                  <div></div>
+                  <div id="geomPlateFlatnessValueField">
+                    <div class="field-label-row">
+                      <label for="factPlateFlatness" id="geomPlateFlatnessLabel">Фактическая плоскостность плиты</label>
+                      <button type="button" class="module-help-toggle" data-help-target="factPlateFlatnessHelpContent" aria-label="Как проверять плоскостность плиты"></button>
+                    </div>
+                    <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="factPlateFlatness" placeholder="мм" />
+                  </div>
+                </div>
+                <div class="module-help-content" id="factPlateFlatnessHelpContent" hidden>
+                  Проверьте плиту двухметровой рейкой и возьмите максимальный зазор между рейкой и поверхностью.
+                </div>
+                <div class="module-help-content" id="plateOpeningSizesHelpContent" hidden>
+                  Указывайте каждый проём в формате Ш×В через запятую. Порядок проёмов в проекте и факте должен совпадать.
+                </div>
+              </div>
+                
+              <!-- Общие поля (скрыты по умолчанию) -->
+              <div id="geomCommonFields" style="display: none;">
+                <hr class="sep mt8" />
+                <div class="grid-2">
+                  <div>
+                      <label id="geomProjThickLabel">Проектная толщина элемента</label>
+                    <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="projThick" placeholder="мм" />
+                  </div>
+                  <div>
+                      <label id="geomFactThickLabel">Фактическая толщина элемента</label>
+                    <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="factThick" placeholder="мм" />
+                  </div>
+                  <div id="geomVertDevField">
+                      <label id="geomVertDevLabel">Отклонение по вертикали</label>
+                    <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="vertDev" placeholder="мм" />
+                  </div>
+                  <div id="geomNoteField" style="display: none;">
+                    <label>Примечание</label>
+                    <textarea id="geomNote" rows="3" placeholder="Краткое примечание по опалубке"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="wizard-sheet-footer">
+              <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="geometryResult" class="result"></div>
+      </div>
+    </div>
+
+    <div class="wizard-footer" data-wizard-footer>
+      <button type="button" class="btn-primary lg-btn lg-btn--pill wizard-primary-btn" data-trigger="#btnGeom">Сохранить</button>
+    </div>
+  </div>
+</section>
+
+
+    <!-- Прочность -->
+

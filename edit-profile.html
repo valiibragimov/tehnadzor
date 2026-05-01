@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script>
+    (function () {
+      const theme = localStorage.getItem("app_theme") || "dark";
+      const normalized = theme === "light" ? "light" : "dark";
+      const className = normalized === "light" ? "theme-light" : "theme-dark";
+
+      window.__appThemeClass = className;
+      document.documentElement.classList.add(className);
+      document.documentElement.style.colorScheme = normalized;
+
+      document.addEventListener(
+        "DOMContentLoaded",
+        () => {
+          document.body.classList.add(className);
+        },
+        { once: true }
+      );
+    })();
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edit Profile — SCOPE</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="shortcut icon" href="favicon.ico">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="liquid-glass.css?v=1">
+<link rel="stylesheet" href="style.css?v=63">
+  <style>
+    body.profile-edit-page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      --profile-shell-width: min(1250px, calc(100vw - 40px));
+      --profile-header-height: 86.49px;
+      --profile-footer-height: 132.5px;
+      --account-panel-min-height: 720px;
+      --account-column-width: min(760px, 100%);
+      --account-bg: linear-gradient(180deg, rgba(19, 26, 38, 0.96), rgba(12, 18, 28, 0.94));
+      --account-border: rgba(117, 142, 179, 0.24);
+      --account-shadow: 0 28px 56px rgba(2, 6, 23, 0.34);
+      --account-text: #f8fafc;
+      --account-muted: rgba(190, 204, 224, 0.72);
+      --account-input-bg: #313b4c;
+      --account-input-border: rgba(119, 145, 182, 0.22);
+      --account-input-text: #ffffff;
+      --account-input-placeholder: rgba(198, 214, 236, 0.46);
+      --account-line: rgba(117, 142, 179, 0.14);
+      --account-accent: #4e8cf0;
+      --account-accent-strong: #2f6fda;
+      --account-success: #12b321;
+      --account-success-strong: #0d9918;
+    }
+
+    body.profile-edit-page > header {
+      width: 100% !important;
+      max-width: none !important;
+      min-height: var(--profile-header-height);
+      margin: 0 !important;
+      padding: 20px max(20px, calc((100vw - var(--profile-shell-width)) / 2)) 18px !important;
+      border-bottom: none !important;
+      box-shadow: none !important;
+      box-sizing: border-box;
+    }
+
+    body.profile-edit-page > header .brand {
+      min-width: 0;
+      gap: 14px;
+    }
+
+    body.profile-edit-page > header .brand-icon {
+      width: 28px;
+      height: 28px;
+    }
+
+    body.profile-edit-page > header .brand h1 {
+      font-size: 22px;
+    }
+
+    body.profile-edit-page > header .header-actions {
+      margin-left: auto;
+      margin-right: 8px;
+      gap: 8px;
+    }
+
+    .profile-edit-main {
+      flex: 1 0 auto;
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 28px 20px 64px;
+    }
+
+    body.profile-edit-page .site-footer {
+      width: 100%;
+      max-width: none;
+      min-height: var(--profile-footer-height);
+      margin: auto 0 0 !important;
+      padding: 30px max(20px, calc((100vw - var(--profile-shell-width)) / 2)) 26px;
+      display: flex !important;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px 24px;
+      flex-wrap: wrap;
+      box-sizing: border-box;
+    }
+
+    .account-settings-shell {
+      width: var(--profile-shell-width);
+      max-width: var(--profile-shell-width);
+      margin: 0 auto;
+      display: grid;
+      gap: 24px;
+      justify-items: start;
+    }
+
+    .account-settings-header {
+      display: grid;
+      gap: 0;
+      width: var(--account-column-width);
+    }
+
+    .account-settings-title {
+      margin: 0;
+      font-size: clamp(1.7rem, 2vw, 2.15rem);
+      line-height: 1.08;
+      font-weight: 600;
+      color: var(--account-text);
+    }
+
+    .account-section-nav {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+      width: var(--account-column-width);
+    }
+
+    .account-section-link {
+      display: inline;
+      min-height: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      filter: none;
+      color: var(--account-muted);
+      font-size: 0.92rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-decoration: none;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      transform: none;
+      transition: none;
+    }
+
+    .account-section-link:hover,
+    .account-section-link:focus-visible {
+      color: var(--account-muted);
+      outline: none;
+      background: transparent;
+      box-shadow: none;
+      transform: none;
+      filter: none;
+    }
+
+    .account-section-link span {
+      position: relative;
+      display: inline-block;
+      padding: 0.5rem 0;
+    }
+
+    .account-section-link.is-active {
+      color: var(--account-text);
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .account-section-link.is-active span::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0.1rem;
+      border-bottom: 2px dashed currentColor;
+      opacity: 1;
+    }
+
+    .account-card {
+      position: relative;
+      width: var(--account-column-width);
+      padding: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      overflow: visible;
+      scroll-margin-top: 124px;
+    }
+
+    .account-panels-stage {
+      width: var(--account-column-width);
+      min-height: var(--account-panel-min-height);
+      overflow-anchor: none;
+    }
+
+    .account-card::before {
+      content: none;
+    }
+
+    .account-card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .account-card-header {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 24px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--account-line);
+    }
+
+    .account-card-title {
+      margin: 0;
+      font-size: 1.85rem;
+      line-height: 1.06;
+      font-weight: 500;
+      color: var(--account-text);
+    }
+
+    .account-card-copy {
+      display: none;
+    }
+
+    .account-profile-form,
+    .account-auth-form {
+      display: grid;
+      gap: 24px;
+    }
+
+    .account-avatar-row {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      padding-bottom: 26px;
+      border-bottom: 1px solid var(--account-line);
+    }
+
+    .account-avatar-trigger {
+      position: relative;
+      width: 110px;
+      height: 110px;
+      flex: 0 0 110px;
+      border-radius: 50%;
+      border: 1px solid rgba(126, 154, 194, 0.28);
+      background:
+        linear-gradient(180deg, rgba(61, 73, 93, 0.88), rgba(34, 43, 58, 0.94));
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.09),
+        0 16px 28px rgba(2, 6, 23, 0.22);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .account-avatar-trigger.is-empty::before {
+      content: attr(data-initials);
+      font-size: 1.55rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: rgba(237, 245, 255, 0.9);
+    }
+
+    .account-avatar-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: 50%;
+    }
+
+    .account-avatar-overlay {
+      display: none;
+    }
+
+    .account-avatar-copy {
+      display: grid;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .account-avatar-title {
+      margin: 0;
+      color: var(--account-text);
+      font-size: 1.08rem;
+      font-weight: 600;
+    }
+
+    .account-avatar-meta {
+      display: none;
+    }
+
+    .account-avatar-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    #accountAvatarButton {
+      min-height: 30px;
+      padding: 0 12px;
+      font-size: 0.74rem;
+      letter-spacing: 0.08em;
+    }
+
+    .account-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px 14px;
+    }
+
+    .account-field {
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .account-field--full {
+      grid-column: 1 / -1;
+    }
+
+    .account-label {
+      margin: 0;
+      color: var(--account-text);
+      font-size: 0.94rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .account-input {
+      width: 100%;
+      min-height: 50px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--account-input-border);
+      background: var(--account-input-bg);
+      color: var(--account-input-text);
+      font: inherit;
+      font-size: 1rem;
+      line-height: 1.2;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+    }
+
+    .account-input::placeholder {
+      color: var(--account-input-placeholder);
+    }
+
+    .account-input:hover:not(:focus):not(:disabled) {
+      border-color: rgba(130, 157, 198, 0.38);
+    }
+
+    .account-input:focus {
+      outline: none;
+      border-color: rgba(113, 164, 248, 0.7);
+      box-shadow: 0 0 0 4px rgba(78, 140, 240, 0.15);
+    }
+
+    .account-input:disabled {
+      opacity: 0.7;
+      cursor: wait;
+    }
+
+    .account-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      padding-top: 4px;
+    }
+
+    .account-action-btn {
+      position: relative;
+      min-height: 34px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 6px;
+      color: #ffffff;
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+    }
+
+    .account-action-btn:hover,
+    .account-action-btn:focus-visible {
+      transform: translateY(-1px);
+      filter: brightness(1.04);
+      outline: none;
+    }
+
+    .account-action-btn:active {
+      transform: translateY(0);
+    }
+
+    .account-action-btn:disabled {
+      cursor: wait;
+      opacity: 0.76;
+      transform: none;
+      filter: none;
+    }
+
+    .account-action-btn--profile {
+      background: linear-gradient(180deg, var(--account-accent), var(--account-accent-strong));
+      box-shadow: 0 14px 26px rgba(47, 111, 218, 0.24);
+    }
+
+    .account-action-btn--auth {
+      background: linear-gradient(180deg, var(--account-success), var(--account-success-strong));
+      box-shadow: 0 14px 26px rgba(13, 153, 24, 0.24);
+    }
+
+    .account-status {
+      min-height: 22px;
+      color: var(--account-muted);
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+
+    .account-status[data-tone="success"] {
+      color: #62e07d;
+    }
+
+    .account-status[data-tone="error"] {
+      color: #f87171;
+    }
+
+    .account-status[data-tone="warning"] {
+      color: #fbbf24;
+    }
+
+    .account-helper {
+      min-height: 20px;
+      color: var(--account-muted);
+      font-size: 0.78rem;
+      line-height: 1.4;
+    }
+
+    .account-helper[data-tone="success"] {
+      color: #62e07d;
+    }
+
+    .account-helper[data-tone="error"] {
+      color: #f87171;
+    }
+
+    .account-helper[data-tone="warning"] {
+      color: #fbbf24;
+    }
+
+    .account-hidden-file {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    body.theme-light.profile-edit-page {
+      --account-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 248, 253, 0.98));
+      --account-border: rgba(148, 163, 184, 0.38);
+      --account-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+      --account-text: #000000;
+      --account-muted: rgba(15, 23, 42, 0.66);
+      --account-input-bg: #e9eef5;
+      --account-input-border: rgba(148, 163, 184, 0.44);
+      --account-input-text: #000000;
+      --account-input-placeholder: rgba(15, 23, 42, 0.42);
+      --account-line: rgba(148, 163, 184, 0.28);
+    }
+
+    body.theme-light .account-avatar-trigger {
+      background: linear-gradient(180deg, #eef3f9, #dfe8f3);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96), 0 12px 24px rgba(15, 23, 42, 0.12);
+    }
+
+    body.theme-light .account-section-link {
+      color: #000000 !important;
+      background: transparent !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      filter: none !important;
+      transform: none !important;
+      outline: none !important;
+    }
+
+    body.theme-light .account-section-link:hover,
+    body.theme-light .account-section-link:focus-visible {
+      color: #000000 !important;
+      background: transparent !important;
+      border: 0 !important;
+      box-shadow: none !important;
+      filter: none !important;
+      transform: none !important;
+      outline: none !important;
+    }
+
+    body.theme-light .account-section-link.is-active {
+      color: #000000 !important;
+      background: transparent !important;
+      border: 0 !important;
+      box-shadow: none !important;
+      filter: none !important;
+      transform: none !important;
+    }
+
+    body.theme-light .account-section-link span {
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+
+    body.theme-light .account-avatar-trigger.is-empty::before {
+      color: #0f172a;
+    }
+
+    body.theme-light .account-avatar-overlay {
+      background: rgba(255, 255, 255, 0.88);
+      border-color: rgba(148, 163, 184, 0.4);
+      color: #0f172a;
+    }
+
+    @media (max-width: 768px) {
+      .profile-edit-main {
+        padding: 20px 16px 40px;
+      }
+
+      body.profile-edit-page .site-footer {
+        min-height: 0;
+        padding: 18px 14px 22px;
+      }
+
+      .account-card {
+        padding: 0;
+      }
+
+      .account-avatar-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .account-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .account-field--full {
+        grid-column: auto;
+      }
+    }
+
+    @media (max-width: 1180px) {
+      body.profile-edit-page {
+        --profile-shell-width: min(100%, calc(100vw - 40px));
+      }
+
+      body.profile-edit-page > header {
+        width: 100% !important;
+        min-height: auto;
+        padding: 16px 20px 14px !important;
+      }
+    }
+
+    @media (max-width: 960px) {
+      body.profile-edit-page {
+        --account-column-width: 100%;
+        --account-panel-min-height: 0;
+      }
+
+      .account-settings-shell {
+        width: 100%;
+        max-width: 100%;
+        gap: 18px;
+      }
+
+      body.profile-edit-page .site-footer {
+        padding: 20px 16px 24px;
+        width: 100%;
+        max-width: 100%;
+        min-height: 0;
+      }
+
+      body.profile-edit-page .site-footer__copy {
+        margin-left: 0;
+        width: 100%;
+        white-space: normal;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body class="profile-page profile-edit-page">
+  <script>
+    document.body.classList.add(window.__appThemeClass || "theme-dark");
+  </script>
+  <header>
+    <a class="brand" href="index.html" aria-label="На главную">
+      <svg width="24" height="24" viewBox="0 0 40 30" class="brand-icon">
+        <rect x="2" y="2" width="12" height="6" class="brand-brick brand-brick-1" rx="1" />
+        <rect x="16" y="2" width="12" height="6" class="brand-brick brand-brick-2" rx="1" />
+        <rect x="30" y="2" width="8" height="6" class="brand-brick brand-brick-3" rx="1" />
+        <rect x="9" y="10" width="12" height="6" class="brand-brick brand-brick-4" rx="1" />
+        <rect x="23" y="10" width="12" height="6" class="brand-brick brand-brick-5" rx="1" />
+        <rect x="2" y="18" width="12" height="6" class="brand-brick brand-brick-6" rx="1" />
+        <rect x="16" y="18" width="12" height="6" class="brand-brick brand-brick-7" rx="1" />
+        <rect x="30" y="18" width="8" height="6" class="brand-brick brand-brick-8" rx="1" />
+        <rect x="9" y="26" width="12" height="4" class="brand-brick brand-brick-9" rx="1" />
+        <rect x="23" y="26" width="12" height="4" class="brand-brick brand-brick-10" rx="1" />
+      </svg>
+      <h1>SCOPE</h1>
+    </a>
+
+    <div class="header-actions">
+      <button id="themeToggleBtn" class="header-icon-btn theme-toggle-btn" aria-label="Сменить тему" title="Сменить тему">
+        <span class="theme-toggle-icon"></span>
+      </button>
+      <a href="profile.html" class="header-icon-btn" aria-label="Вернуться в профиль" title="Вернуться в профиль">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </a>
+    </div>
+  </header>
+
+  <main class="profile-main profile-edit-main">
+    <div class="profile-shell account-settings-shell">
+      <section class="account-settings-header" aria-labelledby="accountSettingsTitle">
+        <h2 id="accountSettingsTitle" class="account-settings-title">Account Settings</h2>
+      </section>
+
+      <nav class="account-section-nav" aria-label="Account sections">
+        <button type="button" class="account-section-link is-active" data-account-tab="profile">
+          <span>Profile</span>
+        </button>
+        <button type="button" class="account-section-link" data-account-tab="auth">
+          <span>Auth</span>
+        </button>
+      </nav>
+
+      <div class="account-panels-stage">
+        <section class="account-card" data-account-panel="profile" aria-labelledby="profileSettingsTitle">
+          <div class="account-card-header">
+            <h3 id="profileSettingsTitle" class="account-card-title">Profile</h3>
+          </div>
+
+          <form id="profileSettingsForm" class="account-profile-form" novalidate>
+            <div class="account-avatar-row">
+              <div
+                id="accountAvatarTrigger"
+                class="account-avatar-trigger is-empty"
+                data-initials="SV"
+              >
+                <img id="accountAvatarImage" class="account-avatar-image" alt="Avatar preview" hidden />
+                <span class="account-avatar-overlay">Change</span>
+              </div>
+              <input id="accountAvatarInput" class="account-hidden-file" type="file" accept="image/*" />
+
+              <div class="account-avatar-copy">
+                <h4 class="account-avatar-title">Avatar</h4>
+                <div class="account-avatar-actions">
+                  <button type="button" id="accountAvatarButton" class="account-action-btn account-action-btn--profile">Change avatar</button>
+                </div>
+                <div id="avatarHelperText" class="account-helper" aria-live="polite"></div>
+              </div>
+            </div>
+
+            <div class="account-grid">
+              <label class="account-field">
+                <span class="account-label">Name</span>
+                <input id="profileNameInput" name="firstName" class="account-input" type="text" autocomplete="given-name" />
+              </label>
+
+              <label class="account-field">
+                <span class="account-label">Surname</span>
+                <input id="profileSurnameInput" name="lastName" class="account-input" type="text" autocomplete="family-name" />
+              </label>
+
+              <label class="account-field account-field--full">
+                <span class="account-label">Email address</span>
+                <input id="profileEmailInput" name="email" class="account-input" type="email" autocomplete="email" />
+              </label>
+
+              <label class="account-field account-field--full">
+                <span class="account-label">Location</span>
+                <input id="profileLocationInput" name="location" class="account-input" type="text" autocomplete="address-level2" />
+              </label>
+            </div>
+
+            <div class="account-actions">
+              <button id="saveProfileButton" type="submit" class="account-action-btn account-action-btn--profile">Save profile</button>
+            </div>
+            <div id="profileStatus" class="account-status" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="account-card" data-account-panel="auth" aria-labelledby="authSettingsTitle" hidden>
+          <div class="account-card-header">
+            <h3 id="authSettingsTitle" class="account-card-title">Auth</h3>
+          </div>
+
+          <form id="authSettingsForm" class="account-auth-form" novalidate>
+            <label class="account-field account-field--full">
+              <span class="account-label">Current password</span>
+              <input id="currentPasswordInput" class="account-input" type="password" autocomplete="current-password" />
+            </label>
+
+            <label class="account-field account-field--full">
+              <span class="account-label">New password</span>
+              <input id="newPasswordInput" class="account-input" type="password" autocomplete="new-password" />
+            </label>
+
+            <label class="account-field account-field--full">
+              <span class="account-label">Confirm new password</span>
+              <input id="confirmPasswordInput" class="account-input" type="password" autocomplete="new-password" />
+            </label>
+
+            <div class="account-actions">
+              <button id="changePasswordButton" type="submit" class="account-action-btn account-action-btn--auth">Change</button>
+            </div>
+            <div id="authStatus" class="account-status" aria-live="polite"></div>
+          </form>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer" aria-label="Нижний блок сайта">
+    <nav class="site-footer__nav" aria-label="Служебные ссылки">
+      <a class="site-footer__link" href="about.html"><span>About</span></a>
+      <a class="site-footer__link" href="privacy.html"><span>Privacy Policy</span></a>
+      <a
+        class="site-footer__icon-link"
+        href="https://t.me/valiibragimov"
+        target="_blank"
+        rel="noreferrer noopener"
+        aria-label="Contact on Telegram"
+        title="Contact on Telegram"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21.5 4.4 18.3 19c-.2 1-1 1.2-1.8.8l-4.7-3.4-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.8 8.8-7.9c.4-.3-.1-.5-.6-.2L6.2 13 1.7 11.6c-1-.3-1-1 .2-1.5L20 3.1c.9-.3 1.7.2 1.5 1.3Z" />
+        </svg>
+      </a>
+    </nav>
+    <div class="site-footer__copy">© 2026 SCOPE</div>
+  </footer>
+
+  <script type="module">
+    import { initThemeControls } from "./dist/app/ui/theme.js";
+    import { getUserDocSnapshot, mergeUserDoc } from "./dist/app/repositories/firestore-repository.js";
+    import { showAlert } from "./dist/utils.js";
+    import { auth } from "./dist/firebase.js";
+    import {
+      EmailAuthProvider,
+      onAuthStateChanged,
+      reauthenticateWithCredential,
+      updateEmail,
+      updatePassword
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+    initThemeControls();
+
+    const profileForm = document.getElementById("profileSettingsForm");
+    const authForm = document.getElementById("authSettingsForm");
+    const profileNameInput = document.getElementById("profileNameInput");
+    const profileSurnameInput = document.getElementById("profileSurnameInput");
+    const profileEmailInput = document.getElementById("profileEmailInput");
+    const profileLocationInput = document.getElementById("profileLocationInput");
+    const saveProfileButton = document.getElementById("saveProfileButton");
+    const profileStatus = document.getElementById("profileStatus");
+    const authStatus = document.getElementById("authStatus");
+    const currentPasswordInput = document.getElementById("currentPasswordInput");
+    const newPasswordInput = document.getElementById("newPasswordInput");
+    const confirmPasswordInput = document.getElementById("confirmPasswordInput");
+    const changePasswordButton = document.getElementById("changePasswordButton");
+    const accountAvatarTrigger = document.getElementById("accountAvatarTrigger");
+    const accountAvatarButton = document.getElementById("accountAvatarButton");
+    const accountAvatarInput = document.getElementById("accountAvatarInput");
+    const accountAvatarImage = document.getElementById("accountAvatarImage");
+    const avatarHelperText = document.getElementById("avatarHelperText");
+    const accountTabButtons = Array.from(document.querySelectorAll("[data-account-tab]"));
+    const accountPanels = Array.from(document.querySelectorAll("[data-account-panel]"));
+
+    let currentUser = null;
+    let avatarDataUrl = "";
+
+    function setActiveAccountTab(tabName = "profile") {
+      const normalized = tabName === "auth" ? "auth" : "profile";
+      accountTabButtons.forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.accountTab === normalized);
+      });
+      accountPanels.forEach((panel) => {
+        panel.hidden = panel.dataset.accountPanel !== normalized;
+      });
+      if (location.hash !== `#${normalized}`) {
+        history.replaceState(null, "", `#${normalized}`);
+      }
+    }
+
+    function setStatus(target, text = "", tone = "") {
+      if (!target) return;
+      target.textContent = text;
+      if (tone) {
+        target.dataset.tone = tone;
+      } else {
+        target.removeAttribute("data-tone");
+      }
+    }
+
+    function setProfileBusy(isBusy) {
+      [
+        profileNameInput,
+        profileSurnameInput,
+        profileEmailInput,
+        profileLocationInput,
+        saveProfileButton,
+        accountAvatarButton
+      ].forEach((control) => {
+        if (control instanceof HTMLInputElement || control instanceof HTMLButtonElement) {
+          control.disabled = isBusy;
+        }
+      });
+    }
+
+    function setAuthBusy(isBusy) {
+      [
+        currentPasswordInput,
+        newPasswordInput,
+        confirmPasswordInput,
+        changePasswordButton
+      ].forEach((control) => {
+        if (control instanceof HTMLInputElement || control instanceof HTMLButtonElement) {
+          control.disabled = isBusy;
+        }
+      });
+    }
+
+    function renderAvatar(dataUrl = "") {
+      const normalized = String(dataUrl || "").trim();
+      avatarDataUrl = normalized;
+      const fallbackInitials = `${(profileNameInput?.value || "S").trim().slice(0, 1)}${(profileSurnameInput?.value || "V").trim().slice(0, 1)}`.trim() || "SV";
+      if (accountAvatarImage) {
+        accountAvatarImage.src = normalized;
+        accountAvatarImage.hidden = !normalized;
+      }
+      if (accountAvatarTrigger) {
+        accountAvatarTrigger.classList.toggle("is-empty", !normalized);
+        if (!normalized) {
+          accountAvatarTrigger.setAttribute("data-initials", fallbackInitials.toUpperCase());
+        }
+      }
+    }
+
+    function applyUserData(user, data = {}) {
+      profileNameInput.value = String(data.firstName || "").trim();
+      profileSurnameInput.value = String(data.lastName || "").trim();
+      profileEmailInput.value = String(data.email || user?.email || "").trim();
+      profileLocationInput.value = String(data.location || "").trim();
+      renderAvatar(String(data.avatarDataUrl || "").trim());
+      setStatus(avatarHelperText, "PNG, JPG up to 4 MB.");
+    }
+
+    async function loadUserSettings(user) {
+      setStatus(profileStatus, "");
+      try {
+        const snap = await getUserDocSnapshot(user.uid);
+        const data = snap.exists() ? snap.data() : {};
+        applyUserData(user, data);
+      } catch (error) {
+        console.error("Failed to load profile settings:", error);
+        applyUserData(user, {});
+        setStatus(profileStatus, "Could not load saved profile data.", "error");
+      }
+    }
+
+    async function readImageAsDataUrl(file) {
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error || new Error("Failed to read image."));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function handleAvatarSelection(file) {
+      if (!(file instanceof File)) return;
+      if (!file.type.startsWith("image/")) {
+        setStatus(avatarHelperText, "Choose an image file.", "warning");
+        return;
+      }
+      if (file.size > 4 * 1024 * 1024) {
+        setStatus(avatarHelperText, "Image is too large. Use a file up to 4 MB.", "warning");
+        return;
+      }
+      try {
+        setStatus(avatarHelperText, "Uploading preview…");
+        const nextAvatarDataUrl = await readImageAsDataUrl(file);
+        renderAvatar(nextAvatarDataUrl);
+        setStatus(avatarHelperText, "Avatar updated locally. Save profile to keep it.", "success");
+      } catch (error) {
+        console.error("Avatar preview error:", error);
+        setStatus(avatarHelperText, "Could not read the selected image.", "error");
+      }
+    }
+
+    accountAvatarButton?.addEventListener("click", () => {
+      accountAvatarInput?.click();
+    });
+
+    accountTabButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setActiveAccountTab(button.dataset.accountTab || "profile");
+      });
+    });
+
+    accountAvatarInput?.addEventListener("change", async () => {
+      const file = accountAvatarInput.files?.[0];
+      await handleAvatarSelection(file);
+      accountAvatarInput.value = "";
+    });
+
+    profileNameInput?.addEventListener("input", () => {
+      if (!avatarDataUrl) renderAvatar("");
+    });
+
+    profileSurnameInput?.addEventListener("input", () => {
+      if (!avatarDataUrl) renderAvatar("");
+    });
+
+    profileForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!currentUser) return;
+
+      const firstName = profileNameInput.value.trim();
+      const lastName = profileSurnameInput.value.trim();
+      const email = profileEmailInput.value.trim();
+      const location = profileLocationInput.value.trim();
+
+      if (!email) {
+        setStatus(profileStatus, "Email address is required.", "warning");
+        profileEmailInput.focus();
+        return;
+      }
+
+      if (!profileEmailInput.checkValidity()) {
+        setStatus(profileStatus, "Enter a valid email address.", "warning");
+        profileEmailInput.focus();
+        return;
+      }
+
+      setProfileBusy(true);
+      setStatus(profileStatus, "Saving profile…");
+
+      let emailUpdated = String(currentUser.email || "").trim() === email;
+
+      try {
+        if (!emailUpdated) {
+          await updateEmail(currentUser, email);
+          emailUpdated = true;
+        }
+
+        const payload = {
+          firstName,
+          lastName,
+          location,
+          avatarDataUrl,
+          email: emailUpdated ? email : String(currentUser.email || "").trim()
+        };
+
+        await mergeUserDoc(currentUser.uid, payload);
+        profileEmailInput.value = payload.email;
+        setStatus(profileStatus, "Profile saved successfully.", "success");
+      } catch (error) {
+        if (!emailUpdated) {
+          try {
+            await mergeUserDoc(currentUser.uid, {
+              firstName,
+              lastName,
+              location,
+              avatarDataUrl
+            });
+            setStatus(profileStatus, "Profile saved, but email change requires a fresh sign-in.", "warning");
+            await showAlert("Профиль сохранён, но email не обновлён. Для смены email потребуется заново войти в аккаунт.", "Внимание");
+          } catch (saveError) {
+            console.error("Profile save error:", saveError);
+            setStatus(profileStatus, "Could not save profile changes.", "error");
+          }
+        } else {
+          console.error("Profile save error:", error);
+          setStatus(profileStatus, "Could not save profile changes.", "error");
+        }
+      } finally {
+        setProfileBusy(false);
+      }
+    });
+
+    authForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!currentUser) return;
+
+      const currentPassword = currentPasswordInput.value;
+      const newPassword = newPasswordInput.value;
+      const confirmPassword = confirmPasswordInput.value;
+      const currentEmail = String(currentUser.email || "").trim();
+      const hasPasswordProvider = Array.isArray(currentUser.providerData)
+        && currentUser.providerData.some((provider) => provider?.providerId === "password");
+
+      if (!hasPasswordProvider) {
+        setStatus(authStatus, "Password change is available only for email/password accounts.", "warning");
+        return;
+      }
+
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        setStatus(authStatus, "Fill in all password fields.", "warning");
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        setStatus(authStatus, "New password must be at least 6 characters long.", "warning");
+        newPasswordInput.focus();
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        setStatus(authStatus, "New password and confirmation do not match.", "warning");
+        confirmPasswordInput.focus();
+        return;
+      }
+
+      if (!currentEmail) {
+        setStatus(authStatus, "Current account email was not found.", "error");
+        return;
+      }
+
+      setAuthBusy(true);
+      setStatus(authStatus, "Updating password…");
+
+      try {
+        const credential = EmailAuthProvider.credential(currentEmail, currentPassword);
+        await reauthenticateWithCredential(currentUser, credential);
+        await updatePassword(currentUser, newPassword);
+        currentPasswordInput.value = "";
+        newPasswordInput.value = "";
+        confirmPasswordInput.value = "";
+        setStatus(authStatus, "Password changed successfully.", "success");
+      } catch (error) {
+        console.error("Password change error:", error);
+        setStatus(authStatus, "Could not change password. Check the current password and try again.", "error");
+      } finally {
+        setAuthBusy(false);
+      }
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+      currentUser = user;
+      setActiveAccountTab(location.hash === "#auth" ? "auth" : "profile");
+      await loadUserSettings(user);
+    });
+  </script>
+  <script src="dist/liquid-glass.js"></script>
+</body>
+</html>

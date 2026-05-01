@@ -1,0 +1,2143 @@
+<!DOCTYPE html>
+<html lang="ru" class="profile-page-root">
+<head>
+  <script>
+    (function () {
+      const theme = localStorage.getItem("app_theme") || "dark";
+      const normalized = theme === "light" ? "light" : "dark";
+      const className = normalized === "light" ? "theme-light" : "theme-dark";
+
+      window.__appThemeClass = className;
+      document.documentElement.classList.add(className);
+      document.documentElement.style.colorScheme = normalized;
+
+      document.addEventListener(
+        "DOMContentLoaded",
+        () => {
+          document.body.classList.add(className);
+        },
+        { once: true }
+      );
+    })();
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Профиль — SCOPE</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="shortcut icon" href="favicon.ico">
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="liquid-glass.css?v=1">
+<link rel="stylesheet" href="style.css?v=76">
+</head>
+<body class="profile-page">
+  <script>
+    document.body.classList.add(window.__appThemeClass || "theme-dark");
+  </script>
+  <svg class="lg-filter-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <filter id="liquidGlass">
+      <feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="2" seed="2" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </svg>
+
+  <!-- HEADER -->
+  <header>
+    <a class="brand" href="index.html" aria-label="На главную">
+      <svg width="24" height="24" viewBox="0 0 40 30" class="brand-icon">
+        <!-- Кирпичи - первый ряд -->
+        <rect x="2" y="2" width="12" height="6" class="brand-brick brand-brick-1" rx="1" />
+        <rect x="16" y="2" width="12" height="6" class="brand-brick brand-brick-2" rx="1" />
+        <rect x="30" y="2" width="8" height="6" class="brand-brick brand-brick-3" rx="1" />
+        
+        <!-- Кирпичи - второй ряд (со смещением) -->
+        <rect x="9" y="10" width="12" height="6" class="brand-brick brand-brick-4" rx="1" />
+        <rect x="23" y="10" width="12" height="6" class="brand-brick brand-brick-5" rx="1" />
+        
+        <!-- Кирпичи - третий ряд -->
+        <rect x="2" y="18" width="12" height="6" class="brand-brick brand-brick-6" rx="1" />
+        <rect x="16" y="18" width="12" height="6" class="brand-brick brand-brick-7" rx="1" />
+        <rect x="30" y="18" width="8" height="6" class="brand-brick brand-brick-8" rx="1" />
+        
+        <!-- Кирпичи - четвертый ряд (со смещением) -->
+        <rect x="9" y="26" width="12" height="4" class="brand-brick brand-brick-9" rx="1" />
+        <rect x="23" y="26" width="12" height="4" class="brand-brick brand-brick-10" rx="1" />
+      </svg>
+      <h1>SCOPE</h1>
+    </a>
+
+    <button
+      id="profileMobileSettingsButton"
+      class="header-icon-btn profile-mobile-header-btn profile-settings-trigger"
+      type="button"
+      aria-label="Open profile settings"
+      aria-haspopup="dialog"
+      aria-expanded="false"
+      aria-controls="profileSettingsSheet"
+      title="Profile settings"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3.1"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0A1.65 1.65 0 0 0 10.91 3H11a2 2 0 1 1 4 0h.09a1.65 1.65 0 0 0 1.51 1 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0A1.65 1.65 0 0 0 21 10.91V11a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"></path>
+      </svg>
+    </button>
+
+    <div class="profile-mobile-header-title" id="profileHeaderTitle" aria-live="polite">
+      <a class="brand profile-mobile-header-brand" href="index.html" aria-label="На главную">
+        <svg width="24" height="24" viewBox="0 0 40 30" class="brand-icon" aria-hidden="true">
+          <rect x="2" y="2" width="12" height="6" class="brand-brick brand-brick-1" rx="1" />
+          <rect x="16" y="2" width="12" height="6" class="brand-brick brand-brick-2" rx="1" />
+          <rect x="30" y="2" width="8" height="6" class="brand-brick brand-brick-3" rx="1" />
+          <rect x="9" y="10" width="12" height="6" class="brand-brick brand-brick-4" rx="1" />
+          <rect x="23" y="10" width="12" height="6" class="brand-brick brand-brick-5" rx="1" />
+          <rect x="2" y="18" width="12" height="6" class="brand-brick brand-brick-6" rx="1" />
+          <rect x="16" y="18" width="12" height="6" class="brand-brick brand-brick-7" rx="1" />
+          <rect x="30" y="18" width="8" height="6" class="brand-brick brand-brick-8" rx="1" />
+          <rect x="9" y="26" width="12" height="4" class="brand-brick brand-brick-9" rx="1" />
+          <rect x="23" y="26" width="12" height="4" class="brand-brick brand-brick-10" rx="1" />
+        </svg>
+        <h1>SCOPE</h1>
+      </a>
+    </div>
+
+    <div class="profile-mobile-header-menu">
+      <button
+        id="profileMobileShareButton"
+        class="header-icon-btn profile-mobile-header-btn profile-mobile-share-trigger"
+        type="button"
+        aria-label="Поделиться профилем"
+        aria-haspopup="dialog"
+        aria-expanded="false"
+        aria-controls="profileShareSheet"
+        title="Поделиться профилем"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="5" cy="12" r="1.8" />
+          <circle cx="12" cy="12" r="1.8" />
+          <circle cx="19" cy="12" r="1.8" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="header-actions">
+      <button id="themeToggleBtn" class="header-icon-btn theme-toggle-btn" aria-label="Сменить тему" title="Сменить тему">
+        <span class="theme-toggle-icon"></span>
+      </button>
+      <span id="headerProfileButton" class="header-icon-btn" title="Профиль">
+        <img id="headerProfileAvatar" class="header-profile-avatar" alt="Профиль" hidden />
+        <svg class="header-profile-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </span>
+      <button id="btnLogout" class="header-icon-btn header-icon-btn--danger" title="Выйти">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="profile-main">
+    <section class="section active profile-section">
+      <div class="profile-shell">
+        <section class="profile-topbar" aria-labelledby="profileDisplayName">
+          <div class="profile-topbar-main">
+            <div class="profile-topbar-primary">
+              <div
+                id="profileAvatarButton"
+                class="profile-avatar-upload profile-avatar-upload--header preview-empty"
+                aria-label="Фото профиля"
+              >
+                <img id="profileAvatarImage" class="profile-avatar-image" alt="Фото профиля" hidden />
+              </div>
+              <div class="profile-topbar-copy">
+                <h2 id="profileDisplayName" class="profile-display-name"></h2>
+              </div>
+            </div>
+
+            <div class="profile-topbar-actions">
+              <a
+                href="edit-profile.html"
+                id="profileEditLink"
+                class="btn-small btn-secondary lg-btn lg-btn--pill profile-edit-toggle"
+                aria-label="Перейти к редактированию профиля"
+              >
+                <span class="lg-btn__label">Edit Profile</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </a>
+
+              <div class="profile-menu-wrap">
+                <button
+                  type="button"
+                  id="profileMenuButton"
+                  class="header-icon-btn profile-menu-button"
+                  aria-label="Дополнительные действия профиля"
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                  aria-controls="profileMenuPanel"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <circle cx="5" cy="12" r="1.8" />
+                    <circle cx="12" cy="12" r="1.8" />
+                    <circle cx="19" cy="12" r="1.8" />
+                  </svg>
+                </button>
+                <div id="profileMenuPanel" class="profile-menu-panel" role="menu" hidden>
+                  <a href="#" id="copyUidLink" class="profile-menu-item" role="menuitem">Copy profile link</a>
+                  <a href="about.html" class="profile-menu-item profile-menu-item--mobile-link" role="menuitem">About</a>
+                  <a href="privacy.html" class="profile-menu-item profile-menu-item--mobile-link" role="menuitem">Privacy Policy</a>
+                  <a
+                    href="https://t.me/valiibragimov"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    class="profile-menu-item profile-menu-item--mobile-link"
+                    role="menuitem"
+                  >Contact on Telegram</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="profile-content-grid">
+          <!-- Объекты пользователя -->
+          <div class="card profile-projects-card">
+            <div class="profile-projects-header-enhanced">
+              <div class="profile-projects-title-section">
+                <div>
+                  <h3 class="profile-projects-title">Мои объекты <span id="projectsCountBadge">(0)</span></h3>
+                  <div class="profile-projects-subtitle">Управление проектами технадзора</div>
+                </div>
+              </div>
+            </div>
+            <div class="profile-projects-search profile-projects-search--combined">
+              <div class="profile-create-input-wrapper profile-create-input-wrapper--combined">
+                <input id="projectSearchInput" class="profile-projects-search-input profile-create-input" placeholder="Поиск объектов или создать новый..." />
+                <button id="btnCreateProjectProfile" class="btn-small btn-secondary lg-btn lg-btn--pill profile-create-project-btn">
+                  <span class="lg-btn__label">Создать объект</span>
+                  <span class="lg-btn__glow" aria-hidden="true"></span>
+                </button>
+              </div>
+            </div>
+            <div class="profile-projects-filters" role="tablist" aria-label="Фильтр объектов">
+              <button type="button" class="profile-filter-tab btn-small btn-secondary lg-btn lg-btn--pill is-active" data-filter="all">
+                <span class="lg-btn__label">Все</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="profile-filter-tab btn-small btn-secondary lg-btn lg-btn--pill" data-filter="archived">
+                <span class="lg-btn__label">Архивные</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+            </div>
+
+            <div id="projectsContainer" class="projects-list">
+              <!-- Карточки объектов сюда -->
+            </div>
+          </div>
+
+          <aside class="card profile-feed-card" aria-labelledby="profileFeedTitle">
+            <div class="profile-feed-header">
+              <div class="profile-feed-title-section">
+                <div>
+                  <h3 id="profileFeedTitle" class="profile-feed-title">Инфолента</h3>
+                  <div class="profile-feed-subtitle">Подборка проверенных нормативных и отраслевых материалов</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-feed-tabs" role="tablist" aria-label="Разделы ленты">
+              <button
+                type="button"
+                id="profileFeedTabRegulatory"
+                class="profile-feed-tab btn-small btn-secondary lg-btn lg-btn--pill is-active"
+                data-feed-section="regulatory"
+                role="tab"
+                aria-selected="true"
+                aria-controls="profileFeedPanel"
+              >
+                <span class="lg-btn__label">Нормативные</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+              <button
+                type="button"
+                id="profileFeedTabIndustry"
+                class="profile-feed-tab btn-small btn-secondary lg-btn lg-btn--pill"
+                data-feed-section="industry"
+                role="tab"
+                aria-selected="false"
+                aria-controls="profileFeedPanel"
+              >
+                <span class="lg-btn__label">Отраслевое</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+            </div>
+
+            <div id="profileFeedStatus" class="profile-feed-status" aria-live="polite"></div>
+            <div id="profileFeedPanel" class="profile-feed-list" role="tabpanel" aria-labelledby="profileFeedTitle"></div>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer" aria-label="Нижний блок сайта">
+    <nav class="site-footer__nav" aria-label="Служебные ссылки">
+      <a class="site-footer__link" href="about.html"><span>About</span></a>
+      <a class="site-footer__link" href="privacy.html"><span>Privacy Policy</span></a>
+      <a
+        class="site-footer__icon-link"
+        href="https://t.me/valiibragimov"
+        target="_blank"
+        rel="noreferrer noopener"
+        aria-label="Contact on Telegram"
+        title="Contact on Telegram"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21.5 4.4 18.3 19c-.2 1-1 1.2-1.8.8l-4.7-3.4-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.8 8.8-7.9c.4-.3-.1-.5-.6-.2L6.2 13 1.7 11.6c-1-.3-1-1 .2-1.5L20 3.1c.9-.3 1.7.2 1.5 1.3Z" />
+        </svg>
+      </a>
+    </nav>
+    <div class="site-footer__copy">© 2026 SCOPE</div>
+  </footer>
+
+  <div id="profileSettingsBackdrop" class="profile-settings-backdrop" hidden></div>
+  <section
+    id="profileSettingsSheet"
+    class="profile-settings-sheet"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="profileSettingsSheetTitle"
+    aria-hidden="true"
+    hidden
+  >
+    <div class="profile-settings-sheet__chrome">
+      <button
+        id="profileSettingsCancel"
+        type="button"
+        class="profile-settings-sheet__nav profile-settings-sheet__nav--cancel"
+      >
+        Cancel
+      </button>
+      <h2 id="profileSettingsSheetTitle" class="profile-settings-sheet__title">Settings</h2>
+      <button
+        id="profileSettingsSave"
+        type="button"
+        class="profile-settings-sheet__nav profile-settings-sheet__nav--save"
+      >
+        Save
+      </button>
+    </div>
+
+    <div class="profile-settings-sheet__body">
+      <div class="profile-settings-sheet__group profile-settings-sheet__group--account">
+        <div class="profile-settings-sheet__signed">
+          Signed in as <strong id="profileSettingsSignedIn">User</strong>
+        </div>
+        <a href="edit-profile.html#auth" class="profile-settings-row profile-settings-row--link">
+          <span class="profile-settings-row__label">Password and authentication</span>
+          <span class="profile-settings-row__chevron" aria-hidden="true">›</span>
+        </a>
+        <button id="profileSheetLogoutButton" type="button" class="profile-settings-row profile-settings-row--danger">
+          <span class="profile-settings-row__label">Sign out</span>
+        </button>
+      </div>
+
+      <form id="profileSettingsForm" class="profile-settings-form" novalidate>
+        <input id="profileSettingsAvatarInput" class="profile-settings-avatar-input" type="file" accept="image/png,image/jpeg,image/webp" />
+
+        <section class="profile-settings-sheet__group profile-settings-sheet__group--profile" aria-labelledby="profileSettingsProfileLabel">
+          <div id="profileSettingsProfileLabel" class="profile-settings-sheet__section-title">Profile</div>
+
+          <div class="profile-settings-sheet__avatar-row">
+            <button id="profileSettingsAvatarButton" type="button" class="profile-settings-sheet__avatar is-empty" aria-label="Change profile photo">
+              <img id="profileSettingsAvatarImage" class="profile-settings-sheet__avatar-image" alt="Profile photo" hidden />
+            </button>
+            <div class="profile-settings-sheet__avatar-copy">
+              <button id="profileSettingsAvatarAction" type="button" class="profile-settings-sheet__avatar-action">Choose photo</button>
+            </div>
+          </div>
+
+          <div class="profile-settings-sheet__rows profile-settings-sheet__rows--fields">
+            <label class="profile-settings-field profile-settings-field--split">
+              <span class="profile-settings-field__label">First name</span>
+              <input id="profileSettingsFirstName" class="profile-settings-field__input" type="text" autocomplete="given-name" />
+            </label>
+
+            <label class="profile-settings-field profile-settings-field--split">
+              <span class="profile-settings-field__label">Last name</span>
+              <input id="profileSettingsLastName" class="profile-settings-field__input" type="text" autocomplete="family-name" />
+            </label>
+
+            <label class="profile-settings-field">
+              <span class="profile-settings-field__label">Email address</span>
+              <input id="profileSettingsEmail" class="profile-settings-field__input" type="email" autocomplete="email" />
+            </label>
+
+            <label class="profile-settings-field">
+              <span class="profile-settings-field__label">Location</span>
+              <input id="profileSettingsLocation" class="profile-settings-field__input" type="text" autocomplete="address-level2" />
+            </label>
+          </div>
+        </section>
+
+        <section class="profile-settings-sheet__group profile-settings-sheet__group--tools" aria-labelledby="profileSettingsToolsLabel">
+          <div id="profileSettingsToolsLabel" class="profile-settings-sheet__section-title">Appearance</div>
+          <button id="profileSheetThemeButton" type="button" class="profile-settings-row profile-settings-row--control">
+            <span class="profile-settings-row__label">Theme</span>
+            <span class="profile-settings-row__value" id="profileThemeModeLabel">Dark</span>
+          </button>
+        </section>
+
+        <div id="profileSettingsStatus" class="profile-settings-sheet__status" aria-live="polite"></div>
+      </form>
+    </div>
+  </section>
+
+  <section
+    id="profileShareSheet"
+    class="profile-share-sheet"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="profileShareSheetTitle"
+    aria-hidden="true"
+    hidden
+  >
+    <div class="profile-settings-sheet__handle" aria-hidden="true"></div>
+    <div class="profile-share-sheet__body">
+      <h2 id="profileShareSheetTitle" class="profile-share-sheet__title">Menu</h2>
+      <button id="profileShareCopyButton" type="button" class="profile-share-sheet__action">
+        Copy profile link
+      </button>
+      <a class="profile-share-sheet__action profile-share-sheet__link" href="about.html">About</a>
+      <a class="profile-share-sheet__action profile-share-sheet__link" href="privacy.html">Privacy Policy</a>
+      <a
+        class="profile-share-sheet__action profile-share-sheet__link"
+        href="https://t.me/valiibragimov"
+        target="_blank"
+        rel="noreferrer noopener"
+      >Contact on Telegram</a>
+    </div>
+  </section>
+
+  <script type="module">
+    import { logoutUser } from "./dist/auth.js";
+    import { APP_CONFIG } from "./dist/config.js";
+    import { PROFILE_FEED_FALLBACK } from "./dist/app/data/profile-feed-fallback.js";
+    import { showConfirm, showAlert, showPrompt, setGlobalScrollLock } from "./dist/utils.js";
+    import { initThemeControls } from "./dist/app/ui/theme.js";
+    import {
+      clearProjectCollection,
+      createProjectDoc,
+      deleteProjectDoc,
+      getProjectCollectionDocSnapshot,
+      getProjectCollectionSnapshot,
+      getProjectCollectionOrderedSnapshot,
+      getProjectsByFieldSnapshot,
+      getUserDocSnapshot,
+      mergeProjectDoc,
+      mergeUserDoc
+    } from "./dist/app/repositories/firestore-repository.js";
+
+    import {
+      getAuth,
+      onAuthStateChanged,
+      updateEmail
+    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+    const auth = getAuth();
+    let currentUserId = null;
+
+    const projectsContainer       = document.getElementById("projectsContainer");
+    const copyUidLink             = document.getElementById("copyUidLink");
+    const btnCreateProjectProfile = document.getElementById("btnCreateProjectProfile");
+    const projectSearchInput      = document.getElementById("projectSearchInput");
+    const projectsCountBadge      = document.getElementById("projectsCountBadge");
+    const filterTabs              = document.querySelectorAll(".profile-filter-tab");
+    const profileFeedList         = document.getElementById("profileFeedPanel");
+    const profileFeedStatus       = document.getElementById("profileFeedStatus");
+    const profileFeedTabs         = document.querySelectorAll(".profile-feed-tab");
+
+    const headerProfileButton = document.getElementById("headerProfileButton");
+    const headerProfileAvatar = document.getElementById("headerProfileAvatar");
+    const profileMobileSettingsButton = document.getElementById("profileMobileSettingsButton");
+    const profileMobileShareButton = document.getElementById("profileMobileShareButton");
+    const profileHeaderTitle = document.getElementById("profileHeaderTitle");
+    const profileDisplayName = document.getElementById("profileDisplayName");
+    const profileAvatarButton = document.getElementById("profileAvatarButton");
+    const profileAvatarImage  = document.getElementById("profileAvatarImage");
+    const profileEditLink = document.getElementById("profileEditLink");
+    const profileMenuButton = document.getElementById("profileMenuButton");
+    const profileMenuPanel = document.getElementById("profileMenuPanel");
+    const profileSettingsBackdrop = document.getElementById("profileSettingsBackdrop");
+    const profileSettingsSheet = document.getElementById("profileSettingsSheet");
+    const profileShareSheet = document.getElementById("profileShareSheet");
+    const profileShareCopyButton = document.getElementById("profileShareCopyButton");
+    const profileSettingsCancel = document.getElementById("profileSettingsCancel");
+    const profileSettingsSave = document.getElementById("profileSettingsSave");
+    const profileSettingsSignedIn = document.getElementById("profileSettingsSignedIn");
+    const profileSheetLogoutButton = document.getElementById("profileSheetLogoutButton");
+    const profileSheetThemeButton = document.getElementById("profileSheetThemeButton");
+    const profileThemeModeLabel = document.getElementById("profileThemeModeLabel");
+    const profileSettingsStatus = document.getElementById("profileSettingsStatus");
+    const profileSettingsAvatarInput = document.getElementById("profileSettingsAvatarInput");
+    const profileSettingsAvatarButton = document.getElementById("profileSettingsAvatarButton");
+    const profileSettingsAvatarAction = document.getElementById("profileSettingsAvatarAction");
+    const profileSettingsAvatarImage = document.getElementById("profileSettingsAvatarImage");
+    const profileSettingsFirstName = document.getElementById("profileSettingsFirstName");
+    const profileSettingsLastName = document.getElementById("profileSettingsLastName");
+    const profileSettingsEmail = document.getElementById("profileSettingsEmail");
+    const profileSettingsLocation = document.getElementById("profileSettingsLocation");
+    let activeProjectFilter = "all";
+    let activeFeedSection = "regulatory";
+    let uidForCopy = "";
+    let currentUserEmail = "";
+    let profileFirstName = "";
+    let profileLastName = "";
+    let profileLocation = "";
+    let profileDataLoaded = false;
+    let currentAuthUser = null;
+    let profileAvatarDataUrl = "";
+    let profileSettingsOpen = false;
+    let profileShareSheetOpen = false;
+    let profileOverlayScrollLocked = false;
+    let profileMenuScrollLocked = false;
+    let profileOverlayHideTimer = 0;
+    let profileSettingsHideTimer = 0;
+    let profileShareHideTimer = 0;
+    const PROFILE_SHEET_ANIMATION_MS = 320;
+    const profileMobileQuery = window.matchMedia("(max-width: 768px)");
+    initThemeControls();
+
+    const feedDateFormatter = new Intl.DateTimeFormat("ru-RU", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    });
+    const profileFeedState = {
+      loading: false,
+      loaded: false,
+      mode: "fallback",
+      sections: {
+        regulatory: [],
+        industry: []
+      }
+    };
+
+    function buildProfileFeedApiCandidates() {
+      const candidates = [new URL("./dist/profile-feed.json", location.href).toString()];
+      const isLocalDevHost = ["127.0.0.1", "localhost"].includes(location.hostname);
+      const productionFeedUrl = "https://tehnadzor-online.web.app/dist/profile-feed.json";
+      if (!isLocalDevHost) {
+        candidates.push(productionFeedUrl);
+      }
+      const configuredBase = String(APP_CONFIG.AI_REPORT_API_BASE || "").trim();
+      if (configuredBase) {
+        const apiUrl = `${configuredBase.replace(/\/+$/, "")}/profile-feed`;
+        try {
+          const parsedApiUrl = new URL(apiUrl, location.href);
+          const isCrossOriginLocalDev = isLocalDevHost && parsedApiUrl.origin !== location.origin;
+          if (!isCrossOriginLocalDev) {
+            candidates.push(parsedApiUrl.toString());
+          }
+        } catch (error) {
+          console.warn("Некорректный AI_REPORT_API_BASE для ленты профиля:", error);
+        }
+      }
+      return candidates.filter((value, index, list) => value && list.indexOf(value) === index);
+    }
+
+    const PROFILE_FEED_API_CANDIDATES = buildProfileFeedApiCandidates();
+
+    function setProfileFeedStatus(text = "", tone = "muted") {
+      if (!profileFeedStatus) return;
+      profileFeedStatus.textContent = text;
+      profileFeedStatus.dataset.tone = tone;
+      profileFeedStatus.hidden = !text;
+    }
+
+    function formatProfileFeedDate(item) {
+      if (item?.publishedLabel) return item.publishedLabel;
+      if (!item?.publishedAt) return "Без даты";
+      const parsedDate = new Date(item.publishedAt);
+      if (Number.isNaN(parsedDate.getTime())) return "Без даты";
+      return feedDateFormatter.format(parsedDate);
+    }
+
+    function getProfileFeedSummary(item) {
+      const raw = String(item?.summary || "").replace(/\s+/g, " ").trim();
+      if (!raw) return "Краткое описание пока недоступно.";
+
+      const firstSentenceMatch = raw.match(/^.+?[.!?](?=\s|$)/);
+      const summary = (firstSentenceMatch?.[0] || raw).trim();
+
+      if (summary.length <= 140) return summary;
+      return `${summary.slice(0, 137).trimEnd()}...`;
+    }
+
+    function createProfileFeedItem(item) {
+      const href = String(item?.url || item?.sourceUrl || "").trim();
+      const article = document.createElement("a");
+      article.className = "profile-feed-item";
+      article.href = href || "#";
+      article.target = "_blank";
+      article.rel = "noopener noreferrer";
+      article.setAttribute("aria-label", `Открыть материал: ${item.title || "Без названия"}`);
+      if (!href) {
+        article.addEventListener("click", (event) => {
+          event.preventDefault();
+        });
+      }
+
+      const badge = document.createElement("span");
+      badge.className = "profile-feed-badge";
+      badge.textContent = item.categoryLabel || "Материал";
+
+      const title = document.createElement("h4");
+      title.className = "profile-feed-item-title";
+      title.textContent = item.title || "Без названия";
+
+      const summary = document.createElement("p");
+      summary.className = "profile-feed-item-summary";
+      summary.textContent = getProfileFeedSummary(item);
+
+      const meta = document.createElement("div");
+      meta.className = "profile-feed-item-meta";
+
+      const source = document.createElement("span");
+      source.className = "profile-feed-item-source";
+      source.textContent = item.sourceLabel || "Источник";
+      meta.appendChild(source);
+
+      const separator = document.createElement("span");
+      separator.className = "profile-feed-item-separator";
+      separator.textContent = "•";
+      meta.appendChild(separator);
+
+      const date = document.createElement("span");
+      date.className = "profile-feed-item-date";
+      date.textContent = formatProfileFeedDate(item);
+      meta.appendChild(date);
+
+      article.appendChild(badge);
+      article.appendChild(title);
+      article.appendChild(summary);
+      article.appendChild(meta);
+
+      return article;
+    }
+
+    function applyProfileFeedSections(sections, mode = "fallback") {
+      const normalizedSections = sections && typeof sections === "object" ? sections : {};
+      profileFeedState.sections.regulatory = Array.isArray(normalizedSections.regulatory)
+        ? normalizedSections.regulatory
+        : [];
+      profileFeedState.sections.industry = Array.isArray(normalizedSections.industry)
+        ? normalizedSections.industry
+        : [];
+      profileFeedState.mode = mode;
+      profileFeedState.loaded = true;
+    }
+
+    async function fetchProfileFeedFromApiBase(apiUrl) {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 3500);
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: "GET",
+          headers: {
+            Accept: "application/json"
+          },
+          signal: controller.signal
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        return await response.json();
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    }
+
+    async function fetchLiveProfileFeed() {
+      const results = await Promise.allSettled(
+        PROFILE_FEED_API_CANDIDATES.map(async (apiUrl) => ({
+          apiUrl,
+          payload: await fetchProfileFeedFromApiBase(apiUrl)
+        }))
+      );
+
+      const successful = results
+        .filter((result) => result.status === "fulfilled")
+        .map((result) => result.value);
+
+      if (!successful.length) {
+        const failed = results.find((result) => result.status === "rejected");
+        throw failed?.reason || new Error("Profile feed API is unavailable");
+      }
+
+      successful.sort((left, right) => {
+        const leftTs = Date.parse(left.payload?.generatedAt || "") || 0;
+        const rightTs = Date.parse(right.payload?.generatedAt || "") || 0;
+        return rightTs - leftTs;
+      });
+
+      return successful[0];
+    }
+
+    function renderProfileFeed() {
+      if (!profileFeedList) return;
+      clearNodeChildren(profileFeedList);
+
+      const items = Array.isArray(profileFeedState.sections[activeFeedSection])
+        ? profileFeedState.sections[activeFeedSection]
+        : [];
+
+      if (!items.length) {
+        const emptyState = document.createElement("div");
+        emptyState.className = "profile-feed-empty";
+        emptyState.textContent = activeFeedSection === "regulatory"
+          ? "Нормативные материалы пока недоступны."
+          : "Полезные отраслевые материалы пока недоступны.";
+        profileFeedList.appendChild(emptyState);
+        return;
+      }
+
+      items.forEach((item) => {
+        profileFeedList.appendChild(createProfileFeedItem(item));
+      });
+    }
+
+    async function loadProfileFeed() {
+      if (!profileFeedList || profileFeedState.loading) return;
+
+      if (!PROFILE_FEED_API_CANDIDATES.length) {
+        applyProfileFeedSections(PROFILE_FEED_FALLBACK.sections, "fallback");
+        setProfileFeedStatus("Показана базовая подборка. Живой JSON-источник не найден.", "warning");
+        renderProfileFeed();
+        return;
+      }
+
+      profileFeedState.loading = true;
+      setProfileFeedStatus("Загружаем ленту…", "muted");
+
+      try {
+        const { payload } = await fetchLiveProfileFeed();
+        const sections = payload?.sections && typeof payload.sections === "object" ? payload.sections : {};
+        applyProfileFeedSections(sections, "remote");
+        setProfileFeedStatus("", "muted");
+      } catch (error) {
+        applyProfileFeedSections(PROFILE_FEED_FALLBACK.sections, "fallback");
+        setProfileFeedStatus("Сервер ленты недоступен. Показана базовая подборка.", "warning");
+      } finally {
+        profileFeedState.loading = false;
+        renderProfileFeed();
+      }
+    }
+
+    function setHeaderProfileAvatar(dataUrl = "") {
+      const normalized = String(dataUrl || "").trim();
+      if (headerProfileAvatar) {
+        headerProfileAvatar.src = normalized;
+        headerProfileAvatar.hidden = !normalized;
+      }
+      if (headerProfileButton) {
+        headerProfileButton.classList.toggle("has-avatar", !!normalized);
+      }
+    }
+
+    function setProfileAvatar(dataUrl = "") {
+      const normalized = String(dataUrl || "").trim();
+      const initials = `${(profileFirstName || "S").trim().slice(0, 1)}${(profileLastName || "V").trim().slice(0, 1)}`.trim() || "SV";
+      profileAvatarDataUrl = normalized;
+      if (profileAvatarImage) {
+        profileAvatarImage.src = normalized;
+        profileAvatarImage.hidden = !normalized;
+      }
+      if (profileAvatarButton) {
+        profileAvatarButton.classList.toggle("preview-empty", !normalized);
+        profileAvatarButton.classList.toggle("has-image", !!normalized);
+      }
+      if (profileSettingsAvatarImage) {
+        profileSettingsAvatarImage.src = normalized;
+        profileSettingsAvatarImage.hidden = !normalized;
+      }
+      if (profileSettingsAvatarButton) {
+        profileSettingsAvatarButton.classList.toggle("is-empty", !normalized);
+        if (!normalized) {
+          profileSettingsAvatarButton.setAttribute("data-initials", initials.toUpperCase());
+        }
+      }
+      setHeaderProfileAvatar(normalized);
+    }
+
+    function getProfileFullName() {
+      return [profileFirstName, profileLastName].filter(Boolean).join(" ").trim();
+    }
+
+    function getProfileEngineerName() {
+      if (profileLastName && profileFirstName) {
+        return `${profileLastName} ${profileFirstName}`;
+      }
+      return profileLastName || profileFirstName || "";
+    }
+
+    function resolveProfileDisplayName() {
+      if (!profileDataLoaded) return "";
+
+      const fullName = getProfileFullName();
+      if (fullName) return fullName;
+
+      return "Пользователь";
+    }
+
+    function updateProfileDisplayName() {
+      const displayName = resolveProfileDisplayName();
+      if (profileDisplayName) {
+        profileDisplayName.textContent = displayName;
+      }
+      if (profileSettingsSignedIn) {
+        profileSettingsSignedIn.textContent = currentUserEmail || displayName || "Пользователь";
+      }
+    }
+
+    function updateProfileThemeLabel() {
+      if (!profileThemeModeLabel) return;
+      profileThemeModeLabel.textContent = document.body.classList.contains("theme-light") ? "Light" : "Dark";
+    }
+
+    function setProfileSettingsStatus(text = "", tone = "") {
+      if (!profileSettingsStatus) return;
+      profileSettingsStatus.textContent = text;
+      if (tone) {
+        profileSettingsStatus.dataset.tone = tone;
+      } else {
+        delete profileSettingsStatus.dataset.tone;
+      }
+    }
+
+    function syncProfileSettingsForm() {
+      if (profileSettingsFirstName) profileSettingsFirstName.value = profileFirstName;
+      if (profileSettingsLastName) profileSettingsLastName.value = profileLastName;
+      if (profileSettingsEmail) profileSettingsEmail.value = currentUserEmail;
+      if (profileSettingsLocation) profileSettingsLocation.value = profileLocation;
+      if (profileSettingsSignedIn) {
+        profileSettingsSignedIn.textContent = currentUserEmail || resolveProfileDisplayName() || "User";
+      }
+      updateProfileThemeLabel();
+    }
+
+    function syncProfileOverlay() {
+      if (!profileSettingsBackdrop) return;
+      const shouldShow = profileSettingsOpen || profileShareSheetOpen;
+      document.body.classList.toggle("profile-overlay-open", shouldShow);
+      if (profileOverlayHideTimer) {
+        window.clearTimeout(profileOverlayHideTimer);
+        profileOverlayHideTimer = 0;
+      }
+      if (shouldShow) {
+        profileSettingsBackdrop.hidden = false;
+        requestAnimationFrame(() => {
+          profileSettingsBackdrop.classList.add("is-open");
+        });
+      } else {
+        profileSettingsBackdrop.classList.remove("is-open");
+        profileOverlayHideTimer = window.setTimeout(() => {
+          if (!profileSettingsOpen && !profileShareSheetOpen) {
+            profileSettingsBackdrop.hidden = true;
+          }
+        }, PROFILE_SHEET_ANIMATION_MS);
+      }
+      if (profileMobileQuery.matches && shouldShow && !profileOverlayScrollLocked) {
+        setGlobalScrollLock(true);
+        profileOverlayScrollLocked = true;
+      } else if ((!shouldShow || !profileMobileQuery.matches) && profileOverlayScrollLocked) {
+        setGlobalScrollLock(false);
+        profileOverlayScrollLocked = false;
+      }
+    }
+
+    function setProfileSettingsOpen(isOpen) {
+      if (!profileSettingsSheet) return;
+      profileSettingsOpen = !!isOpen;
+      profileMobileSettingsButton?.setAttribute("aria-expanded", profileSettingsOpen ? "true" : "false");
+      profileSettingsSheet.setAttribute("aria-hidden", profileSettingsOpen ? "false" : "true");
+      if (profileSettingsOpen) {
+        if (profileSettingsHideTimer) {
+          window.clearTimeout(profileSettingsHideTimer);
+          profileSettingsHideTimer = 0;
+        }
+        syncProfileSettingsForm();
+        setProfileSettingsStatus("");
+        profileSettingsSheet.hidden = false;
+        syncProfileOverlay();
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            profileSettingsSheet.classList.add("is-open");
+          });
+        });
+      } else {
+        profileSettingsSheet.classList.remove("is-open");
+        syncProfileOverlay();
+        profileSettingsHideTimer = window.setTimeout(() => {
+          if (!profileSettingsOpen) {
+            profileSettingsSheet.hidden = true;
+          }
+          profileSettingsHideTimer = 0;
+        }, PROFILE_SHEET_ANIMATION_MS);
+      }
+    }
+
+    function setProfileSettingsBusy(isBusy) {
+      [
+        profileSettingsFirstName,
+        profileSettingsLastName,
+        profileSettingsEmail,
+        profileSettingsLocation,
+        profileSettingsSave,
+        profileSettingsAvatarAction,
+        profileSettingsAvatarButton,
+        profileSheetThemeButton,
+        profileSheetLogoutButton
+      ].forEach((control) => {
+        if (control instanceof HTMLInputElement || control instanceof HTMLButtonElement) {
+          control.disabled = isBusy;
+        }
+      });
+    }
+
+    async function readProfileImageAsDataUrl(file) {
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error || new Error("Failed to read image."));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function setProfileMenuOpen(isOpen) {
+      if (!profileMenuPanel || !profileMenuButton) return;
+      const wasOpen = profileMenuButton.getAttribute("aria-expanded") === "true";
+      const nextOpen = !!isOpen;
+      document.body.classList.toggle("profile-menu-open", nextOpen);
+      profileMenuPanel.hidden = !isOpen;
+      profileMenuButton.setAttribute("aria-expanded", nextOpen ? "true" : "false");
+      profileMenuButton.classList.toggle("is-active", nextOpen);
+      if (profileMobileQuery.matches && nextOpen && !wasOpen && !profileMenuScrollLocked) {
+        setGlobalScrollLock(true);
+        profileMenuScrollLocked = true;
+      } else if ((!nextOpen || !profileMobileQuery.matches) && profileMenuScrollLocked) {
+        setGlobalScrollLock(false);
+        profileMenuScrollLocked = false;
+      }
+    }
+
+    function setProfileShareSheetOpen(isOpen) {
+      if (!profileShareSheet || !profileMobileShareButton) return;
+      profileShareSheetOpen = !!isOpen;
+      profileMobileShareButton.setAttribute("aria-expanded", profileShareSheetOpen ? "true" : "false");
+      profileShareSheet.setAttribute("aria-hidden", profileShareSheetOpen ? "false" : "true");
+      if (profileShareSheetOpen) {
+        if (profileShareHideTimer) {
+          window.clearTimeout(profileShareHideTimer);
+          profileShareHideTimer = 0;
+        }
+        profileShareSheet.hidden = false;
+        syncProfileOverlay();
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            profileShareSheet.classList.add("is-open");
+          });
+        });
+      } else {
+        profileShareSheet.classList.remove("is-open");
+        syncProfileOverlay();
+        profileShareHideTimer = window.setTimeout(() => {
+          if (!profileShareSheetOpen) {
+            profileShareSheet.hidden = true;
+          }
+          profileShareHideTimer = 0;
+        }, PROFILE_SHEET_ANIMATION_MS);
+      }
+    }
+
+    const updateProjectsCount = (count) => {
+      if (projectsCountBadge) {
+        projectsCountBadge.textContent = `(${count})`;
+      }
+    };
+
+    const setProfileActionsEnabled = (enabled) => {
+      if (btnCreateProjectProfile) btnCreateProjectProfile.disabled = !enabled;
+      if (profileEditLink) profileEditLink.classList.toggle("is-disabled", !enabled);
+      if (profileMenuButton) profileMenuButton.disabled = !enabled;
+      if (copyUidLink) {
+        copyUidLink.classList.toggle("is-disabled", !enabled);
+        copyUidLink.setAttribute("aria-disabled", enabled ? "false" : "true");
+      }
+    };
+    setProfileActionsEnabled(false);
+    updateProfileDisplayName();
+
+    const initProjectsListScrollIndicator = () => {
+      const scrollHost = projectsContainer;
+      if (!scrollHost) return;
+
+      const desktopQuery = window.matchMedia("(min-width: 769px)");
+      let indicator = scrollHost.querySelector(".profile-scroll-indicator");
+      if (!indicator) {
+        indicator = document.createElement("div");
+        indicator.className = "profile-scroll-indicator";
+        indicator.setAttribute("aria-hidden", "true");
+        const thumb = document.createElement("div");
+        thumb.className = "profile-scroll-indicator-thumb";
+        indicator.appendChild(thumb);
+        scrollHost.appendChild(indicator);
+      }
+      const thumb = indicator.querySelector(".profile-scroll-indicator-thumb");
+      let hideTimer = null;
+      let fadeTimer = null;
+      const HIDE_DELAY_MS = 820;
+      const FADE_OUT_MS = 420;
+
+      const scheduleHide = (delay = HIDE_DELAY_MS) => {
+        if (hideTimer) clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => {
+          scrollHost.classList.remove("is-scrolling");
+          scrollHost.classList.add("is-scroll-fading");
+          if (fadeTimer) clearTimeout(fadeTimer);
+          fadeTimer = window.setTimeout(() => {
+            scrollHost.classList.remove("is-scroll-fading");
+            fadeTimer = null;
+          }, FADE_OUT_MS);
+        }, delay);
+      };
+
+      const updateIndicator = () => {
+        if (!desktopQuery.matches || !thumb) {
+          scrollHost.classList.remove("has-scroll");
+          return;
+        }
+
+        const viewportHeight = scrollHost.clientHeight;
+        const contentHeight = scrollHost.scrollHeight;
+        const scrollable = contentHeight - viewportHeight > 2;
+        scrollHost.classList.toggle("has-scroll", scrollable);
+
+        if (!scrollable) {
+          scrollHost.classList.remove("is-scrolling", "is-scroll-fading");
+          thumb.style.height = "0px";
+          thumb.style.transform = "translateY(0px)";
+          return;
+        }
+
+        const trackHeight = indicator.clientHeight;
+        if (trackHeight <= 0) return;
+
+        const thumbHeight = Math.min(
+          trackHeight,
+          Math.max(24, Math.round((viewportHeight / contentHeight) * trackHeight))
+        );
+        const maxTop = Math.max(0, trackHeight - thumbHeight);
+        const ratio = scrollHost.scrollTop / Math.max(1, contentHeight - viewportHeight);
+        const thumbTop = Math.round(maxTop * ratio);
+
+        thumb.style.height = `${thumbHeight}px`;
+        thumb.style.transform = `translateY(${thumbTop}px)`;
+      };
+
+      const showIndicator = () => {
+        if (!desktopQuery.matches) return;
+        updateIndicator();
+        if (fadeTimer) {
+          clearTimeout(fadeTimer);
+          fadeTimer = null;
+        }
+        scrollHost.classList.remove("is-scroll-fading");
+        scrollHost.classList.add("is-scrolling");
+        scheduleHide();
+      };
+
+      const onViewportChange = () => {
+        if (!desktopQuery.matches) {
+          if (hideTimer) clearTimeout(hideTimer);
+          if (fadeTimer) {
+            clearTimeout(fadeTimer);
+            fadeTimer = null;
+          }
+          scrollHost.classList.remove("is-scrolling", "is-scroll-fading");
+        }
+        updateIndicator();
+      };
+
+      scrollHost.addEventListener("scroll", showIndicator, { passive: true });
+      scrollHost.addEventListener("wheel", showIndicator, { passive: true });
+      scrollHost.addEventListener("touchmove", showIndicator, { passive: true });
+      window.addEventListener("resize", onViewportChange);
+
+      if (typeof ResizeObserver === "function") {
+        const resizeObserver = new ResizeObserver(() => {
+          updateIndicator();
+        });
+        resizeObserver.observe(scrollHost);
+      }
+
+      if (typeof MutationObserver === "function" && projectsContainer) {
+        const mutationObserver = new MutationObserver(() => {
+          updateIndicator();
+        });
+        mutationObserver.observe(projectsContainer, { childList: true, subtree: true });
+      }
+
+      if (typeof desktopQuery.addEventListener === "function") {
+        desktopQuery.addEventListener("change", onViewportChange);
+      } else if (typeof desktopQuery.addListener === "function") {
+        desktopQuery.addListener(onViewportChange);
+      }
+
+      requestAnimationFrame(updateIndicator);
+    };
+    initProjectsListScrollIndicator();
+
+    function showCopyToastAt(clientX, clientY, message = "Copied!") {
+      const toast = document.createElement("div");
+      toast.className = "copy-cursor-toast";
+      toast.textContent = message;
+      toast.style.left = `${Math.max(12, clientX)}px`;
+      toast.style.top = `${Math.max(12, clientY)}px`;
+      document.body.appendChild(toast);
+      toast.addEventListener("animationend", () => {
+        toast.remove();
+      }, { once: true });
+    }
+
+    async function copyProfileLinkFromTarget(targetRect) {
+      const toastX = targetRect.left + targetRect.width / 2;
+      const toastY = targetRect.top + 12;
+      const profileLink = new URL("profile.html", location.href).toString();
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(profileLink);
+        } else {
+          const temp = document.createElement("textarea");
+          temp.value = profileLink;
+          temp.style.position = "fixed";
+          temp.style.opacity = "0";
+          document.body.appendChild(temp);
+          temp.focus();
+          temp.select();
+          document.execCommand("copy");
+          document.body.removeChild(temp);
+        }
+        showCopyToastAt(toastX, toastY, "Link copied to clipboard");
+      } catch (e) {
+        console.error("Не удалось скопировать ссылку профиля:", e);
+        await showAlert("Не удалось скопировать ссылку профиля.", "Ошибка");
+      }
+    }
+
+    const applyProjectsFilter = () => {
+      if (!projectsContainer) return;
+      const searchQuery = projectSearchInput ? normalizeProjectName(projectSearchInput.value) : "";
+      const cards = projectsContainer.querySelectorAll(".project-card");
+      let visibleCount = 0;
+
+      cards.forEach((card) => {
+        const title = card.dataset.projectName || "";
+        const archived = card.dataset.archived === "1";
+        const filterMatch = activeProjectFilter === "archived" ? archived : true;
+        const searchMatch = !searchQuery || title.includes(searchQuery);
+        const match = filterMatch && searchMatch;
+        card.style.display = match ? "" : "none";
+        if (match) visibleCount += 1;
+      });
+      updateProjectsCount(visibleCount);
+
+      let emptyState = document.getElementById("projectsSearchEmpty");
+      if (!emptyState) {
+        emptyState = document.createElement("div");
+        emptyState.id = "projectsSearchEmpty";
+        emptyState.className = "caption";
+        projectsContainer.appendChild(emptyState);
+      }
+
+      if (!cards.length) {
+        emptyState.style.display = "none";
+      } else {
+        emptyState.textContent = searchQuery
+          ? "Ничего не найдено по запросу."
+          : (activeProjectFilter === "archived"
+            ? "Архивных объектов пока нет."
+            : "Объектов пока нет.");
+        emptyState.style.display = visibleCount === 0 ? "block" : "none";
+      }
+    };
+
+    if (projectSearchInput) {
+      projectSearchInput.addEventListener("input", applyProjectsFilter);
+    }
+    filterTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        activeProjectFilter = tab.dataset.filter === "archived" ? "archived" : "all";
+        filterTabs.forEach((btn) => btn.classList.toggle("is-active", btn === tab));
+        applyProjectsFilter();
+      });
+    });
+    profileFeedTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        activeFeedSection = tab.dataset.feedSection === "industry" ? "industry" : "regulatory";
+        profileFeedTabs.forEach((btn) => {
+          const isActive = btn === tab;
+          btn.classList.toggle("is-active", isActive);
+          btn.setAttribute("aria-selected", isActive ? "true" : "false");
+        });
+        renderProfileFeed();
+      });
+    });
+    if (copyUidLink) {
+      copyUidLink.addEventListener("click", async (event) => {
+        event.preventDefault();
+        if (copyUidLink.classList.contains("is-disabled")) return;
+        const targetRect = profileMenuPanel && !profileMenuPanel.hidden
+          ? profileMenuPanel.getBoundingClientRect()
+          : copyUidLink.getBoundingClientRect();
+        await copyProfileLinkFromTarget(targetRect);
+        setProfileMenuOpen(false);
+      });
+    }
+
+    profileMobileShareButton?.addEventListener("click", () => {
+      setProfileSettingsOpen(false);
+      setProfileShareSheetOpen(!profileShareSheetOpen);
+    });
+
+    profileShareCopyButton?.addEventListener("click", async () => {
+      const targetRect = profileMobileShareButton
+        ? profileMobileShareButton.getBoundingClientRect()
+        : document.body.getBoundingClientRect();
+      await copyProfileLinkFromTarget(targetRect);
+      setProfileShareSheetOpen(false);
+    });
+
+    if (profileEditLink) {
+      profileEditLink.addEventListener("click", (event) => {
+        if (profileEditLink.classList.contains("is-disabled")) {
+          event.preventDefault();
+        }
+        setProfileMenuOpen(false);
+      });
+    }
+
+    if (profileMenuButton) {
+      profileMenuButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const isOpen = profileMenuButton.getAttribute("aria-expanded") === "true";
+        setProfileMenuOpen(!isOpen);
+      });
+    }
+
+    document.addEventListener("click", (event) => {
+      if (!profileMenuPanel || !profileMenuButton) return;
+      if (profileMenuPanel.hidden) return;
+      if (profileMenuPanel.contains(event.target) || profileMenuButton.contains(event.target)) return;
+      setProfileMenuOpen(false);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      setProfileMenuOpen(false);
+      setProfileShareSheetOpen(false);
+      setProfileSettingsOpen(false);
+    });
+
+    profileMobileQuery.addEventListener("change", () => {
+      syncProfileOverlay();
+      if (!profileMobileQuery.matches && profileMenuScrollLocked) {
+        setGlobalScrollLock(false);
+        profileMenuScrollLocked = false;
+      }
+      if (!profileMobileQuery.matches) {
+        document.body.classList.remove("profile-menu-open");
+      }
+    });
+
+    profileMobileSettingsButton?.addEventListener("click", () => {
+      setProfileShareSheetOpen(false);
+      setProfileSettingsOpen(!profileSettingsOpen);
+    });
+
+    profileSettingsCancel?.addEventListener("click", () => {
+      setProfileSettingsStatus("");
+      setProfileSettingsOpen(false);
+    });
+
+    profileSettingsBackdrop?.addEventListener("click", () => {
+      setProfileShareSheetOpen(false);
+      setProfileSettingsOpen(false);
+    });
+
+    profileSettingsAvatarButton?.addEventListener("click", () => {
+      profileSettingsAvatarInput?.click();
+    });
+
+    profileSettingsAvatarAction?.addEventListener("click", () => {
+      profileSettingsAvatarInput?.click();
+    });
+
+    const updateSheetAvatarInitials = () => {
+      if (!profileSettingsAvatarButton || profileAvatarDataUrl) return;
+      const initials = `${String(profileSettingsFirstName?.value || "S").trim().slice(0, 1)}${String(profileSettingsLastName?.value || "V").trim().slice(0, 1)}`.trim() || "SV";
+      profileSettingsAvatarButton.setAttribute("data-initials", initials.toUpperCase());
+    };
+
+    profileSettingsFirstName?.addEventListener("input", updateSheetAvatarInitials);
+    profileSettingsLastName?.addEventListener("input", updateSheetAvatarInitials);
+
+    profileSettingsAvatarInput?.addEventListener("change", async () => {
+      const file = profileSettingsAvatarInput.files?.[0];
+      if (!file) return;
+      if (file.size > 4 * 1024 * 1024) {
+        setProfileSettingsStatus("File is too large. Use up to 4 MB.", "warning");
+        profileSettingsAvatarInput.value = "";
+        return;
+      }
+      try {
+        setProfileSettingsStatus("Preparing photo preview...");
+        const nextAvatarDataUrl = await readProfileImageAsDataUrl(file);
+        setProfileAvatar(nextAvatarDataUrl);
+        setProfileSettingsStatus("Photo updated locally. Tap Save.", "success");
+      } catch (error) {
+        console.error("Avatar preview error:", error);
+        setProfileSettingsStatus("Couldn't read the selected photo.", "error");
+      } finally {
+        profileSettingsAvatarInput.value = "";
+      }
+    });
+
+    profileSheetThemeButton?.addEventListener("click", () => {
+      document.getElementById("themeToggleBtn")?.click();
+      window.setTimeout(updateProfileThemeLabel, 0);
+    });
+
+    profileSheetLogoutButton?.addEventListener("click", () => {
+      document.getElementById("btnLogout")?.click();
+    });
+
+    profileSettingsSave?.addEventListener("click", async () => {
+      if (!currentAuthUser) return;
+
+      const firstName = String(profileSettingsFirstName?.value || "").trim();
+      const lastName = String(profileSettingsLastName?.value || "").trim();
+      const email = String(profileSettingsEmail?.value || "").trim();
+      const location = String(profileSettingsLocation?.value || "").trim();
+
+      if (!email) {
+        setProfileSettingsStatus("Email address is required.", "warning");
+        profileSettingsEmail?.focus();
+        return;
+      }
+
+      if (profileSettingsEmail && !profileSettingsEmail.checkValidity()) {
+        setProfileSettingsStatus("Enter a valid email address.", "warning");
+        profileSettingsEmail.focus();
+        return;
+      }
+
+      setProfileSettingsBusy(true);
+      setProfileSettingsStatus("Saving profile...");
+
+      let emailUpdated = String(currentAuthUser.email || "").trim() === email;
+
+      try {
+        if (!emailUpdated) {
+          await updateEmail(currentAuthUser, email);
+          emailUpdated = true;
+        }
+
+        const payload = {
+          firstName,
+          lastName,
+          location,
+          avatarDataUrl: profileAvatarDataUrl,
+          email: emailUpdated ? email : String(currentAuthUser.email || "").trim()
+        };
+
+        await mergeUserDoc(currentAuthUser.uid, payload);
+        currentAuthUser = auth.currentUser || currentAuthUser;
+        profileFirstName = payload.firstName;
+        profileLastName = payload.lastName;
+        profileLocation = payload.location;
+        currentUserEmail = payload.email;
+        profileDataLoaded = true;
+        syncProfileSettingsForm();
+        updateProfileDisplayName();
+        setProfileSettingsStatus("Profile saved.", "success");
+        window.setTimeout(() => {
+          setProfileSettingsOpen(false);
+        }, 220);
+      } catch (error) {
+        if (!emailUpdated) {
+          try {
+            await mergeUserDoc(currentAuthUser.uid, {
+              firstName,
+              lastName,
+              location,
+              avatarDataUrl: profileAvatarDataUrl
+            });
+            currentAuthUser = auth.currentUser || currentAuthUser;
+            profileFirstName = firstName;
+            profileLastName = lastName;
+            profileLocation = location;
+            profileDataLoaded = true;
+            syncProfileSettingsForm();
+            updateProfileDisplayName();
+            setProfileSettingsStatus("Profile saved, but email can only be changed after signing in again.", "warning");
+          } catch (saveError) {
+            console.error("Profile save error:", saveError);
+            setProfileSettingsStatus("Couldn't save profile changes.", "error");
+          }
+        } else {
+          console.error("Profile save error:", error);
+          setProfileSettingsStatus("Couldn't save profile changes.", "error");
+        }
+      } finally {
+        setProfileSettingsBusy(false);
+      }
+    });
+
+    // Логаут
+    const logoutBtn = document.getElementById("btnLogout");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async () => {
+        try {
+          await logoutUser();
+          window.location.href = "login.html";
+        } catch (err) {
+          console.error("Logout error:", err);
+          await showAlert("Ошибка выхода. Проверь консоль.", "Ошибка");
+        }
+      });
+    }
+
+    function fmtDate(ts) {
+      if (!ts) return "—";
+      const d = new Date(ts);
+      const pad = n => String(n).padStart(2, "0");
+      return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+    }
+
+    function clearNodeChildren(node) {
+      while (node.firstChild) {
+        node.removeChild(node.firstChild);
+      }
+    }
+
+    function setCaption(container, text, color = "") {
+      clearNodeChildren(container);
+      const message = document.createElement("div");
+      message.className = "caption";
+      if (color) message.style.color = color;
+      message.textContent = text;
+      container.appendChild(message);
+    }
+
+    function createProjectMetaRow(label, value) {
+      const row = document.createElement("div");
+      const labelEl = document.createElement("span");
+      labelEl.className = "caption";
+      labelEl.textContent = `${label}:`;
+      row.appendChild(labelEl);
+      row.appendChild(document.createTextNode(` ${value}`));
+      return row;
+    }
+
+    function getProjectActionIcon(action) {
+      switch (action) {
+        case "toggle-archive":
+          return `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3.5" y="4.5" width="17" height="4" rx="1.5"></rect>
+              <path d="M5.5 8.5v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9"></path>
+              <path d="M10 12h4"></path>
+            </svg>
+          `;
+        case "history":
+          return `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"></path>
+              <path d="M3.5 4.5v4h4"></path>
+              <path d="M12 7.5v5l3 1.8"></path>
+            </svg>
+          `;
+        case "delete":
+          return `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4.5 7.5h15"></path>
+              <path d="M9.5 4.5h5"></path>
+              <path d="M7.5 7.5v11a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-11"></path>
+              <path d="M10 10.5v5"></path>
+              <path d="M14 10.5v5"></path>
+            </svg>
+          `;
+        default:
+          return "";
+      }
+    }
+
+    function createActionButton(action, label) {
+      const button = document.createElement("button");
+      button.className = "btn-small btn-secondary lg-btn lg-btn--pill project-card-action-btn";
+      button.dataset.act = action;
+      button.type = "button";
+      button.title = label;
+      button.setAttribute("aria-label", label);
+      const icon = document.createElement("span");
+      icon.className = "project-action-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.innerHTML = getProjectActionIcon(action);
+      const text = document.createElement("span");
+      text.className = "lg-btn__label project-action-label";
+      text.textContent = label;
+      const glow = document.createElement("span");
+      glow.className = "lg-btn__glow";
+      glow.setAttribute("aria-hidden", "true");
+      button.appendChild(icon);
+      button.appendChild(text);
+      button.appendChild(glow);
+      return button;
+    }
+
+    function openProjectFromProfile(projectId) {
+      localStorage.setItem("current_project_id", projectId);
+      window.location.href = "index.html";
+    }
+
+    function shouldIgnoreProjectCardOpen(target) {
+      if (!(target instanceof Element)) return false;
+
+      return Boolean(
+        target.closest(
+          'button, a, input, textarea, select, label, [role="button"], [contenteditable="true"], .project-card-actions, .project-history'
+        )
+      );
+    }
+
+    function normalizeProjectName(value) {
+      return (value || "")
+        .trim()
+        .replace(/\s+/g, " ")
+        .toLocaleLowerCase("ru-RU");
+    }
+
+    function setProjectCardName(card, trigger, input, value) {
+      const normalizedValue = String(value || "").trim();
+      const displayValue = normalizedValue || "Без названия";
+      trigger.textContent = displayValue;
+      trigger.title = "Нажмите, чтобы переименовать";
+      input.value = normalizedValue;
+      input.size = Math.max(10, Math.min(28, displayValue.length + 1));
+      card.dataset.projectName = normalizeProjectName(displayValue);
+      card.setAttribute("aria-label", `Открыть объект ${displayValue}`);
+    }
+
+    async function isProjectNameTaken(ownerUid, name, excludeProjectId = "") {
+      if (!ownerUid || !name) return false;
+      const normalizedTarget = normalizeProjectName(name);
+      if (!normalizedTarget) return false;
+
+      const snap = await getProjectsByFieldSnapshot("ownerUid", ownerUid);
+
+      return snap.docs.some((docSnap) => {
+        if (excludeProjectId && docSnap.id === excludeProjectId) {
+          return false;
+        }
+        const projectName = docSnap.data()?.name || "";
+        return normalizeProjectName(projectName) === normalizedTarget;
+      });
+    }
+
+    function enableInlineProjectRename({ card, trigger, input, projectId, initialName }) {
+      let currentName = String(initialName || "").trim();
+      let isEditing = false;
+      let isSaving = false;
+      let skipBlurFinalize = false;
+
+      const stopEditing = ({ restoreValue = true, focusTrigger = false } = {}) => {
+        isEditing = false;
+        card.classList.remove("is-renaming");
+        input.disabled = false;
+        input.hidden = true;
+        trigger.hidden = false;
+        if (restoreValue) {
+          input.value = currentName;
+        }
+        if (focusTrigger) {
+          trigger.focus();
+        }
+      };
+
+      const startEditing = () => {
+        if (isEditing || isSaving || !currentUserId) return;
+        isEditing = true;
+        card.classList.add("is-renaming");
+        trigger.hidden = true;
+        input.hidden = false;
+        input.disabled = false;
+        input.value = currentName;
+        requestAnimationFrame(() => {
+          input.focus();
+          input.select();
+        });
+      };
+
+      const focusInput = () => {
+        requestAnimationFrame(() => {
+          input.focus();
+          input.select();
+        });
+      };
+
+      const finalizeRename = async ({ showWarning = false } = {}) => {
+        if (!isEditing || isSaving) return;
+        const trimmed = input.value.trim();
+
+        if (!trimmed) {
+          if (showWarning) {
+            await showAlert("Название не может быть пустым.", "Внимание");
+            focusInput();
+            return;
+          }
+          setProjectCardName(card, trigger, input, currentName);
+          stopEditing({ restoreValue: false });
+          return;
+        }
+
+        if (trimmed === currentName) {
+          currentName = trimmed;
+          setProjectCardName(card, trigger, input, currentName);
+          stopEditing({ restoreValue: false, focusTrigger: true });
+          applyProjectsFilter();
+          return;
+        }
+
+        try {
+          isSaving = true;
+          card.classList.add("is-renaming-pending");
+          input.disabled = true;
+          const duplicateExists = await isProjectNameTaken(currentUserId, trimmed, projectId);
+          if (duplicateExists) {
+            input.disabled = false;
+            if (showWarning) {
+              await showAlert("Объект с таким названием уже существует.", "Внимание");
+              focusInput();
+              return;
+            }
+            setProjectCardName(card, trigger, input, currentName);
+            stopEditing({ restoreValue: false });
+            return;
+          }
+          await mergeProjectDoc(projectId, {
+            name: trimmed,
+            ownerUid: currentUserId,
+            createdBy: currentUserId
+          });
+          currentName = trimmed;
+          setProjectCardName(card, trigger, input, currentName);
+          stopEditing({ restoreValue: false, focusTrigger: true });
+          applyProjectsFilter();
+        } catch (e) {
+          console.error("Ошибка переименования:", e);
+          await showAlert("Не удалось переименовать объект.", "Ошибка");
+          input.disabled = false;
+          focusInput();
+        } finally {
+          isSaving = false;
+          card.classList.remove("is-renaming-pending");
+        }
+      };
+
+      trigger.addEventListener("click", (event) => {
+        event.stopPropagation();
+        startEditing();
+      });
+      trigger.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          startEditing();
+        }
+      });
+
+      input.addEventListener("keydown", async (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.stopPropagation();
+          skipBlurFinalize = true;
+          await finalizeRename({ showWarning: true });
+          requestAnimationFrame(() => {
+            skipBlurFinalize = false;
+          });
+          return;
+        }
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          skipBlurFinalize = true;
+          setProjectCardName(card, trigger, input, currentName);
+          stopEditing({ restoreValue: true, focusTrigger: true });
+          requestAnimationFrame(() => {
+            skipBlurFinalize = false;
+          });
+        }
+      });
+
+      input.addEventListener("input", () => {
+        const valueForSize = input.value.trim() || currentName || "Без названия";
+        input.size = Math.max(10, Math.min(28, valueForSize.length + 1));
+      });
+
+      input.addEventListener("click", (event) => {
+        event.stopPropagation();
+      });
+
+      input.addEventListener("pointerdown", (event) => {
+        event.stopPropagation();
+      });
+
+      input.addEventListener("blur", () => {
+        if (skipBlurFinalize) return;
+        if (!isEditing || isSaving) return;
+        void finalizeRename({ showWarning: false });
+      });
+
+      setProjectCardName(card, trigger, input, currentName);
+    }
+
+    // Загрузка профиля пользователя (только имя и фамилия)
+    async function loadUserProfile(uid) {
+      try {
+        profileDataLoaded = false;
+        const snap = await getUserDocSnapshot(uid);
+        if (!snap.exists()) {
+          profileFirstName = "";
+          profileLastName = "";
+          profileLocation = "";
+          profileDataLoaded = true;
+          setProfileAvatar("");
+          syncProfileSettingsForm();
+          updateProfileDisplayName();
+          return;
+        }
+        const data = snap.data();
+
+        profileFirstName = String(data.firstName || "").trim();
+        profileLastName = String(data.lastName || "").trim();
+        profileLocation = String(data.location || "").trim();
+        currentUserEmail = String(data.email || currentUserEmail || "").trim();
+        profileDataLoaded = true;
+        setProfileAvatar(data.avatarDataUrl || "");
+        syncProfileSettingsForm();
+        updateProfileDisplayName();
+      } catch (e) {
+        profileDataLoaded = true;
+        syncProfileSettingsForm();
+        updateProfileDisplayName();
+        console.error("Ошибка загрузки профиля:", e);
+      }
+    }
+
+    // Создание объекта из профиля
+    btnCreateProjectProfile.addEventListener("click", async () => {
+      const name = projectSearchInput.value.trim();
+      if (!name) {
+        await showAlert("Введите название объекта.", "Внимание");
+        return;
+      }
+      if (!currentUserId) {
+        await showAlert("Пользователь не авторизован. Перезайдите в аккаунт.", "Ошибка");
+        return;
+      }
+
+      try {
+        const duplicateExists = await isProjectNameTaken(currentUserId, name);
+        if (duplicateExists) {
+          await showAlert("Объект с таким названием уже существует.", "Внимание");
+          return;
+        }
+
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10);
+
+        // Получаем имя и фамилию из профиля
+        const engineerName = getProfileEngineerName();
+
+        await createProjectDoc({
+          name,
+          ownerUid: currentUserId,
+          createdBy: currentUserId,
+          createdAt: Date.now(),
+          contractorName: "",
+          engineer: engineerName,
+          date: dateStr,
+          construction: "Плита",
+          archived: false
+        });
+
+        projectSearchInput.value = "";
+        await loadProjects();
+      } catch (e) {
+        console.error("Ошибка создания объекта из профиля:", e);
+        await showAlert("Не удалось создать объект. Проверьте консоль.", "Ошибка");
+      }
+    });
+
+    // Удаление объекта вместе с гео-узлами и сессиями журнала
+    async function deleteProjectWithData(projectId) {
+      const ok = await showConfirm("Удалить этот объект со всеми сохранёнными проверками?", "Удаление объекта");
+      if (!ok) return;
+
+      try {
+        await clearProjectCollection(projectId, "geoNodes");
+        await clearProjectCollection(projectId, "journalSessions");
+        await clearProjectCollection(projectId, "inspections");
+        await deleteProjectDoc(projectId);
+
+        // localStorage
+        localStorage.removeItem(`journal_v1_${projectId}`);
+        if (localStorage.getItem("current_project_id") === projectId) {
+          localStorage.removeItem("current_project_id");
+        }
+
+        await showAlert("Объект удалён.", "Успех");
+        await loadProjects();
+      } catch (e) {
+        console.error("Ошибка удаления объекта:", e);
+        await showAlert("Не удалось удалить объект. Проверь консоль.", "Ошибка");
+      }
+    }
+
+    // История проверок объекта
+    async function loadProjectHistory(projectId, container) {
+      if (container.dataset.open === "1") {
+        container.dataset.open = "0";
+        container.style.opacity = "0";
+        container.style.maxHeight = `${container.scrollHeight}px`;
+        requestAnimationFrame(() => {
+          container.style.maxHeight = "0px";
+        });
+        const onClose = (event) => {
+          if (event.propertyName !== "max-height") return;
+          container.removeEventListener("transitionend", onClose);
+          container.classList.remove("is-open");
+        };
+        container.addEventListener("transitionend", onClose);
+        return;
+      }
+
+      container.dataset.open = "1";
+      container.classList.add("is-open");
+      container.style.opacity = "0";
+      setCaption(container, "Загрузка проверок…");
+      requestAnimationFrame(() => {
+        container.style.maxHeight = `${container.scrollHeight}px`;
+        container.style.opacity = "1";
+      });
+
+      try {
+        const snap = await getProjectCollectionOrderedSnapshot(
+          projectId,
+          "journalSessions",
+          "date",
+          "desc"
+        );
+
+        if (snap.empty) {
+          setCaption(container, "Пока нет сохранённых проверок.");
+          return;
+        }
+
+        clearNodeChildren(container);
+
+        snap.forEach(docSnap => {
+          const data = docSnap.data() || {};
+          const item = document.createElement("div");
+          item.className = "history-item";
+
+          const itemMain = document.createElement("div");
+          itemMain.className = "history-main";
+
+          const checkLabel = document.createElement("div");
+          checkLabel.textContent = `Проверка №${data.checkNumber || "—"}`;
+          itemMain.appendChild(checkLabel);
+
+          const itemMeta = document.createElement("div");
+          itemMeta.className = "caption";
+          const entriesCount = Array.isArray(data.entries) ? data.entries.length : 0;
+          itemMeta.textContent = `${fmtDate(data.date)} • записей: ${entriesCount}`;
+          itemMain.appendChild(itemMeta);
+
+          const itemActions = document.createElement("div");
+          itemActions.className = "history-actions";
+          const loadBtn = createActionButton("load-check", "Загрузить в журнал");
+          loadBtn.dataset.id = docSnap.id;
+          itemActions.appendChild(loadBtn);
+
+          item.appendChild(itemMain);
+          item.appendChild(itemActions);
+          container.appendChild(item);
+        });
+        requestAnimationFrame(() => {
+          container.style.maxHeight = `${container.scrollHeight}px`;
+          container.style.opacity = "1";
+        });
+
+        // Загрузить сохранённый журнал в index.html
+        container.querySelectorAll('[data-act="load-check"]').forEach(btn => {
+          const sessionId = btn.dataset.id;
+          btn.addEventListener("click", async (event) => {
+            event.stopPropagation();
+            try {
+              const sSnap = await getProjectCollectionDocSnapshot(
+                projectId,
+                "journalSessions",
+                sessionId
+              );
+              if (!sSnap.exists()) {
+                await showAlert("Проверка не найдена.", "Ошибка");
+                return;
+              }
+              const sData = sSnap.data();
+              const entries = sData.entries || [];
+
+              const key = `journal_v1_${projectId}`;
+              localStorage.setItem(key, JSON.stringify(entries));
+              localStorage.setItem("current_project_id", projectId);
+              localStorage.setItem("active_tab_v1", "journal");
+              localStorage.setItem("journal_restore_once", "1");
+              localStorage.setItem("journal_restore_project", projectId);
+
+              window.location.href = "index.html";
+            } catch (e) {
+              console.error("Ошибка загрузки проверки:", e);
+              await showAlert("Не удалось загрузить проверку.", "Ошибка");
+            }
+          });
+        });
+      } catch (e) {
+        console.error("Ошибка загрузки проверок:", e);
+        setCaption(container, "Не удалось загрузить проверки.", "#f87171");
+        requestAnimationFrame(() => {
+          container.style.maxHeight = `${container.scrollHeight}px`;
+          container.style.opacity = "1";
+        });
+      }
+    }
+
+    // Загрузка объектов пользователя
+    async function loadProjects() {
+      if (!currentUserId) return;
+
+      setCaption(projectsContainer, "Загрузка объектов…");
+
+      try {
+        const snap = await getProjectsByFieldSnapshot("ownerUid", currentUserId);
+
+        if (snap.size === 0) {
+          updateProjectsCount(0);
+          setCaption(projectsContainer, "Пока нет ни одного объекта. Создайте новый выше.");
+          return;
+        }
+
+        clearNodeChildren(projectsContainer);
+
+        const cards = await Promise.all(snap.docs.map(async (docSnap) => {
+          const data = docSnap.data();
+          const projectId = docSnap.id;
+          const archived = !!data.archived;
+
+          const card = document.createElement("div");
+          card.className = "project-card";
+          card.dataset.archived = archived ? "1" : "0";
+          card.tabIndex = 0;
+          card.setAttribute("role", "link");
+          card.setAttribute("aria-label", `Открыть объект ${data.name?.trim() || "Без названия"}`);
+
+          const createdAt     = data.createdAt || null;
+          const rawLastCheckNumber = Number(data.lastCheckNumber);
+          const lastCheckNum  = Number.isFinite(rawLastCheckNumber) && rawLastCheckNumber > 0
+            ? rawLastCheckNumber
+            : null;
+          const lastCheckDate = data.lastCheckDate || null;
+          let checksCount = 0;
+          try {
+            const journalSessionsSnap = await getProjectCollectionSnapshot(projectId, "journalSessions");
+            checksCount = journalSessionsSnap.size;
+          } catch (countError) {
+            console.warn("Не удалось загрузить количество проверок проекта:", projectId, countError);
+            checksCount = lastCheckNum || 0;
+          }
+          const fallbackEngineer = getProfileEngineerName();
+          const engineerDisplay = data.engineer || fallbackEngineer || "—";
+
+          const projectMain = document.createElement("div");
+          projectMain.className = "project-card-main";
+
+          const title = document.createElement("div");
+          title.className = "project-title";
+          const titleName = document.createElement("span");
+          titleName.className = "project-title-name";
+          titleName.setAttribute("aria-label", "Переименовать объект");
+          titleName.setAttribute("role", "button");
+          titleName.setAttribute("tabindex", "0");
+
+          const titleInput = document.createElement("input");
+          titleInput.type = "text";
+          titleInput.className = "project-title-input";
+          titleInput.hidden = true;
+          titleInput.maxLength = 120;
+          titleInput.setAttribute("aria-label", "Название объекта");
+
+          title.appendChild(titleName);
+          title.appendChild(titleInput);
+
+          const statusBadge = document.createElement("span");
+          statusBadge.className = archived
+            ? "status-badge status-archived"
+            : "status-badge status-active";
+          statusBadge.textContent = archived ? "Архивный" : "Активный";
+          title.appendChild(statusBadge);
+          projectMain.appendChild(title);
+          enableInlineProjectRename({
+            card,
+            trigger: titleName,
+            input: titleInput,
+            projectId,
+            initialName: data.name || ""
+          });
+
+          const meta = document.createElement("div");
+          meta.className = "project-meta";
+          meta.appendChild(createProjectMetaRow("Инженер", engineerDisplay));
+          meta.appendChild(createProjectMetaRow("Создан", fmtDate(createdAt)));
+          meta.appendChild(
+            createProjectMetaRow(
+              "Последняя проверка",
+              lastCheckNum && lastCheckDate
+                ? `№${lastCheckNum} от ${fmtDate(lastCheckDate)}`
+                : "Проверок еще не было"
+            )
+          );
+          meta.appendChild(createProjectMetaRow("Проверок", String(checksCount)));
+          projectMain.appendChild(meta);
+
+          const actions = document.createElement("div");
+          actions.className = "project-card-actions";
+          const topRow = document.createElement("div");
+          topRow.className = "project-actions-top-row";
+
+          const historyBtn = createActionButton("history", "История проверок");
+          const archiveBtn = createActionButton(
+            "toggle-archive",
+            archived ? "Вернуть из архива" : "Архивировать"
+          );
+          const deleteBtn = createActionButton("delete", "Удалить");
+
+          topRow.appendChild(historyBtn);
+          topRow.appendChild(archiveBtn);
+          topRow.appendChild(deleteBtn);
+          actions.appendChild(topRow);
+
+          const historyContainer = document.createElement("div");
+          historyContainer.className = "project-history";
+
+          card.appendChild(actions);
+          card.appendChild(projectMain);
+          card.appendChild(historyContainer);
+
+          card.addEventListener("click", (event) => {
+            if (card.classList.contains("is-renaming")) return;
+            if (shouldIgnoreProjectCardOpen(event.target)) return;
+            openProjectFromProfile(projectId);
+          });
+
+          card.addEventListener("keydown", (event) => {
+            if (event.defaultPrevented) return;
+            if (card.classList.contains("is-renaming")) return;
+            if (event.target !== card) return;
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            openProjectFromProfile(projectId);
+          });
+
+          // Архив / вернуть из архива
+          archiveBtn.addEventListener("click", async (event) => {
+            event.stopPropagation();
+            const makeArchived = !archived;
+            try {
+              await mergeProjectDoc(projectId, {
+                archived: makeArchived,
+                ownerUid: currentUserId,
+                createdBy: currentUserId
+              });
+              loadProjects();
+            } catch (e) {
+              console.error("Ошибка изменения статуса архива:", e);
+              await showAlert("Не удалось изменить статус объекта.", "Ошибка");
+            }
+          });
+
+          // История проверок
+          historyBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            loadProjectHistory(projectId, historyContainer);
+          });
+
+          // Удалить объект
+          deleteBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            deleteProjectWithData(projectId);
+          });
+
+          return card;
+        }));
+
+        cards.forEach((card) => {
+          projectsContainer.appendChild(card);
+        });
+        applyProjectsFilter();
+      } catch (e) {
+        console.error("Ошибка загрузки объектов:", e);
+        setCaption(projectsContainer, "Ошибка загрузки объектов. Проверь консоль.", "#f87171");
+      }
+    }
+
+    // Авторизация
+    onAuthStateChanged(auth, async user => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+      currentAuthUser = user;
+      currentUserId = user.uid;
+      currentUserEmail = user.email || "";
+      uidForCopy = user.uid;
+      setProfileActionsEnabled(true);
+      syncProfileSettingsForm();
+      updateProfileThemeLabel();
+
+      await loadUserProfile(user.uid);
+      loadProjects();
+    });
+
+    renderProfileFeed();
+    loadProfileFeed();
+  </script>
+  <script src="dist/liquid-glass.js"></script>
+</body>
+</html>

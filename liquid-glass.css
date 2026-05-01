@@ -1,0 +1,145 @@
+.lg-filter-defs {
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.lg-btn {
+  --lg-tilt-x: 0deg;
+  --lg-tilt-y: 0deg;
+  --lg-raise: 0px;
+  --lg-scale: 1;
+  --lg-glow-x: 0px;
+  --lg-glow-y: 0px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(240, 248, 255, 0.05), rgba(240, 248, 255, 0.015));
+  border: 1px solid rgba(240, 248, 255, 0.035);
+  color: inherit;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  backdrop-filter: blur(18px) saturate(138%);
+  -webkit-backdrop-filter: blur(18px) saturate(138%);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(240, 248, 255, 0.06);
+  position: relative;
+  overflow: hidden;
+  transform: perspective(700px) translateY(var(--lg-raise)) rotateX(var(--lg-tilt-x)) rotateY(var(--lg-tilt-y)) scale(var(--lg-scale));
+  transform-style: preserve-3d;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 200ms ease;
+  isolation: isolate;
+}
+
+.lg-btn--pill {
+  min-width: 258px;
+  min-height: 48px;
+  padding: 8px 16px;
+  border-radius: 42px;
+}
+
+.lg-btn--compact {
+  min-width: 0;
+  min-height: 46px;
+  padding: 7px 40px;
+}
+
+.lg-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  left: 0;
+  background: radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 65%);
+  opacity: 0.9;
+  filter: blur(6px);
+  pointer-events: none;
+  transition: opacity 200ms ease;
+  z-index: 2;
+}
+
+.lg-btn:hover::before {
+  inset: 0;
+  left: 0;
+  opacity: 0.7;
+}
+
+.lg-btn__label {
+  position: relative;
+  z-index: 3;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(240, 248, 255, 0.88);
+}
+
+.lg-btn__glow {
+  position: absolute;
+  inset: -60%;
+  background: conic-gradient(from 210deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 70%);
+  filter: blur(16px) url(#liquidGlass);
+  opacity: 0;
+  transform: translate3d(var(--lg-glow-x), var(--lg-glow-y), 0);
+  transition: opacity 200ms ease, transform 120ms ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.lg-btn:hover {
+  --lg-raise: -0.5px;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(240, 248, 255, 0.08);
+  transform: perspective(700px) translateY(var(--lg-raise)) rotateX(var(--lg-tilt-x)) rotateY(var(--lg-tilt-y)) scale(var(--lg-scale));
+}
+
+.lg-btn:hover .lg-btn__glow {
+  opacity: 0.45;
+}
+
+.lg-btn:active {
+  --lg-raise: 0px;
+  --lg-scale: 0.985;
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(240, 248, 255, 0.06);
+  transform: perspective(700px) translateY(var(--lg-raise)) rotateX(var(--lg-tilt-x)) rotateY(var(--lg-tilt-y)) scale(var(--lg-scale));
+}
+
+.lg-btn:active .lg-btn__glow {
+  opacity: 0.35;
+}
+
+.lg-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.45);
+  outline-offset: 3px;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .lg-btn {
+    background: linear-gradient(180deg, rgba(240, 248, 255, 0.05), rgba(240, 248, 255, 0.015));
+  }
+}
+
+@supports not (filter: url("#liquidGlass")) {
+  .lg-btn__glow {
+    filter: blur(16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-btn,
+  .lg-btn__glow {
+    transition: none;
+  }
+
+  .lg-btn {
+    transform: none;
+  }
+
+  .lg-btn:hover,
+  .lg-btn:active {
+    transform: none;
+  }
+
+  .lg-btn__glow {
+    opacity: 0;
+  }
+}

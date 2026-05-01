@@ -1,0 +1,89 @@
+    <section class="section" id="knowledge">
+      <div id="sectionKnowledge">
+        <!-- Главная страница базы знаний -->
+        <div id="knowledgeMainPage">
+          <div class="knowledge-header">
+            <h2>База знаний</h2>
+            <div class="knowledge-stats">
+              <span id="knowledgeArticlesCount">0 статей</span>
+              <button id="btnAllArticles" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                <span class="lg-btn__label">Все статьи</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+            </div>
+          </div>
+          
+          <p class="subtitle">
+            Здесь собраны статьи о конструкциях и их параметрах.
+          </p>
+
+          <div class="knowledge-search-bar">
+            <input type="text" id="knowledgeSearchInput" placeholder="Поиск" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            <button id="btnKnowledgeSearch" class="btn-small btn-secondary lg-btn lg-btn--pill">
+              <span class="lg-btn__label">Искать</span>
+              <span class="lg-btn__glow" aria-hidden="true"></span>
+            </button>
+          </div>
+
+          <!-- Категории -->
+          <div class="knowledge-category-label">
+            <span class="category-label-text">Конструкции</span>
+          </div>
+
+          <!-- Подкатегории (отображаются при выборе категории) -->
+          <div id="knowledgeSubcategories" class="knowledge-subcategories"></div>
+        </div>
+
+        <!-- Страница категории/подкатегории со статьями -->
+        <div id="knowledgeCategoryPage" style="display: none;">
+          <div class="knowledge-breadcrumbs" id="knowledgeBreadcrumbs"></div>
+          
+          <div class="knowledge-category-header">
+            <h2 id="knowledgeCategoryTitle">Категория</h2>
+            <span id="knowledgeArticlesCountBadge" class="badge">0 статей</span>
+          </div>
+
+          <div class="knowledge-controls">
+            <div class="knowledge-search-controls">
+              <input type="text" id="knowledgeCategorySearch" placeholder="Поиск" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button id="btnCategorySearch" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                <span class="lg-btn__label">Искать</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+            </div>
+
+            <div class="knowledge-view-toggle">
+              <button id="btnGridView" class="view-btn active" title="Сетка">⊞</button>
+              <button id="btnListView" class="view-btn" title="Список">☰</button>
+            </div>
+          </div>
+
+          <div class="knowledge-articles-container">
+            <div id="knowledgeArticlesGrid" class="knowledge-articles-grid"></div>
+          </div>
+        </div>
+
+        <!-- Страница просмотра статьи -->
+        <div id="knowledgeArticlePage" style="display: none;">
+          <div class="knowledge-breadcrumbs" id="articleBreadcrumbs"></div>
+          
+          <div class="knowledge-article-view">
+            <div class="article-header-actions">
+              <button id="btnBackToArticles" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                <span class="lg-btn__label">← Назад к статьям</span>
+                <span class="lg-btn__glow" aria-hidden="true"></span>
+              </button>
+            </div>
+            <h1 id="articleViewTitle">Заголовок статьи</h1>
+            <div id="articleViewContent" class="article-content">
+              <!-- Содержимое статьи -->
+            </div>
+          </div>
+          <button id="btnKnowledgeScrollTop" class="knowledge-scroll-top-btn" type="button" aria-label="Прокрутить статью наверх">
+            <span aria-hidden="true">&uarr;</span>
+            <span>Наверх</span>
+          </button>
+        </div>
+      </div>
+    </section>
+

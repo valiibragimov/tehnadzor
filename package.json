@@ -1,0 +1,45 @@
+{
+  "name": "tehnadzor-online",
+  "version": "0.1.0",
+  "license": "MIT",
+  "scripts": {
+    "clean": "node ./scripts/clean-runtime-artifacts.mjs",
+    "build:index-html": "node ./scripts/build-index-html.mjs",
+    "build:client:core": "npm run build:index-html && tsc -p ./tsconfig.client.json && node ./scripts/inject-firebase-config.mjs && node ./scripts/postbuild-client.mjs",
+    "build:client": "npm run build:client:core && npm run build:bim-viewer",
+    "build:server:ts": "tsc -p ./tsconfig.server.json",
+    "build:functions:ts": "tsc -p ./tsconfig.functions.json",
+    "build:ts": "npm run build:client && npm run build:server:ts && npm run build:functions:ts",
+    "build:profile-feed": "node ./scripts/build-profile-feed.mjs",
+    "build:bim-viewer": "node ./scripts/patch-thatopen-fragments.mjs && node ./scripts/build-bim-viewer.mjs",
+    "build": "npm run clean && npm run build:ts && npm run build:profile-feed",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test:smoke": "npm run build:client && node --test tests/smoke/**/*.test.mjs",
+    "test": "npm run test:smoke",
+    "typecheck:bim": "tsc -p ./tsconfig.bim.json",
+    "typecheck:strict:server-profile-feed": "tsc -p ./tsconfig.server.profile-feed.json --noEmit",
+    "typecheck": "npm run typecheck:bim && tsc -p ./tsconfig.client.json --noEmit && tsc -p ./tsconfig.server.json --noEmit && tsc -p ./tsconfig.functions.json --noEmit"
+  },
+  "dependencies": {
+    "@ifc-lite/data": "^1.11.0",
+    "@ifc-lite/geometry": "^1.11.0",
+    "@ifc-lite/parser": "^1.11.0",
+    "@thatopen/components": "^3.3.3",
+    "@thatopen/components-front": "^3.3.3",
+    "esbuild": "^0.27.4",
+    "firebase": "^12.11.0",
+    "three": "0.175.0",
+    "web-ifc": "0.0.74"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
+    "eslint": "^10.2.0",
+    "globals": "^17.4.0",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.58.0"
+  }
+}

@@ -1,0 +1,175 @@
+<body class="home-page">
+  <svg class="lg-filter-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <filter id="liquidGlass">
+      <feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="2" seed="2" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </svg>
+  <!-- =======================
+       HEADER
+       ======================= -->
+  <header>
+    <div class="brand" role="button" tabindex="0" onclick="document.querySelector('.tab[data-target=\'geo\']').click(); window.scrollTo({ top: 0, behavior: 'smooth' });" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); this.click(); }">
+      <svg width="24" height="24" viewBox="0 0 40 30" class="brand-icon">
+        <!-- Кирпичи - первый ряд -->
+        <rect x="2" y="2" width="12" height="6" class="brand-brick brand-brick-1" rx="1" />
+        <rect x="16" y="2" width="12" height="6" class="brand-brick brand-brick-2" rx="1" />
+        <rect x="30" y="2" width="8" height="6" class="brand-brick brand-brick-3" rx="1" />
+        
+        <!-- Кирпичи - второй ряд (со смещением) -->
+        <rect x="9" y="10" width="12" height="6" class="brand-brick brand-brick-4" rx="1" />
+        <rect x="23" y="10" width="12" height="6" class="brand-brick brand-brick-5" rx="1" />
+        
+        <!-- Кирпичи - третий ряд -->
+        <rect x="2" y="18" width="12" height="6" class="brand-brick brand-brick-6" rx="1" />
+        <rect x="16" y="18" width="12" height="6" class="brand-brick brand-brick-7" rx="1" />
+        <rect x="30" y="18" width="8" height="6" class="brand-brick brand-brick-8" rx="1" />
+        
+        <!-- Кирпичи - четвертый ряд (со смещением) -->
+        <rect x="9" y="26" width="12" height="4" class="brand-brick brand-brick-9" rx="1" />
+        <rect x="23" y="26" width="12" height="4" class="brand-brick brand-brick-10" rx="1" />
+      </svg>
+      <h1>SCOPE</h1>
+    </div>
+
+
+    <!-- Правая панель: дата и профиль -->
+    <div class="header-actions">
+      <input id="date" type="date" class="header-date-input" hidden />
+      <button id="themeToggleBtn" class="header-icon-btn theme-toggle-btn" aria-label="Сменить тему">
+        <span class="theme-toggle-icon"></span>
+      </button>
+      <a href="profile.html" id="headerProfileButton" class="header-icon-btn" aria-label="Профиль">
+        <img id="headerProfileAvatar" class="header-profile-avatar" alt="Профиль" hidden />
+        <svg class="header-profile-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </a>
+      <button id="btnLogout" class="header-icon-btn header-icon-btn--danger">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- =======================
+       MAIN
+       ======================= -->
+  <main>
+    <!-- Блок выбора конструкции и проекта -->
+    <div class="construction-bar">
+      <div class="project-select-wrapper">
+        <label class="construction-label">Объект</label>
+        <select id="projectSelector" class="project-select ui-select"></select>
+      </div>
+      <div class="construction-select-wrapper">
+        <label class="construction-label">Категория</label>
+        <select id="constructionCategory" class="ui-select"></select>
+      </div>
+      <div class="construction-select-wrapper" id="constructionFieldShell">
+        <label class="construction-label">Конструкция</label>
+        <select id="constructionType" class="ui-select"></select>
+        <select id="construction" class="ui-select" hidden aria-hidden="true" tabindex="-1">
+          <option value="Плита" selected>Плита</option>
+          <option value="Колонна">Колонна</option>
+          <option value="Стена">Стена</option>
+          <option value="Лестница">Лестница</option>
+          <option value="Балка">Балка</option>
+          <option value="Элемент">Элемент</option>
+        </select>
+      </div>
+      <div class="construction-select-wrapper" id="constructionSubtypeShell" hidden>
+        <label class="construction-label" id="constructionSubtypeLabel">Подтип</label>
+        <select id="constructionSubtype" class="ui-select"></select>
+      </div>
+      <div class="construction-select-wrapper" id="constructionPileElementShell" hidden>
+        <label class="construction-label" id="constructionPileElementLabel">Элемент</label>
+        <select id="constructionPileElement" class="ui-select">
+          <option value="pile">Свая</option>
+          <option value="grillage">Ростверк</option>
+        </select>
+      </div>
+      <div class="bim-import-wrapper">
+        <div class="bim-import-head">
+          <span class="construction-label">BIM / IFC</span>
+          <button
+            type="button"
+            class="module-help-toggle bim-import-help-toggle"
+            data-help-target="bimImportHelpContent"
+            aria-label="Показать описание BIM-импорта"
+          ></button>
+        </div>
+        <div class="module-help-content" id="bimImportHelpContent" hidden>
+          Загрузите IFC-файл, чтобы добавить BIM-элементы проекта и использовать их в модулях контроля.
+        </div>
+        <div class="bim-import-controls">
+          <button type="button" id="btnImportIfc" class="btn-small btn-secondary lg-btn lg-btn--pill bim-import-action bim-import-primary">
+            <span class="lg-btn__label">Выбрать IFC</span>
+            <span class="lg-btn__glow" aria-hidden="true"></span>
+          </button>
+          <input id="ifcFileInput" type="file" accept=".ifc" hidden />
+          <div class="bim-import-meta" aria-live="polite">
+            <div id="bimImportFileState" class="bim-import-file-state">Файл не выбран</div>
+            <div id="bimImportStatus" class="caption bim-import-status"></div>
+          </div>
+          <div class="bim-import-menu">
+            <button
+              type="button"
+              id="btnIfcMoreActions"
+              class="btn-small btn-secondary lg-btn lg-btn--pill bim-import-action bim-import-menu-trigger"
+              aria-label="Дополнительные действия IFC"
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-controls="ifcActionsMenu"
+            >
+              <span class="lg-btn__label" aria-hidden="true">⋯</span>
+              <span class="lg-btn__glow" aria-hidden="true"></span>
+            </button>
+            <div id="ifcActionsMenu" class="menu-panel bim-import-menu-panel" role="menu">
+              <button type="button" id="btnChooseAnotherIfc" class="menu-item" role="menuitem">Выбрать другой IFC</button>
+              <button type="button" id="btnResetSelectedIfc" class="menu-item" role="menuitem">Очистить выбранный файл</button>
+              <button type="button" id="btnClearIfcImport" class="menu-item menu-danger" role="menuitem">Удалить BIM-элементы</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Вкладки -->
+    <div class="tabs">
+      <div class="tab lg-btn active" data-target="geo">
+        <span class="lg-btn__label">Геодезическая привязка</span>
+        <span class="lg-btn__glow" aria-hidden="true"></span>
+      </div>
+      <div class="tab lg-btn" data-target="reinforcement">
+        <span class="lg-btn__label">Армирование</span>
+        <span class="lg-btn__glow" aria-hidden="true"></span>
+      </div>
+      <div class="tab lg-btn" data-target="geometry">
+        <span class="lg-btn__label">Геометрия</span>
+        <span class="lg-btn__glow" aria-hidden="true"></span>
+      </div>
+      <div class="tab lg-btn" data-target="strength">
+        <span class="lg-btn__label">Прочность бетона</span>
+        <span class="lg-btn__glow" aria-hidden="true"></span>
+      </div>
+      <div class="tab lg-btn" data-target="summary">
+        <span class="lg-btn__label">Итог</span>
+        <span class="lg-btn__glow" aria-hidden="true"></span>
+      </div>
+      <div class="tab lg-btn" data-target="journal">
+        <span class="lg-btn__label">Журнал</span>
+        <span class="lg-btn__glow" aria-hidden="true"></span>
+      </div>
+      <div class="tab lg-btn" data-target="knowledge">
+        <span class="lg-btn__label">База знаний</span>
+        <span class="lg-btn__glow" aria-hidden="true"></span>
+      </div>
+    </div>
+
+    <!-- Геодезия -->
+
