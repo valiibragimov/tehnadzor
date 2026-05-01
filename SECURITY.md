@@ -6,7 +6,7 @@
 
 ## Supported Version
 
-SCOPE is in early development. Security fixes are currently accepted for the main branch of the public repository.
+Tehnadzor Online is in early development. Security fixes are currently accepted for the main branch of the public repository.
 
 ## Reporting Vulnerabilities
 
@@ -69,7 +69,7 @@ Before deploying a public instance, check that:
 
 ## Поддерживаемая версия
 
-SCOPE находится в ранней разработке. Исправления безопасности сейчас принимаются для основной ветки публичного репозитория.
+Tehnadzor Online находится в ранней разработке. Исправления безопасности сейчас принимаются для основной ветки публичного репозитория.
 
 ## Как сообщать об уязвимостях
 
