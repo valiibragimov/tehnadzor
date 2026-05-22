@@ -10,6 +10,7 @@ export default [
   {
     ignores: [
       "dist/**",
+      "dist-hosting/**",
       "server/dist/**",
       "functions/dist/**",
       "node_modules/**",

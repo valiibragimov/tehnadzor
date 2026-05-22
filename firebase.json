@@ -4,7 +4,7 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "public": ".",
+    "public": "dist-hosting",
     "headers": [
       {
         "source": "/dist/profile-feed.json",
@@ -23,9 +23,7 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**",
-      "server/**",
-      "functions/**"
+      "**/node_modules/**"
     ]
   }
 }

@@ -1,6 +1,7 @@
 {
   "name": "tehnadzor",
   "version": "0.1.0",
+  "type": "module",
   "description": "Tehnadzor is an open-source web application for construction supervision, QA/QC workflows, and BIM/IFC-based inspection records.",
   "license": "MIT",
   "scripts": {
@@ -12,8 +13,10 @@
     "build:functions:ts": "tsc -p ./tsconfig.functions.json",
     "build:ts": "npm run build:client && npm run build:server:ts && npm run build:functions:ts",
     "build:profile-feed": "node ./scripts/build-profile-feed.mjs",
+    "build:hosting": "node ./scripts/build-hosting-public.mjs",
     "build:bim-viewer": "node ./scripts/patch-thatopen-fragments.mjs && node ./scripts/build-bim-viewer.mjs",
-    "build": "npm run clean && npm run build:ts && npm run build:profile-feed",
+    "build": "npm run clean && npm run build:ts && npm run build:profile-feed && npm run build:hosting",
+    "check:hosting": "node ./scripts/check-hosting-public.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test:smoke": "npm run build:client && node ./scripts/run-smoke-tests.mjs",
@@ -42,5 +45,11 @@
     "globals": "^17.4.0",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.0"
+  },
+  "overrides": {
+    "@protobufjs/utf8": "1.1.1",
+    "brace-expansion": "5.0.6",
+    "fast-xml-parser": "5.8.0",
+    "protobufjs": "7.5.8"
   }
 }

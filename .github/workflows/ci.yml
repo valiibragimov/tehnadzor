@@ -55,3 +55,9 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Build hosting output
+        run: npm run build
+
+      - name: Check hosting output
+        run: npm run check:hosting
