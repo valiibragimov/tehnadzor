@@ -50,6 +50,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Audit dependencies
+        run: npm run audit:all
+
       - name: Typecheck
         run: npm run typecheck
 
