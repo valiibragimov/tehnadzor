@@ -1,6 +1,6 @@
 "use strict";
 // Service Worker для Tehnadzor
-const CACHE_NAME = "tehnadzor-v36";
+const CACHE_NAME = "tehnadzor-f4efe4adc165";
 const OFFLINE_URL = "index.html";
 const MANIFEST_URL = "manifest.json";
 const BYPASS_CACHE_EXTENSIONS = [".css", ".js", ".html"];
