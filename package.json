@@ -16,7 +16,7 @@
     "build:hosting": "node ./scripts/build-hosting-public.mjs",
     "build:bim-viewer": "node ./scripts/patch-thatopen-fragments.mjs && node ./scripts/build-bim-viewer.mjs",
     "stamp:sw-cache": "node ./scripts/stamp-service-worker-cache.mjs",
-    "build": "npm run clean && npm run build:ts && npm run build:profile-feed && npm run build:hosting",
+    "build": "npm run clean && npm run build:ts && npm run build:profile-feed && npm run build:hosting && npm run check:hosting",
     "check:hosting": "node ./scripts/check-hosting-public.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
