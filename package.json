@@ -27,7 +27,7 @@
     "audit:all": "npm run audit:root && npm run audit:server && npm run audit:functions",
     "typecheck:bim": "tsc -p ./tsconfig.bim.json",
     "typecheck:strict:server-profile-feed": "tsc -p ./tsconfig.server.profile-feed.json --noEmit",
-    "typecheck": "npm run typecheck:bim && tsc -p ./tsconfig.client.json --noEmit && tsc -p ./tsconfig.server.json --noEmit && tsc -p ./tsconfig.functions.json --noEmit"
+    "typecheck": "npm run typecheck:bim && npm run typecheck:strict:server-profile-feed && tsc -p ./tsconfig.client.json --noEmit && tsc -p ./tsconfig.server.json --noEmit && tsc -p ./tsconfig.functions.json --noEmit"
   },
   "dependencies": {
     "@ifc-lite/data": "^1.11.0",
