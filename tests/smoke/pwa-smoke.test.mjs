@@ -77,6 +77,19 @@ test("index page still wires PWA registration and manifest link", async () => {
   assert.match(html, /navigator\.serviceWorker\.register\('sw\.js', \{ updateViaCache: 'none' \}\)/);
 });
 
+test("firebase hosting keeps baseline security headers", async () => {
+  const rawConfig = await readFile(resolve(projectRoot, "firebase.json"), "utf8");
+  const config = JSON.parse(rawConfig);
+  const globalHeaders = config.hosting.headers.find((entry) => entry.source === "**")?.headers || [];
+  const headerValues = new Map(globalHeaders.map((header) => [header.key, header.value]));
+
+  assert.equal(headerValues.get("X-Content-Type-Options"), "nosniff");
+  assert.equal(headerValues.get("Referrer-Policy"), "strict-origin-when-cross-origin");
+  assert.equal(headerValues.get("X-Frame-Options"), "DENY");
+  assert.match(String(headerValues.get("Permissions-Policy") || ""), /camera=\(\)/);
+  assert.match(String(headerValues.get("Permissions-Policy") || ""), /geolocation=\(\)/);
+});
+
 test("journal exposes the issue registry workflow", async () => {
   const response = await fetch(`${staticServer.url}/index.html`);
   const html = await response.text();

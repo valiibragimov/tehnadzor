@@ -61,14 +61,15 @@ for (const asset of uniqueAssets) {
 
 const cacheVersion = hash.digest("hex").slice(0, 12);
 const cacheName = `tehnadzor-${cacheVersion}`;
+const cacheNamePattern = /const CACHE_NAME = "tehnadzor-[^"]+";/;
+if (!cacheNamePattern.test(serviceWorkerSource)) {
+  throw new Error("Could not find service worker CACHE_NAME");
+}
+
 const stampedSource = serviceWorkerSource.replace(
-  /const CACHE_NAME = "tehnadzor-[^"]+";/,
+  cacheNamePattern,
   `const CACHE_NAME = "${cacheName}";`
 );
-
-if (stampedSource === serviceWorkerSource) {
-  throw new Error("Could not stamp service worker CACHE_NAME");
-}
 
 await writeFile(serviceWorkerPath, stampedSource, "utf8");
 console.log(`Service worker cache stamped: ${cacheName}`);
