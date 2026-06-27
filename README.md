@@ -37,7 +37,8 @@ A hosted version of Tehnadzor will be added here when the public demo is ready.
 
 This section is for developers and contributors who want to run the project locally.
 
-Requirements: Node.js 20+, npm, Python 3 or another static file server.
+Requirements: Node.js 20, npm, Python 3 or another static file server. If you
+use nvm, run `nvm use` in the project root.
 
 ```bash
 npm install
@@ -62,6 +63,17 @@ python -m http.server 8000
 ```
 
 Open `http://localhost:8000`.
+
+Run the local API in development mode:
+
+```bash
+cd server
+cp .env.example .env
+npm run dev
+```
+
+The command compiles TypeScript first, then watches the sources and
+automatically restarts the API at `http://localhost:5050`.
 
 Useful checks:
 
@@ -132,7 +144,8 @@ Tehnadzor находится в ранней активной разработк
 
 Этот раздел нужен разработчикам и contributors, которые хотят запустить проект локально.
 
-Требования: Node.js 20+, npm, Python 3 или другой статический сервер.
+Требования: Node.js 20, npm, Python 3 или другой статический сервер. При
+использовании nvm выполните `nvm use` в корне проекта.
 
 ```bash
 npm install
@@ -157,6 +170,17 @@ python -m http.server 8000
 ```
 
 Откройте `http://localhost:8000`.
+
+Запуск локального API в dev-режиме:
+
+```bash
+cd server
+cp .env.example .env
+npm run dev
+```
+
+Команда сначала компилирует TypeScript, затем следит за исходниками и
+автоматически перезапускает API на `http://localhost:5050`.
 
 Полезные проверки:
 

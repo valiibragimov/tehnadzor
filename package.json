@@ -4,6 +4,9 @@
   "type": "module",
   "description": "Tehnadzor is an open-source web application for construction supervision, QA/QC workflows, and BIM/IFC-based inspection records.",
   "license": "MIT",
+  "engines": {
+    "node": "20"
+  },
   "scripts": {
     "clean": "node ./scripts/clean-runtime-artifacts.mjs",
     "build:index-html": "node ./scripts/build-index-html.mjs",

@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "description": "Локальный сервер для генерации ИИ-отчётов",
   "main": "dist/server/src/index.js",
+  "engines": {
+    "node": "20"
+  },
   "scripts": {
     "start": "node dist/server/src/index.js",
-    "dev": "node dist/server/src/index.js",
+    "dev": "node scripts/dev.mjs",
     "backfill:inspections": "node dist/server/src/scripts/backfill-inspections.js"
   },
   "keywords": [],
