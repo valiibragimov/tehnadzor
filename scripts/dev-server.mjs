@@ -3,8 +3,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
-const serverDirectory = resolve(scriptDirectory, "..");
-const projectRoot = resolve(serverDirectory, "..");
+const projectRoot = resolve(scriptDirectory, "..");
+const serverDirectory = resolve(projectRoot, "server");
 const typescriptCli = resolve(projectRoot, "node_modules", "typescript", "bin", "tsc");
 const tsconfig = resolve(projectRoot, "tsconfig.server.json");
 const serverEntry = resolve(serverDirectory, "dist", "server", "src", "index.js");
