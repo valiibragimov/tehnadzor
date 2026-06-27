@@ -8,6 +8,7 @@ const projectRoot = resolve(__dirname, "..");
 
 const targets = [
   "dist",
+  "dist-hosting",
   "server/dist",
   "functions/dist",
   "app",
@@ -55,4 +56,4 @@ for (const relativePath of targets) {
   });
 }
 
-console.log("Removed legacy runtime artifacts.");
+console.log("Removed runtime build artifacts.");
