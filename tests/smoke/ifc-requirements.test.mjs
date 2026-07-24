@@ -97,6 +97,7 @@ test("viewer source uses one conceptual material and automatic display normaliza
   assert.match(engineSource, /if \(renderDirty \|\| resized \|\| cameraChanged\)/u);
   assert.doesNotMatch(engineSource, /SELECT_COLOR|refreshSelectionVisuals/u);
   assert.doesNotMatch(panelSource, /SELECT_COLOR|refreshSelectionVisuals/u);
+  assert.doesNotMatch(panelSource, /bim-visual-legend|buildLegendHtml/u);
   assert.match(panelSource, /let normalizationRequested = true;/u);
 });
 
@@ -108,4 +109,5 @@ test("BIM workspace CSS removes desktop minimum height that clips the viewer", a
     /\.bim-workspace__body,[\s\S]*?\.bim-workspace__stage--3d\s*\{[\s\S]*?min-height:\s*0 !important;/u
   );
   assert.match(css, /\.bim-workspace__surface\s*\{[\s\S]*?env\(safe-area-inset-top/u);
+  assert.doesNotMatch(css, /bim-visual-legend|bim-workspace__legend/u);
 });

@@ -467,52 +467,6 @@ function buildFallbackElementFromIfcLite({
   };
 }
 
-function buildLegendHtml(elements = []) {
-  const counts = new Map();
-  elements.forEach((element) => {
-    const label = String(element.type || "other").trim().toLowerCase() || "other";
-    counts.set(label, (counts.get(label) || 0) + 1);
-  });
-
-  const colorByType = {
-    slab: "#b7c2cd",
-    column: "#8f9aa3",
-    wall: "#c8a48f",
-    beam: "#7e7367",
-    stair: "#a7aaad",
-    roof: "#b85e44",
-    window: "#7cc7ea",
-    door: "#5f4636",
-    opening: "#7dd3fc",
-    railing: "#c8d0da",
-    other: "#94a3b8"
-  };
-
-  const textByType = {
-    slab: "Плиты",
-    column: "Колонны",
-    wall: "Стены",
-    beam: "Балки",
-    stair: "Лестницы",
-    roof: "Кровля",
-    window: "Окна",
-    door: "Двери",
-    opening: "Проёмы",
-    railing: "Ограждения",
-    other: "Прочее"
-  };
-
-  return [...counts.entries()]
-    .sort((left, right) => compareLocale(textByType[left[0]] || left[0], textByType[right[0]] || right[0]))
-    .map(([type, count]) => `
-      <span class="bim-visual-legend__item">
-        <span class="bim-visual-legend__swatch" style="--bim-accent:${escapeHtml(colorByType[type] || colorByType.other)};"></span>
-        <span>${escapeHtml(textByType[type] || type)}: ${count}</span>
-      </span>
-    `)
-    .join("");
-}
-
 function buildPropertiesHtml(element: ElementRecord | null = {}, labelBuilder?: LabelBuilder) {
   if (!element) {
     return `
@@ -1359,7 +1313,6 @@ function createWorkspaceMarkup(workspaceId) {
             <div class="bim-workspace__canvas3d"></div>
             <div class="bim-workspace__empty3d" hidden></div>
           </div>
-          <div class="bim-visual-legend bim-workspace__legend"></div>
         </div>
         <aside class="bim-workspace__inspector">
           <div class="bim-workspace__inspector-head">
@@ -2382,7 +2335,6 @@ export function ensureBimVisualPanel({
   const workspaceCanvasEl = workspace.querySelector<HTMLElement>(".bim-workspace__canvas3d");
   const workspaceStageEl = workspace.querySelector<HTMLElement>(".bim-workspace__stage--3d");
   const workspaceEmptyEl = workspace.querySelector<HTMLElement>(".bim-workspace__empty3d");
-  const workspaceLegendEl = workspace.querySelector<HTMLElement>(".bim-workspace__legend");
   const workspaceHintEl = workspace.querySelector<HTMLElement>(".bim-workspace__hint");
   const workspaceDiagnosticsEl = workspace.querySelector<HTMLElement>(".bim-workspace__diagnostics");
   const workspaceDiagnosticWarningEl = workspace.querySelector<HTMLElement>(".bim-workspace__diagnostic-warning");
@@ -2766,10 +2718,6 @@ export function ensureBimVisualPanel({
     }
 
     launchButton.disabled = !hasProject || !hasElements || !hasIfcSource;
-    workspaceLegendEl.innerHTML = buildLegendHtml(
-      Array.isArray(filteredElements) && filteredElements.length > 0 ? filteredElements : allElements
-    );
-
     if (!hasProject) {
       setViewportMessage("Сначала выберите объект проекта, чтобы открыть BIM-viewer.");
       updateInspector(null, "");
