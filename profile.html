@@ -31,7 +31,7 @@
   <link rel="stylesheet" href="liquid-glass.css?v=1">
 <link rel="stylesheet" href="style.css?v=77">
 </head>
-<body class="profile-page">
+<body class="profile-page is-profile-loading">
   <script>
     document.body.classList.add(window.__appThemeClass || "theme-dark");
   </script>
@@ -622,6 +622,10 @@
       const href = String(item?.url || item?.sourceUrl || "").trim();
       const article = document.createElement("a");
       article.className = "profile-feed-item";
+      article.style.setProperty(
+        "--profile-reveal-delay",
+        `${Math.min(profileFeedList?.childElementCount || 0, 6) * 45}ms`
+      );
       article.href = href || "#";
       article.target = "_blank";
       article.rel = "noopener noreferrer";
@@ -751,6 +755,13 @@
 
       items.forEach((item) => {
         profileFeedList.appendChild(createProfileFeedItem(item));
+      });
+    }
+
+    function revealProfilePage() {
+      window.requestAnimationFrame(() => {
+        document.body.classList.remove("is-profile-loading");
+        document.body.classList.add("is-profile-ready");
       });
     }
 
@@ -2171,13 +2182,14 @@
 
         clearNodeChildren(projectsContainer);
 
-        const cards = await Promise.all(snap.docs.map(async (docSnap) => {
+        const cards = await Promise.all(snap.docs.map(async (docSnap, cardIndex) => {
           const data = docSnap.data();
           const projectId = docSnap.id;
           const archived = !!data.archived;
 
           const card = document.createElement("div");
           card.className = "project-card";
+          card.style.setProperty("--profile-reveal-delay", `${Math.min(cardIndex, 6) * 45}ms`);
           card.dataset.archived = archived ? "1" : "0";
           card.tabIndex = 0;
           card.setAttribute("role", "link");
@@ -2347,7 +2359,8 @@
       updateProfileThemeLabel();
 
       await loadUserProfile(user.uid);
-      loadProjects();
+      revealProfilePage();
+      void loadProjects();
     });
 
     renderProfileFeed();

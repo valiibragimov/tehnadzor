@@ -336,6 +336,10 @@ test("knowledge runtime imports article data and content helpers", async () => {
   assert.match(runtimeSource, /formatAssistantDocs/u);
   assert.match(runtimeSource, /data-normative-article-id/u);
   assert.match(runtimeSource, /data-normative-source-article-id/u);
+  assert.doesNotMatch(runtimeSource, /"контрольное"/u);
+  assert.match(runtimeSource, /Открыть статью/u);
+  assert.match(css, /\.wizard-sheet-body \.add-btn-row\s*\{[\s\S]*?margin:\s*16px 0 12px/u);
+  assert.match(css, /@keyframes profile-shell-reveal/u);
   assert.doesNotMatch(runtimeSource, /filter\(\(article\) => articleMatchesQuery\(article, rawQuery\)\)\s*\.slice/u);
   assert.match(runtimeSource, /article\.constructionKey === constructionKey/u);
   assert.doesNotMatch(runtimeSource, /articleMatchesQuery\(article,\s*constructionName\s*\|\|\s*constructionKey\)/u);

@@ -93,6 +93,9 @@ test("profile page keeps its primary shell accessible", async () => {
   assert.match(body, /id="profileChangePasswordButton"/);
   assert.match(body, /reauthenticateWithCredential/);
   assert.match(body, /updatePassword/);
+  assert.match(body, /class="profile-page is-profile-loading"/);
+  assert.match(body, /function revealProfilePage\(\)/);
+  assert.match(body, /document\.body\.classList\.add\("is-profile-ready"\)/);
   assert.doesNotMatch(body, /href="edit-profile\.html#auth"/);
   assert.doesNotMatch(body, />Password and authentication</);
 });

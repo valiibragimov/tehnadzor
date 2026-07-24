@@ -471,14 +471,19 @@ function formatAssistantDocs(article: KnowledgeArticle) {
     return `<li>Нормативное основание не задано в реестре для выбранного сочетания.</li>`;
   }
 
-  return docs.map((doc) => {
+  const visibleDocs = docs.slice(0, 3);
+  const items = visibleDocs.map((doc) => {
     const clause = doc.clause ? `, ${escapeHtml(doc.clause)}` : "";
     const tolerance = doc.tolerance ? ` — ${escapeHtml(doc.tolerance)}` : "";
     const label = `${escapeHtml(doc.document)}${clause}${tolerance}`;
     return doc.url
       ? `<li><a href="${escapeHtml(doc.url)}" target="_blank" rel="noopener noreferrer">${label}</a></li>`
       : `<li>${label}</li>`;
-  }).join("");
+  });
+  if (docs.length > visibleDocs.length) {
+    items.push(`<li class="normative-assistant__more">Ещё ${docs.length - visibleDocs.length} документа</li>`);
+  }
+  return items.join("");
 }
 
 function formatAssistantFields(article: KnowledgeArticle) {
@@ -487,12 +492,12 @@ function formatAssistantFields(article: KnowledgeArticle) {
     return `<li>Параметры контроля не заданы в реестре для выбранного сочетания.</li>`;
   }
 
-  const visibleFields = fields.slice(0, 6);
+  const visibleFields = fields.slice(0, 4);
   const hiddenCount = fields.length - visibleFields.length;
   const fieldItems = visibleFields.map((field) => {
     const unit = field.unit ? `, ${escapeHtml(field.unit)}` : "";
-    const required = field.required ? "обязательное" : "контрольное";
-    return `<li><strong>${escapeHtml(field.label)}</strong>${unit} <span>${required}</span></li>`;
+    const required = field.required ? ` <span>Обязательно</span>` : "";
+    return `<li><strong>${escapeHtml(field.label)}</strong>${unit}${required}</li>`;
   });
   if (hiddenCount > 0) {
     fieldItems.push(`<li class="normative-assistant__more">Ещё ${hiddenCount} параметров в статье-источнике</li>`);
@@ -529,7 +534,9 @@ function renderNormativeAssistant() {
   }
 
   const primary = articles[0];
-  const related = articles.slice(0, 5);
+  const related = articles
+    .filter((article) => article.id !== primary.id)
+    .slice(0, 3);
   const moduleLabel = KNOWLEDGE_MODULES.find((module) => module.key === primary.moduleKey)?.label || primary.title || "Раздел контроля";
   const constructionLabel = primary.construction || primary.constructionType || "конструкция";
   const statusClass = getAssistantStatusClass(primary);
@@ -543,7 +550,7 @@ function renderNormativeAssistant() {
           <h4>${escapeHtml(moduleLabel)}</h4>
           <p>${escapeHtml(answer)}</p>
           <button type="button" class="normative-assistant__source" data-normative-article-id="${escapeHtml(primary.id || "")}">
-            Источник: ${escapeHtml(primary.title || "статья базы знаний")}
+            Открыть статью
           </button>
         </div>
         <span class="normative-assistant__status normative-assistant__status--${escapeHtml(statusClass)}">
@@ -560,16 +567,18 @@ function renderNormativeAssistant() {
           <ul>${formatAssistantDocs(primary)}</ul>
         </section>
       </div>
-      <div class="normative-assistant__articles">
-        <h5>Подходящие материалы</h5>
-        <div>
-          ${related.map((article) => `
-            <button type="button" data-normative-article-id="${escapeHtml(article.id || "")}">
-              ${escapeHtml(article.title || "Статья")}
-            </button>
-          `).join("")}
+      ${related.length > 0 ? `
+        <div class="normative-assistant__articles">
+          <h5>Ещё по теме</h5>
+          <div>
+            ${related.map((article) => `
+              <button type="button" data-normative-article-id="${escapeHtml(article.id || "")}">
+                ${escapeHtml(article.title || "Статья")}
+              </button>
+            `).join("")}
+          </div>
         </div>
-      </div>
+      ` : ""}
     </div>
   `;
 }

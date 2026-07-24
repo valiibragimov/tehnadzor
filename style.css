@@ -27653,3 +27653,123 @@ body {
   --profile-settings-screen-label: var(--app-text-primary);
   --profile-settings-screen-muted: var(--app-text-muted);
 }
+
+/* Stable spacing between dynamic form controls and add actions. */
+.wizard-sheet-body .add-btn-row {
+  position: relative;
+  z-index: 2;
+  gap: 10px;
+  margin: 16px 0 12px;
+  padding-top: 2px;
+}
+
+.wizard-sheet-body .add-btn-row + .scroll-list {
+  margin-top: 12px !important;
+}
+
+@media (max-width: 560px) {
+  .wizard-sheet-body .add-btn-row {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .wizard-sheet-body .add-btn-row .lg-btn {
+    max-width: 100%;
+  }
+}
+
+/* Calm, staged loading for profile data and cards. */
+body.profile-page.is-profile-loading .profile-shell {
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+}
+
+body.profile-page.is-profile-ready .profile-shell {
+  animation: profile-shell-reveal 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+body.profile-page.is-profile-ready .profile-topbar,
+body.profile-page.is-profile-ready .profile-content-grid > .card {
+  animation: profile-block-reveal 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+body.profile-page.is-profile-ready .profile-content-grid > .card:nth-child(2) {
+  animation-delay: 70ms;
+}
+
+body.profile-page.is-profile-ready .profile-feed-item,
+body.profile-page.is-profile-ready .project-card {
+  animation: profile-item-reveal 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--profile-reveal-delay, 0ms);
+}
+
+@keyframes profile-shell-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes profile-block-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes profile-item-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+body.home-page #sectionKnowledge .normative-assistant__answer {
+  animation: knowledge-answer-reveal 260ms ease-out both;
+}
+
+body.home-page #sectionKnowledge .normative-assistant__columns li span {
+  display: inline-flex;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.12);
+  color: #bfdbfe;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+@keyframes knowledge-answer-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.profile-page.is-profile-ready .profile-shell,
+  body.profile-page.is-profile-ready .profile-topbar,
+  body.profile-page.is-profile-ready .profile-content-grid > .card,
+  body.profile-page.is-profile-ready .profile-feed-item,
+  body.profile-page.is-profile-ready .project-card,
+  body.home-page #sectionKnowledge .normative-assistant__answer {
+    animation: none !important;
+  }
+}
