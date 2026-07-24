@@ -24,7 +24,6 @@ import {
 import type { BimElement } from "../../types/domain.js";
 import { createIfcLiteEngine } from "./ifc-lite-engine.js";
 
-const SELECT_COLOR = new THREE.Color("#7dd3fc");
 const ISO_VIEW_DIRECTION = new THREE.Vector3(1.52, 0.62, 1.18).normalize();
 const IFC_HEADER_SCAN_BYTES = 262144;
 const MAX_REAL_GEOMETRY_COORDINATE = 10000;
@@ -1979,21 +1978,6 @@ async function createEngine({
     return true;
   }
 
-  function refreshSelectionVisuals() {
-    for (const entry of elementEntries.values()) {
-      const isSelected = selectedKeys.has(entry.lookupKey);
-      for (const state of entry.materials || []) {
-        const material = state.material;
-        if (!material) continue;
-        material.color.copy(isSelected ? SELECT_COLOR : state.color);
-        if (material.emissive?.isColor) {
-          material.emissive.set(isSelected ? "#164e63" : state.emissive || "#000000");
-        }
-        material.opacity = isSelected ? Math.max(state.opacity, 0.95) : state.opacity;
-      }
-    }
-  }
-
   function applyVisibility() {
     for (const entry of elementEntries.values()) {
       entry.object.visible = !hiddenKeys || hiddenKeys.has(entry.lookupKey);
@@ -2032,7 +2016,6 @@ async function createEngine({
     const lookupKey = hit.object.userData.lookupKey;
     selectedKeys.clear();
     selectedKeys.add(lookupKey);
-    refreshSelectionVisuals();
     onUserSelection(makeModelIdMapFromLookupKey(lookupKey));
   }
 
@@ -2183,7 +2166,6 @@ async function createEngine({
         const lookupKeys = getLookupKeysFromModelIdMap(modelIdMap);
         lookupKeys.forEach((lookupKey) => selectedKeys.add(lookupKey));
       }
-      refreshSelectionVisuals();
       if (zoom && selectedKeys.size > 0) {
         await this.zoomTo(modelIdMap);
       }

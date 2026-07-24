@@ -22,7 +22,6 @@ import {
 } from "../services/ifc-diagnostics.js";
 import type { BimElement } from "../../types/domain.js";
 
-const SELECT_COLOR = new THREE.Color("#7dd3fc");
 const CONCEPT_MODEL_COLOR = new THREE.Color("#8da9bd");
 const ISO_VIEW_DIRECTION = new THREE.Vector3(1.52, 0.62, 1.18).normalize();
 const IFC_HEADER_SCAN_BYTES = 262144;
@@ -332,7 +331,7 @@ function createConceptMaterial() {
     metalness: 0,
     transparent: false,
     opacity: 1,
-    side: THREE.DoubleSide
+    side: THREE.FrontSide
   });
 }
 
@@ -1121,11 +1120,18 @@ export async function createIfcLiteEngine({
   const scene = new THREE.Scene();
   scene.background = null;
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  const renderer = new THREE.WebGLRenderer({
+    antialias: false,
+    alpha: true,
+    powerPreference: "high-performance",
+    precision: "mediump"
+  });
+  const nativePixelRatio = Math.max(Number(window.devicePixelRatio) || 1, 1);
+  const compactViewport = window.matchMedia("(max-width: 768px)").matches;
+  renderer.setPixelRatio(Math.min(nativePixelRatio, compactViewport ? 1 : 1.25));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.08;
+  renderer.toneMapping = THREE.NoToneMapping;
+  renderer.shadowMap.enabled = false;
   container.replaceChildren(renderer.domElement);
 
   const perspectiveCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 10000);
@@ -1144,16 +1150,18 @@ export async function createIfcLiteEngine({
   let pointerDownY = 0;
   let didPointerDrag = false;
   let grid: THREE.GridHelper | null = null;
+  let renderDirty = true;
+  const cachedRendererSize = new THREE.Vector2();
 
   const orbitControls = new OrbitControls(perspectiveCamera, renderer.domElement);
   orbitControls.enableDamping = true;
-  orbitControls.dampingFactor = 0.08;
+  orbitControls.dampingFactor = 0.16;
   orbitControls.screenSpacePanning = true;
   orbitControls.minDistance = 0.1;
   orbitControls.maxDistance = 10000;
-  orbitControls.rotateSpeed = 0.85;
-  orbitControls.panSpeed = 0.9;
-  orbitControls.zoomSpeed = 1;
+  orbitControls.rotateSpeed = 1.05;
+  orbitControls.panSpeed = 1;
+  orbitControls.zoomSpeed = 1.1;
   orbitControls.mouseButtons = {
     LEFT: MOUSE.ROTATE,
     MIDDLE: MOUSE.PAN,
@@ -1165,6 +1173,9 @@ export async function createIfcLiteEngine({
   };
   orbitControls.target.set(0, 0, 0);
   orbitControls.update();
+  orbitControls.addEventListener("change", () => {
+    renderDirty = true;
+  });
 
   const ambientLight = new THREE.AmbientLight("#dbeafe", 0.96);
   const keyLight = new THREE.DirectionalLight("#f8fafc", 1.04);
@@ -1255,6 +1266,7 @@ export async function createIfcLiteEngine({
     grid.material.transparent = true;
     grid.material.opacity = config.gridOpacity;
     scene.add(grid);
+    renderDirty = true;
   }
 
   function getDisplayBox(rawBox: THREE.Box3 | null | undefined, localOffset?: THREE.Vector3 | null) {
@@ -1693,8 +1705,8 @@ export async function createIfcLiteEngine({
   function resizeRendererToDisplaySize() {
     const width = Math.max(Math.floor(container.clientWidth || 0), 1);
     const height = Math.max(Math.floor(container.clientHeight || 0), 1);
-    const size = renderer.getSize(new THREE.Vector2());
-    if (size.x === width && size.y === height) return;
+    const size = renderer.getSize(cachedRendererSize);
+    if (size.x === width && size.y === height) return false;
 
     renderer.setSize(width, height, false);
     perspectiveCamera.aspect = width / height;
@@ -1705,6 +1717,7 @@ export async function createIfcLiteEngine({
     orthographicCamera.left = -halfWidth;
     orthographicCamera.right = halfWidth;
     orthographicCamera.updateProjectionMatrix();
+    return true;
   }
 
   function getVisibleWorldBox() {
@@ -1798,23 +1811,11 @@ export async function createIfcLiteEngine({
     return true;
   }
 
-  function refreshSelectionVisuals() {
-    for (const entry of elementEntries.values()) {
-      const isSelected = selectedKeys.has(entry.lookupKey);
-      for (const state of entry.materials) {
-        state.material.color.copy(isSelected ? SELECT_COLOR : state.color);
-        if (state.material.emissive?.isColor) {
-          state.material.emissive.set(isSelected ? "#164e63" : state.emissive || "#000000");
-        }
-        state.material.opacity = isSelected ? Math.max(state.opacity, 0.95) : state.opacity;
-      }
-    }
-  }
-
   function applyVisibility() {
     for (const entry of elementEntries.values()) {
       entry.object.visible = !hiddenKeys || hiddenKeys.has(entry.lookupKey);
     }
+    renderDirty = true;
   }
 
   function makeModelIdMapFromLookupKey(lookupKey: string) {
@@ -1902,7 +1903,6 @@ export async function createIfcLiteEngine({
 
     selectedKeys.clear();
     selectedKeys.add(lookupKey);
-    refreshSelectionVisuals();
     onUserSelection(makeModelIdMapFromLookupKey(lookupKey));
   }
 
@@ -1928,9 +1928,12 @@ export async function createIfcLiteEngine({
 
   const renderLoop = () => {
     if (disposed) return;
-    resizeRendererToDisplaySize();
-    orbitControls.update();
-    renderer.render(scene, activeCamera);
+    const resized = resizeRendererToDisplaySize();
+    const cameraChanged = orbitControls.update();
+    if (renderDirty || resized || cameraChanged) {
+      renderer.render(scene, activeCamera);
+      renderDirty = false;
+    }
     window.requestAnimationFrame(renderLoop);
   };
   window.requestAnimationFrame(renderLoop);
@@ -2019,6 +2022,7 @@ export async function createIfcLiteEngine({
         });
         viewerDisplayRepairDiagnostics = null;
         modelRoot.updateMatrixWorld(true);
+        renderDirty = true;
         return false;
       }
 
@@ -2049,6 +2053,7 @@ export async function createIfcLiteEngine({
       if (diagnosticSummary.isSuspicious || repairSummary.correctedCount > 0) {
         console.info("[BIM viewer] IFC display repair diagnostics", viewerDisplayRepairDiagnostics);
       }
+      renderDirty = true;
       return viewerDisplayNormalized;
     },
     get currentViewId() {
@@ -2064,7 +2069,6 @@ export async function createIfcLiteEngine({
       if (hasModelIdMapEntries(modelIdMap)) {
         getLookupKeysFromModelIdMap(modelIdMap).forEach((lookupKey) => selectedKeys.add(lookupKey));
       }
-      refreshSelectionVisuals();
       if (zoom && selectedKeys.size > 0) {
         await engine.zoomTo(modelIdMap);
       }

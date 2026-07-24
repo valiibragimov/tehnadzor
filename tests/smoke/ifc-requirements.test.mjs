@@ -91,6 +91,12 @@ test("viewer source uses one conceptual material and automatic display normaliza
   assert.match(engineSource, /const CONCEPT_MODEL_COLOR = new THREE\.Color/u);
   assert.match(engineSource, /function createConceptMaterial\(\)/u);
   assert.match(engineSource, /return createConceptMaterial\(\);/u);
+  assert.match(engineSource, /powerPreference:\s*"high-performance"/u);
+  assert.match(engineSource, /renderer\.toneMapping = THREE\.NoToneMapping/u);
+  assert.match(engineSource, /orbitControls\.dampingFactor = 0\.16/u);
+  assert.match(engineSource, /if \(renderDirty \|\| resized \|\| cameraChanged\)/u);
+  assert.doesNotMatch(engineSource, /SELECT_COLOR|refreshSelectionVisuals/u);
+  assert.doesNotMatch(panelSource, /SELECT_COLOR|refreshSelectionVisuals/u);
   assert.match(panelSource, /let normalizationRequested = true;/u);
 });
 
