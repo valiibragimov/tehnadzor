@@ -1,8 +1,9 @@
 import {
   getConstructionLabel,
   normalizeConstructionKey
-} from "../../app/construction.js";
+} from "../../construction.js";
 
+// Pure calculation helpers for the Summary feature.
 export const QUALITY_INDEX_WEIGHTS = Object.freeze({
   compliance: 0.74,
   stability: 0.26

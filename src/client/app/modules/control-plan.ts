@@ -1,5 +1,5 @@
 import { escapeHtml, setButtonBusyState, showNotification } from "../../utils.js";
-import { formatLastCheckDate } from "../../summary.js";
+import { formatLastCheckDate } from "./summary/data.js";
 import {
   loadProjectControlPlan,
   type ControlPlanResult,

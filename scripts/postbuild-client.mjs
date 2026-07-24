@@ -9,11 +9,11 @@ const distRoot = resolve(projectRoot, "dist");
 
 const copies = [
   {
-    from: resolve(projectRoot, "src", "client", "modules", "summary", "analytics-block.css"),
+    from: resolve(projectRoot, "src", "client", "app", "modules", "summary", "analytics-block.css"),
     to: resolve(distRoot, "modules", "summary", "analytics-block.css")
   },
   {
-    from: resolve(projectRoot, "src", "client", "modules", "summary", "analytics-block.html"),
+    from: resolve(projectRoot, "src", "client", "app", "modules", "summary", "analytics-block.html"),
     to: resolve(distRoot, "modules", "summary", "analytics-block.html")
   }
 ];

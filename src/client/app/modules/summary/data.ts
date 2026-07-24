@@ -6,7 +6,7 @@
 import { 
   getModuleStats, 
   formatJournalTimestamp
-} from "./journal.js";
+} from "../journal/data.js";
 
 // ============================
 // Константы

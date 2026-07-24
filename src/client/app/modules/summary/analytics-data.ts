@@ -1,4 +1,4 @@
-import { TOLERANCES } from "../../config.js";
+import { TOLERANCES } from "../../../config.js";
 import {
   calculateQualityIndex,
   coefficientOfVariation,

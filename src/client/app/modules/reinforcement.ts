@@ -48,7 +48,7 @@ import {
   checkReinfWallDuplicate as reinfCheckWallDuplicate,
   clearAll as reinfClearAll,
   clearByType as reinfClearByType
-} from "../../reinf.js";
+} from "./reinforcement/data.js";
 import {
   clearProjectCollection,
   createProjectCollectionDoc,

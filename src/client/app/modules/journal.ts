@@ -38,7 +38,7 @@ import {
   clearJournal,
   formatJournalTimestamp,
   deleteJournalEntry
-} from "../../journal.js";
+} from "./journal/data.js";
 import type { IssueRecord, JournalEntryRecord } from "../../types/module-records.js";
 
 // ============================

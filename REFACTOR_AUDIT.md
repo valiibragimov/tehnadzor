@@ -499,3 +499,43 @@ Smoke-регрессия:
 1. Разрезать оставшуюся геодезическую часть `app.ts` на `geo-state`, `geo-dom-bindings`, `geo-node-actions`, `geo-repository` с сохранением существующих global bridges.
 2. Вынести article content builders из `knowledge.ts` в `knowledge-content.ts` или data-oriented набор файлов и добавить smoke/snapshot проверку доступности всех статей.
 3. Подготовить CSS pipeline: `src/client/styles/base|layout|components|modules|utilities` -> generated root `style.css`, затем физически разделить большой stylesheet без риска MIME/cache регрессий.
+
+## Phase 3 — Feature Colocation
+
+Дата выполнения: 2026-07-24.
+
+Цель фазы:
+
+- убрать внутренние feature-файлы из корня `src/client`;
+- объединить параллельные ветки `src/client/modules` и `src/client/app/modules`;
+- удалить подтвержденный неиспользуемый legacy helper;
+- зафиксировать понятные правила размещения нового клиентского кода.
+
+Изменения:
+
+- `geom.ts` перенесен в `app/modules/geometry/data.ts`;
+- `reinf.ts` перенесен в `app/modules/reinforcement/data.ts`;
+- `journal.ts` перенесен в `app/modules/journal/data.ts`;
+- `summary.ts` перенесен в `app/modules/summary/data.ts`;
+- весь `src/client/modules/summary/**` перенесен в
+  `src/client/app/modules/summary/**`;
+- удален неиспользуемый `app/ui/legacy-node-card.ts`, который был заменен
+  общим `app/ui/node-card-interactions.ts`;
+- обновлены статические и динамические импорты, build copy paths и список
+  service worker assets;
+- добавлена карта структуры `src/client/README.md`;
+- добавлен smoke-тест, запрещающий возврат feature data-файлов в корень клиента.
+
+Проверка неиспользуемых файлов:
+
+- граф статических импортов дополнительно проверен с учетом HTML entrypoints,
+  Web Worker, vendor build entrypoint, service worker и ambient declarations;
+- других файлов, которые можно безопасно удалить без ручной проверки runtime,
+  не найдено.
+
+Проверки после Phase 3:
+
+- `npm run typecheck` — успешно;
+- `npm run lint` — успешно;
+- `npm run build` — успешно;
+- `npm test` — `30/30` smoke-тестов успешно.
