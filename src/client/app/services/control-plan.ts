@@ -11,7 +11,7 @@ import {
   type InspectionStatus
 } from "../inspection-registry.js";
 import { getProjectCollectionSnapshot } from "../repositories/firestore-repository.js";
-import { loadJournalEntries } from "../../journal.js";
+import { loadJournalEntries } from "../modules/journal/data.js";
 import {
   getRuntimeIssueStatus,
   hasIssueRepeatControl,

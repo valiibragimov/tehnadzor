@@ -236,6 +236,34 @@ test("client source has no legacy JavaScript copies", async () => {
   assert.deepEqual(jsFiles, []);
 });
 
+test("client feature data is colocated with its owning module", async () => {
+  const legacyRootFiles = ["geom.ts", "reinf.ts", "journal.ts", "summary.ts"];
+  const clientFiles = await collectFiles(resolve(projectRoot, "src", "client"));
+  const normalizedFiles = clientFiles.map((filePath) => filePath.replaceAll("\\", "/"));
+
+  for (const fileName of legacyRootFiles) {
+    assert.ok(
+      !normalizedFiles.some((filePath) => filePath.endsWith(`/src/client/${fileName}`)),
+      `${fileName} should not return to the client root`
+    );
+  }
+
+  const featureDataFiles = [
+    "app/modules/geometry/data.ts",
+    "app/modules/reinforcement/data.ts",
+    "app/modules/journal/data.ts",
+    "app/modules/summary/data.ts",
+    "app/modules/summary/analytics-block.ts"
+  ];
+
+  for (const relativePath of featureDataFiles) {
+    assert.ok(
+      normalizedFiles.some((filePath) => filePath.endsWith(`/src/client/${relativePath}`)),
+      `${relativePath} should stay with its owning feature`
+    );
+  }
+});
+
 test("IFC import runtime is not embedded back into app entrypoint", async () => {
   const appSource = await readFile(resolve(projectRoot, "src/client/app.ts"), "utf8");
   const runtimeSource = await readFile(resolve(projectRoot, "src/client/app/ifc-import-runtime.ts"), "utf8");
@@ -274,9 +302,9 @@ test("strip foundation geodesy axis mode selection is not reset on change", asyn
 });
 
 test("summary analytics keeps data preparation outside UI block", async () => {
-  const uiSource = await readFile(resolve(projectRoot, "src/client/modules/summary/analytics-block.ts"), "utf8");
-  const dataSource = await readFile(resolve(projectRoot, "src/client/modules/summary/analytics-data.ts"), "utf8");
-  const coreSource = await readFile(resolve(projectRoot, "src/client/modules/summary/analytics-core.ts"), "utf8");
+  const uiSource = await readFile(resolve(projectRoot, "src/client/app/modules/summary/analytics-block.ts"), "utf8");
+  const dataSource = await readFile(resolve(projectRoot, "src/client/app/modules/summary/analytics-data.ts"), "utf8");
+  const coreSource = await readFile(resolve(projectRoot, "src/client/app/modules/summary/analytics-core.ts"), "utf8");
 
   assert.match(uiSource, /from "\.\/analytics-data\.js"/u);
   assert.match(uiSource, /from "\.\/analytics-core\.js"/u);

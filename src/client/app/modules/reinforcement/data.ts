@@ -3,8 +3,8 @@
  * Содержит функции для работы с колоннами, балками, стенами и обычными проверками армирования
  */
 
-import { APP_CONFIG } from "./config.js";
-import { showNotification, normalizeMarking } from "./utils.js";
+import { APP_CONFIG } from "../../../config.js";
+import { showNotification, normalizeMarking } from "../../../utils.js";
 
 // ============================
 // Состояние модуля

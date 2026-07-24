@@ -3,8 +3,8 @@
  * Содержит функции для работы с колоннами, стенами, лестницами, балками и плитами в разделе геометрии
  */
 
-import { APP_CONFIG } from "./config.js";
-import { showNotification, normalizeMarking, defaultRusLetters, defaultNumbers } from "./utils.js";
+import { APP_CONFIG } from "../../../config.js";
+import { showNotification, normalizeMarking, defaultRusLetters, defaultNumbers } from "../../../utils.js";
 
 // ============================
 // Состояние модуля

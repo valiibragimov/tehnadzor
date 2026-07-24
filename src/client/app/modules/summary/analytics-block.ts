@@ -1,17 +1,17 @@
-import { auth } from "../../firebase.js";
-import { runSingleFlight, setButtonBusyState, showNotification } from "../../utils.js";
+import { auth } from "../../../firebase.js";
+import { runSingleFlight, setButtonBusyState, showNotification } from "../../../utils.js";
 import {
   ensureChartJsLoaded as ensureSharedChartJsLoaded,
   ensureJsPdfLoaded
-} from "../../app/ui/lazy-libs.js";
-import { ensurePdfFontLoaded, registerPdfFont } from "../../app/pdf/pdf-font.js";
+} from "../../ui/lazy-libs.js";
+import { ensurePdfFontLoaded, registerPdfFont } from "../../pdf/pdf-font.js";
 import {
   getProjectCollectionDocSnapshot,
   getProjectCollectionSnapshot,
   getProjectsByFieldSnapshot,
   getProjectsSnapshot,
   mergeProjectDoc
-} from "../../app/repositories/firestore-repository.js";
+} from "../../repositories/firestore-repository.js";
 import {
   QUALITY_INDEX_WEIGHTS,
   clamp,

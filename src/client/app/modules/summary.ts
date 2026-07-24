@@ -10,7 +10,7 @@ import { ensureJsPdfLoaded } from "../ui/lazy-libs.js";
 import { ensurePdfFontLoaded, registerPdfFont } from "../pdf/pdf-font.js";
 import {
   formatLastCheckDate
-} from "../../summary.js";
+} from "./summary/data.js";
 import { getProjectCollectionSnapshot, getProjectDocSnapshot } from "../repositories/firestore-repository.js";
 import {
   getIssueStatusLabel,
@@ -33,7 +33,7 @@ let analyticsTemplatePromise = null;
 let analyticsWarmupPromise = null;
 let summaryWorkspacePage = 0;
 const SUMMARY_WORKSPACE_MAX_HEIGHT = 440;
-const analyticsTemplateUrl = new URL("../../modules/summary/analytics-block.html", import.meta.url);
+const analyticsTemplateUrl = new URL("./summary/analytics-block.html", import.meta.url);
 const projectSelector = globalThis.projectSelector;
 
 interface SummaryServerHealth {
@@ -102,7 +102,7 @@ async function ensureAnalyticsTemplate() {
 
 async function ensureAnalyticsModule() {
   if (!analyticsModulePromise) {
-    analyticsModulePromise = import("../../modules/summary/analytics-block.js").catch((error) => {
+    analyticsModulePromise = import("./summary/analytics-block.js").catch((error) => {
       analyticsModulePromise = null;
       throw error;
     });

@@ -11,7 +11,7 @@ import {
   deleteJournalEntryDoc,
   getJournalEntriesFilteredSnapshot,
   getJournalEntriesSnapshot
-} from "./app/repositories/firestore-repository.js";
+} from "../../repositories/firestore-repository.js";
 import { Timestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // ============================

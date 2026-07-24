@@ -50,7 +50,7 @@ import {
   setGeomBeams as geomSetBeams,
   checkGeomBeamDuplicate as geomCheckBeamDuplicate,
   clearByType as geomClearByType
-} from "../../geom.js";
+} from "./geometry/data.js";
 import {
   clearProjectCollection,
   createProjectCollectionDoc,
