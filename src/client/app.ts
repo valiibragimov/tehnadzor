@@ -259,6 +259,7 @@ const btnClearNodes       = document.getElementById("btnClearNodes");
 const ifcActionsMenu      = document.getElementById("ifcActionsMenu");
 const bimImportFileState  = document.getElementById("bimImportFileState");
 const bimImportStatus     = document.getElementById("bimImportStatus");
+const bimImportedIfcCount = document.getElementById("bimImportedIfcCount");
 
 // Отладочные запросы отключены
 
@@ -4550,6 +4551,14 @@ ifcImportRuntime = createIfcImportRuntime({
   auth,
   getCurrentProjectId: () => currentProjectId,
   getImportedElementsCount: () => bimElements.length,
+  getImportedIfcCount: () => {
+    const sourceIds = new Set(
+      bimElements
+        .map((element) => String(element.sourceModelId || "").trim())
+        .filter(Boolean)
+    );
+    return sourceIds.size || (bimElements.length > 0 ? 1 : 0);
+  },
   ifcFileInput: ifcFileInput as HTMLInputElement | null,
   btnImportIfc: btnImportIfc as HTMLButtonElement | null,
   btnClearIfcImport: btnClearIfcImport as HTMLButtonElement | null,
@@ -4559,6 +4568,7 @@ ifcImportRuntime = createIfcImportRuntime({
   ifcActionsMenu,
   bimImportFileState: bimImportFileState as HTMLElement | null,
   bimImportStatus: bimImportStatus as HTMLElement | null,
+  bimImportedIfcCount: bimImportedIfcCount as HTMLElement | null,
   loadProjectBimElements,
   refreshReinforcementBimElementsIfLoaded,
   refreshGeometryBimElementsIfLoaded,

@@ -265,13 +265,22 @@
         const initHelpToggles = () => {
           const popover = document.createElement("div");
           popover.className = "help-popover";
-          popover.setAttribute("role", "dialog");
+          popover.setAttribute("role", "tooltip");
           popover.setAttribute("aria-hidden", "true");
           document.body.appendChild(popover);
 
           let activeBtn = null;
+          let closeTimer = 0;
+          const hoverQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
+
+          const cancelScheduledClose = () => {
+            if (!closeTimer) return;
+            window.clearTimeout(closeTimer);
+            closeTimer = 0;
+          };
 
           const closePopover = () => {
+            cancelScheduledClose();
             if (activeBtn && mobileQuery.matches) {
               setPageScrollLocked(false);
             }
@@ -301,32 +310,74 @@
             popover.style.left = `${left}px`;
           };
 
+          const openPopover = (btn, { lockMobile = false } = {}) => {
+            const targetId = btn?.dataset?.helpTarget;
+            const target = targetId ? document.getElementById(targetId) : null;
+            if (!target) return;
+
+            cancelScheduledClose();
+            if (activeBtn && activeBtn !== btn) {
+              closePopover();
+            }
+            if (!activeBtn && lockMobile) {
+              setPageScrollLocked(true);
+            }
+
+            popover.innerHTML = target.innerHTML;
+            popover.classList.add("is-open");
+            popover.setAttribute("aria-hidden", "false");
+            activeBtn = btn;
+            positionPopover(btn);
+          };
+
+          const schedulePopoverClose = () => {
+            cancelScheduledClose();
+            closeTimer = window.setTimeout(closePopover, 120);
+          };
+
           document.addEventListener("click", (event) => {
             const btn = event.target.closest(".module-help-toggle");
             if (btn) {
               event.stopPropagation();
-              const targetId = btn.dataset.helpTarget;
-              const target = targetId ? document.getElementById(targetId) : null;
-              if (!target) return;
-
-              if (activeBtn === btn) {
+              if (activeBtn === btn && !hoverQuery.matches) {
                 closePopover();
                 return;
               }
-
-              if (!activeBtn && mobileQuery.matches) {
-                setPageScrollLocked(true);
-              }
-              popover.innerHTML = target.innerHTML;
-              popover.classList.add("is-open");
-              popover.setAttribute("aria-hidden", "false");
-              activeBtn = btn;
-              positionPopover(btn);
+              openPopover(btn, { lockMobile: mobileQuery.matches });
               return;
             }
 
             if (popover.classList.contains("is-open")) closePopover();
           });
+
+          document.addEventListener("pointerover", (event) => {
+            if (!hoverQuery.matches) return;
+            const btn = event.target.closest(".module-help-toggle");
+            if (!btn) return;
+            cancelScheduledClose();
+            openPopover(btn);
+          });
+
+          document.addEventListener("pointerout", (event) => {
+            if (!hoverQuery.matches) return;
+            const btn = event.target.closest(".module-help-toggle");
+            if (!btn || (event.relatedTarget instanceof Node && btn.contains(event.relatedTarget))) return;
+            schedulePopoverClose();
+          });
+
+          document.addEventListener("focusin", (event) => {
+            const btn = event.target.closest(".module-help-toggle");
+            if (btn) openPopover(btn);
+          });
+
+          document.addEventListener("focusout", (event) => {
+            const btn = event.target.closest(".module-help-toggle");
+            if (!btn || (event.relatedTarget instanceof Node && btn.contains(event.relatedTarget))) return;
+            schedulePopoverClose();
+          });
+
+          popover.addEventListener("pointerenter", cancelScheduledClose);
+          popover.addEventListener("pointerleave", schedulePopoverClose);
 
           window.addEventListener("resize", () => {
             if (activeBtn) positionPopover(activeBtn);

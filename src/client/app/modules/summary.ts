@@ -751,12 +751,10 @@ function renderSummaryIssuesPanel() {
   const openCount = items.filter((item) => item.status !== "closed").length;
   const overdueCount = items.filter((item) => item.status === "overdue").length;
   const closedCount = items.filter((item) => item.status === "closed").length;
-  const repeatCount = items.filter((item) => item.repeatLinked).length;
 
   statsEl.innerHTML = `
     <span>Открыто: <strong>${openCount}</strong></span>
     <span>Просрочено: <strong>${overdueCount}</strong></span>
-    <span>Контроль: <strong>${repeatCount}</strong></span>
     <span>Закрыто: <strong>${closedCount}</strong></span>
   `;
 

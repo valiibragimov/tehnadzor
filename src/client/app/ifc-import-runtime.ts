@@ -28,6 +28,7 @@ interface IfcImportRuntimeOptions {
   auth: IfcAuthLike;
   getCurrentProjectId: () => string | null;
   getImportedElementsCount: () => number;
+  getImportedIfcCount: () => number;
   ifcFileInput?: HTMLInputElement | null;
   btnImportIfc?: HTMLButtonElement | null;
   btnClearIfcImport?: HTMLButtonElement | null;
@@ -37,6 +38,7 @@ interface IfcImportRuntimeOptions {
   ifcActionsMenu?: Element | null;
   bimImportFileState?: HTMLElement | null;
   bimImportStatus?: HTMLElement | null;
+  bimImportedIfcCount?: HTMLElement | null;
   loadProjectBimElements: (projectId: string) => Promise<unknown>;
   refreshReinforcementBimElementsIfLoaded: () => Promise<unknown> | unknown;
   refreshGeometryBimElementsIfLoaded: () => Promise<unknown> | unknown;
@@ -87,6 +89,7 @@ export function createIfcImportRuntime({
   auth,
   getCurrentProjectId,
   getImportedElementsCount,
+  getImportedIfcCount,
   ifcFileInput,
   btnImportIfc,
   btnClearIfcImport,
@@ -96,6 +99,7 @@ export function createIfcImportRuntime({
   ifcActionsMenu,
   bimImportFileState,
   bimImportStatus,
+  bimImportedIfcCount,
   loadProjectBimElements,
   refreshReinforcementBimElementsIfLoaded,
   refreshGeometryBimElementsIfLoaded,
@@ -110,6 +114,16 @@ export function createIfcImportRuntime({
 
   const setIfcFileState = (message: string, tone = "") => {
     setStatusText(bimImportFileState, message, tone);
+  };
+
+  const syncImportedIfcCount = () => {
+    if (!bimImportedIfcCount) return;
+    const count = Math.max(0, Number(getImportedIfcCount()) || 0);
+    bimImportedIfcCount.textContent = `IFC: ${count}`;
+    bimImportedIfcCount.classList.toggle("has-files", count > 0);
+    bimImportedIfcCount.title = count > 0
+      ? `Загружено IFC-файлов: ${count}`
+      : "IFC-файлы ещё не загружены";
   };
 
   const setIfcPrimaryActionLabel = (label: string) => {
@@ -247,6 +261,7 @@ export function createIfcImportRuntime({
 
   const syncIfcImportControls = () => {
     if (!btnImportIfc) return;
+    syncImportedIfcCount();
 
     const selectedFile = ifcFileInput?.files?.[0] || null;
     const hasProject = !!getCurrentProjectId();

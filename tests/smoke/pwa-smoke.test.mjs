@@ -103,7 +103,8 @@ test("journal exposes the issue registry workflow", async () => {
   assert.match(html, /id="journalIssueList"/u);
   assert.match(html, /id="summaryIssuesPanel"/u);
   assert.match(html, /summary-overview-row/u);
-  assert.match(html, /Замечания и корректирующие действия/u);
+  assert.match(html, /summary-issues-title">Замечания</u);
+  assert.doesNotMatch(html, /Связка нарушения, замечания, повторного контроля/u);
   assert.match(html, /Создайте замечание из строки журнала/u);
   assert.match(journalSource, /from "\.\.\/services\/issues\.js"/u);
   assert.match(journalSource, /createIssueFromJournalEntry/u);
@@ -267,6 +268,9 @@ test("client feature data is colocated with its owning module", async () => {
 test("IFC import runtime is not embedded back into app entrypoint", async () => {
   const appSource = await readFile(resolve(projectRoot, "src/client/app.ts"), "utf8");
   const runtimeSource = await readFile(resolve(projectRoot, "src/client/app/ifc-import-runtime.ts"), "utf8");
+  const headerSource = await readFile(resolve(projectRoot, "src/client/index-partials/header-shell.html"), "utf8");
+  const tailSource = await readFile(resolve(projectRoot, "src/client/index-partials/tail.html"), "utf8");
+  const css = await readFile(resolve(projectRoot, "style.css"), "utf8");
 
   assert.match(appSource, /createIfcImportRuntime/u);
   assert.doesNotMatch(appSource, /importIfcIntoProject/u);
@@ -276,6 +280,13 @@ test("IFC import runtime is not embedded back into app entrypoint", async () => 
   assert.match(runtimeSource, /importIfcIntoProject/u);
   assert.match(runtimeSource, /deleteImportedBimElements/u);
   assert.match(runtimeSource, /runSingleFlight/u);
+  assert.match(runtimeSource, /syncImportedIfcCount/u);
+  assert.match(appSource, /getImportedIfcCount/u);
+  assert.match(headerSource, /id="bimImportedIfcCount"/u);
+  assert.match(tailSource, /pointerover/u);
+  assert.match(tailSource, /hover: hover/u);
+  assert.match(css, /\.help-popover\s*\{[\s\S]*?transition:/u);
+  assert.match(css, /@keyframes app-page-reveal/u);
 });
 
 test("app entrypoint delegates inspection evaluation and BIM helpers", async () => {

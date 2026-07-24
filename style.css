@@ -9946,6 +9946,246 @@ body.profile-page .projects-list:not(.has-scroll) .profile-scroll-indicator {
   }
 }
 
+/* Visible IFC model count in the global project toolbar. */
+.bim-import-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 22px;
+  margin-left: auto;
+  padding: 2px 8px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.28);
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.bim-import-count.has-files {
+  border-color: rgba(74, 222, 128, 0.34);
+  background: rgba(22, 163, 74, 0.12);
+  color: #bbf7d0;
+}
+
+body.theme-light .bim-import-count {
+  background: rgba(255, 255, 255, 0.76);
+  color: #64748b;
+}
+
+body.theme-light .bim-import-count.has-files {
+  border-color: rgba(22, 163, 74, 0.28);
+  background: rgba(220, 252, 231, 0.9);
+  color: #166534;
+}
+
+/* Help opens on hover/focus and eases into place. */
+.help-popover {
+  transform: translateY(-5px) scale(0.985);
+  transform-origin: top right;
+  transition:
+    opacity 180ms ease,
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.help-popover.is-open {
+  transform: translateY(0) scale(1);
+}
+
+.module-help-toggle {
+  cursor: help;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+/* Shared page and section entrance motion. */
+body:not(.profile-page) main {
+  animation: app-page-reveal 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+body.home-page .section.active {
+  animation: app-section-reveal 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+body.home-page .wizard-step.is-active,
+body.home-page .wizard-sheet.is-open .wizard-sheet-panel {
+  animation: app-block-reveal 240ms ease-out both;
+}
+
+@keyframes app-page-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes app-section-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes app-block-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.997);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Denser inspection forms without shrinking touch targets. */
+body.home-page .wizard .card {
+  padding: 14px !important;
+  border-radius: 12px;
+}
+
+body.home-page .wizard .card-title {
+  margin-bottom: 10px;
+}
+
+body.home-page .wizard .grid-2,
+body.home-page .wizard .grid-3,
+body.home-page .wizard .grid-4 {
+  gap: 10px 12px;
+}
+
+body.home-page .wizard label {
+  margin-bottom: 4px;
+}
+
+body.home-page .wizard input,
+body.home-page .wizard select,
+body.home-page .wizard textarea,
+body.home-page .wizard .ui-select {
+  min-height: 42px;
+  padding-block: 9px;
+}
+
+body.home-page .wizard textarea {
+  min-height: 82px;
+}
+
+body.home-page .wizard .wizard-header {
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+/* Minimal summary: four compact module cards and one clear issues registry. */
+body.home-page #sectionSummary .summary-overview-row {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+body.home-page #sectionSummary .summary-modules-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  overflow: visible;
+  padding: 0;
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
+body.home-page #sectionSummary .summary-module-card {
+  width: auto;
+  min-width: 0;
+  padding: 10px 11px;
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+body.home-page #sectionSummary .summary-module-header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: 6px;
+}
+
+body.home-page #sectionSummary .summary-module-stats {
+  gap: 5px 10px;
+}
+
+body.home-page #sectionSummary .summary-module-stat {
+  padding: 3px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+body.home-page #sectionSummary .summary-module-stat--wide {
+  display: none;
+}
+
+body.home-page #sectionSummary .summary-issues-panel {
+  padding: 12px;
+  box-shadow: none;
+}
+
+body.home-page #sectionSummary .summary-issues-head {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+body.home-page #sectionSummary .summary-issues-stats {
+  justify-content: flex-end;
+}
+
+body.home-page #sectionSummary .summary-issues-list {
+  max-height: 180px;
+}
+
+@media (max-width: 900px) {
+  body.home-page #sectionSummary .summary-modules-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  body.home-page #sectionSummary .summary-modules-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.home-page #sectionSummary .summary-issues-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.home-page #sectionSummary .summary-issues-stats {
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body:not(.profile-page) main,
+  body.home-page .section.active,
+  body.home-page .wizard-step.is-active,
+  body.home-page .wizard-sheet.is-open .wizard-sheet-panel {
+    animation: none !important;
+  }
+
+  .help-popover {
+    transition: none;
+  }
+}
+
 body.theme-light.profile-page .profile-scroll-indicator-thumb {
   background: rgba(100, 116, 139, 0.62);
 }
