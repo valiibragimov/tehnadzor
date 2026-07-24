@@ -3,8 +3,10 @@ import {
   deleteImportedBimElements,
   formatIfcDiagnosticWarning,
   formatIfcImportSummary,
+  IfcImportCancelledError,
   importIfcIntoProject
 } from "./services/ifc-import.js";
+import { showIfcRequirementsDialog } from "./ui/ifc-requirements-dialog.js";
 import {
   cacheProjectIfcFile,
   deleteAllCachedProjectIfcFiles,
@@ -375,6 +377,10 @@ export function createIfcImportRuntime({
                 setBimImportStatus("Разбираю IFC-модель в фоновом режиме...", "");
                 return;
               }
+              if (phase === "validate") {
+                setBimImportStatus("Проверяю атрибуты и структуру IFC...", "");
+                return;
+              }
               if (phase === "replace") {
                 setBimImportStatus("Очищаю предыдущую версию модели...", "");
                 return;
@@ -388,6 +394,18 @@ export function createIfcImportRuntime({
                   ""
                 );
               }
+            },
+            onValidation: async (summary) => {
+              const approved = await showIfcRequirementsDialog(summary);
+              if (!approved) {
+                setBimImportStatus(
+                  summary.canImport
+                    ? "Импорт отменён после проверки IFC."
+                    : "Импорт заблокирован: IFC не прошёл критические проверки.",
+                  summary.canImport ? "muted" : "error"
+                );
+              }
+              return approved;
             }
           });
 
@@ -412,6 +430,10 @@ export function createIfcImportRuntime({
           await loadProjectBimElements(currentProjectId);
           await refreshLoadedBimModules();
         } catch (error) {
+          if (error instanceof IfcImportCancelledError) {
+            showNotification("IFC не импортирован. Результаты проверки сохранены на экране.", "warning");
+            return;
+          }
           console.error("[BIM] IFC import failed:", error);
           const message = error instanceof Error ? error.message : "Не удалось импортировать IFC.";
           setBimImportStatus(message, "error");

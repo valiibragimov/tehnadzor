@@ -5,6 +5,8 @@ import {
   analyzeIfcModelDiagnostics,
   type IfcDiagnosticSummary
 } from "./ifc-diagnostics.js";
+import { analyzeIfcRequirements } from "./ifc-requirements.js";
+import type { IfcRequirementSummary } from "../../types/domain.js";
 
 const SUPPORTED_IFC_TYPES = Object.freeze({
   IFCSLAB: "slab",
@@ -53,6 +55,7 @@ interface ParseIfcResult {
   countsByType: Partial<Record<BimElementType, number>>;
   countsByLabel: Record<string, number>;
   diagnosticSummary: IfcDiagnosticSummary;
+  requirementSummary: IfcRequirementSummary;
   elements: Array<Partial<BimElement> & Record<string, unknown>>;
 }
 
@@ -1856,6 +1859,8 @@ function parseIfcElements(ifcText, options: ParseIfcOptions = {}): ParseIfcResul
 
     elements.push({
       elementId: buildStableElementId(sourceModelId, entity.id),
+      expressId: entity.id,
+      hasPlacement: Boolean(placementRef),
       sourceModelId,
       ifcGuid,
       type: normalizedType,
@@ -1886,6 +1891,7 @@ function parseIfcElements(ifcText, options: ParseIfcOptions = {}): ParseIfcResul
   }
 
   const diagnosticSummary = analyzeIfcModelDiagnostics(ifcText, elements);
+  const requirementSummary = analyzeIfcRequirements(ifcText, elements);
 
   return {
     sourceModelId,
@@ -1899,6 +1905,7 @@ function parseIfcElements(ifcText, options: ParseIfcOptions = {}): ParseIfcResul
       ])
     ),
     diagnosticSummary,
+    requirementSummary,
     elements
   };
 }

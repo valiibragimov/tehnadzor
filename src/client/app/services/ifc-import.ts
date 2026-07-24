@@ -4,7 +4,11 @@ import {
   setProjectCollectionDocs
 } from "../repositories/firestore-repository.js";
 import { BIM_TO_TEHNADZOR_TYPE } from "./bim-elements.js";
-import type { IfcImportProgress, IfcImportResult } from "../../types/domain.js";
+import type {
+  IfcImportProgress,
+  IfcImportResult,
+  IfcRequirementSummary
+} from "../../types/domain.js";
 import {
   IFC_NANOCAD_WARNING_MESSAGE,
   shouldShowIfcCoordinateWarning
@@ -25,6 +29,14 @@ interface ImportIfcIntoProjectArgs {
   projectId?: string | null;
   file?: File | null;
   onProgress?: (progress: IfcImportProgress) => void;
+  onValidation?: (summary: IfcRequirementSummary) => boolean | Promise<boolean>;
+}
+
+export class IfcImportCancelledError extends Error {
+  constructor(message = "Импорт отменён после проверки IFC.") {
+    super(message);
+    this.name = "IfcImportCancelledError";
+  }
 }
 
 function makeHash(input) {
@@ -139,7 +151,12 @@ export function formatIfcDiagnosticWarning(result: IfcImportSummaryResult = {}) 
     : "";
 }
 
-export async function importIfcIntoProject({ projectId, file, onProgress }: ImportIfcIntoProjectArgs) {
+export async function importIfcIntoProject({
+  projectId,
+  file,
+  onProgress,
+  onValidation
+}: ImportIfcIntoProjectArgs) {
   const normalizedProjectId = String(projectId || "").trim();
   if (!normalizedProjectId) {
     throw new Error("Не выбран объект для BIM-импорта.");
@@ -158,6 +175,19 @@ export async function importIfcIntoProject({ projectId, file, onProgress }: Impo
     sourceModelId: requestedSourceModelId,
     fileName: file.name || "model.ifc"
   }, onProgress);
+
+  onProgress?.({
+    phase: "validate",
+    importedCount: parsedImport.importedCount,
+    sourceModelId: parsedImport.sourceModelId
+  });
+
+  if (onValidation) {
+    const approved = await onValidation(parsedImport.requirementSummary);
+    if (!approved) {
+      throw new IfcImportCancelledError();
+    }
+  }
 
   if (!parsedImport.importedCount) {
     throw new Error("В IFC-файле не найдены поддерживаемые элементы.");
@@ -203,7 +233,8 @@ export async function importIfcIntoProject({ projectId, file, onProgress }: Impo
     replacedCount,
     countsByType: parsedImport.countsByType,
     countsByLabel: parsedImport.countsByLabel,
-    diagnosticSummary: parsedImport.diagnosticSummary
+    diagnosticSummary: parsedImport.diagnosticSummary,
+    requirementSummary: parsedImport.requirementSummary
   };
 }
 

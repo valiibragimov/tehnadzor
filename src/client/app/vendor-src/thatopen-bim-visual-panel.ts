@@ -2445,7 +2445,7 @@ export function ensureBimVisualPanel({
   let queuedRender = false;
   let lastIfcAvailabilitySignature = "";
   let lastIfcAvailabilityState = false;
-  let normalizationRequested = false;
+  let normalizationRequested = true;
 
   setWorkspaceInteractivity(false);
 

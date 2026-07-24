@@ -23,6 +23,7 @@ import {
 import type { BimElement } from "../../types/domain.js";
 
 const SELECT_COLOR = new THREE.Color("#7dd3fc");
+const CONCEPT_MODEL_COLOR = new THREE.Color("#8da9bd");
 const ISO_VIEW_DIRECTION = new THREE.Vector3(1.52, 0.62, 1.18).normalize();
 const IFC_HEADER_SCAN_BYTES = 262144;
 const IFC_LITE_TO_BIM_TYPE = Object.freeze({
@@ -324,30 +325,20 @@ function normalizeFitOptions(options: { useIsometric?: boolean } | undefined) {
   return { useIsometric: options?.useIsometric === true };
 }
 
-function createFallbackMaterial(color: string) {
+function createConceptMaterial() {
   return new THREE.MeshStandardMaterial({
-    color: new THREE.Color(color),
-    roughness: 0.96,
-    metalness: 0.02
+    color: CONCEPT_MODEL_COLOR.clone(),
+    roughness: 0.9,
+    metalness: 0,
+    transparent: false,
+    opacity: 1,
+    side: THREE.DoubleSide
   });
 }
 
 function createThreeMaterialFromIfcLiteMesh(meshData: MeshData) {
-  const [r = 0.8, g = 0.8, b = 0.8, a = 1] = Array.isArray(meshData?.color) ? meshData.color : [0.8, 0.8, 0.8, 1];
-  const opacity = THREE.MathUtils.clamp(Number.isFinite(a) ? a : 1, 0.08, 1);
-  return new THREE.MeshStandardMaterial({
-    color: new THREE.Color(
-      THREE.MathUtils.clamp(Number.isFinite(r) ? r : 0.8, 0, 1),
-      THREE.MathUtils.clamp(Number.isFinite(g) ? g : 0.8, 0, 1),
-      THREE.MathUtils.clamp(Number.isFinite(b) ? b : 0.8, 0, 1)
-    ),
-    transparent: opacity < 0.999,
-    opacity,
-    side: opacity < 0.999 ? THREE.DoubleSide : THREE.FrontSide,
-    depthWrite: opacity >= 0.999,
-    roughness: opacity < 0.999 ? 0.3 : 0.9,
-    metalness: 0.02
-  });
+  void meshData;
+  return createConceptMaterial();
 }
 
 function normalizeIfcLiteTypeName(value: unknown) {
@@ -851,14 +842,7 @@ function buildElementFallbackSolid(
   }
 
   const geometry = new THREE.BoxGeometry(length, height, width);
-  const material = createFallbackMaterial(metrics.color);
-  const materialOpacity = metrics.opacity;
-  material.transparent = materialOpacity < 0.999;
-  material.opacity = materialOpacity;
-  if (type === "window") {
-    material.roughness = 0.2;
-    material.metalness = 0.04;
-  }
+  const material = createConceptMaterial();
 
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = false;

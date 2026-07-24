@@ -120,6 +120,7 @@ export interface BimElement extends Partial<GeoPrefill> {
   axes: string | null;
   resolvedAxes: string | null;
   expressId?: number | null;
+  hasPlacement?: boolean;
   projectX?: number | null;
   projectY?: number | null;
   projectH?: number | null;
@@ -190,9 +191,36 @@ export interface ViewerState {
 }
 
 export interface IfcImportProgress {
-  phase: "read" | "parse" | "replace" | "write";
+  phase: "read" | "parse" | "validate" | "replace" | "write";
   importedCount?: number;
   sourceModelId?: string;
+}
+
+export type IfcRequirementStatus = "passed" | "warning" | "blocked";
+export type IfcRequirementSeverity = "error" | "warning";
+
+export interface IfcRequirementCheck {
+  id: string;
+  label: string;
+  description: string;
+  severity: IfcRequirementSeverity;
+  passed: boolean;
+  passedCount: number;
+  totalCount: number;
+  affectedCount: number;
+  sampleElementIds: string[];
+}
+
+export interface IfcRequirementSummary {
+  status: IfcRequirementStatus;
+  canImport: boolean;
+  schema: string | null;
+  totalElements: number;
+  conformingElements: number;
+  score: number;
+  errorCount: number;
+  warningCount: number;
+  checks: IfcRequirementCheck[];
 }
 
 export interface IfcCoordinateBounds {
@@ -229,5 +257,6 @@ export interface IfcImportResult {
   replacedCount?: number;
   countsByType: Partial<Record<BimElementType, number>>;
   diagnosticSummary?: IfcDiagnosticSummary;
+  requirementSummary?: IfcRequirementSummary;
   elements: Record<string, unknown>[];
 }
