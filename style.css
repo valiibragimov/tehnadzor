@@ -23621,6 +23621,7 @@ body.profile-page #profileSettingsButton {
 }
 
 .profile-share-sheet {
+  --profile-share-sheet-drag-y: 0px;
   position: fixed;
   left: 0;
   right: 0;
@@ -23652,15 +23653,62 @@ body.profile-page #profileSettingsButton {
 
 .profile-share-sheet.is-open {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate3d(0, var(--profile-share-sheet-drag-y), 0);
 }
 
 .profile-settings-sheet__handle {
+  position: relative;
   width: 42px;
   height: 5px;
   margin: 0 auto 10px;
   border-radius: 999px;
   background: rgba(222, 230, 241, 0.38);
+}
+
+.profile-settings-sheet__handle-button {
+  position: absolute;
+  inset: -12px -18px;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  overflow: visible;
+}
+
+.profile-settings-sheet__handle-button:focus-visible {
+  outline: 2px solid rgba(143, 186, 255, 0.9);
+  outline-offset: 1px;
+}
+
+.profile-share-sheet.is-dragging {
+  transition: none;
+  user-select: none;
+}
+
+.profile-share-sheet.is-dragging .profile-settings-sheet__handle-button {
+  cursor: grabbing;
+}
+
+.profile-settings-row--password {
+  justify-content: center;
+  color: #8fbaff;
+  font-weight: 700;
+}
+
+.profile-settings-password-status {
+  min-height: 0;
+  padding-bottom: 8px;
 }
 
 .profile-settings-sheet__chrome {
@@ -24000,6 +24048,10 @@ body.theme-light .profile-share-sheet__action {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
+body.theme-light .profile-settings-row--password {
+  color: #2563eb;
+}
+
 @media (min-width: 769px) {
   body.profile-page #profileMobileSettingsButton {
     display: none !important;
@@ -24291,7 +24343,10 @@ body.theme-light .profile-share-sheet__action {
   body.profile-page .profile-settings-sheet__body {
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     padding: 0 0 calc(26px + env(safe-area-inset-bottom));
     background: transparent;
   }
@@ -24604,6 +24659,11 @@ body.theme-light .profile-share-sheet__action {
   body.profile-page .profile-mobile-header-btn svg {
     width: 20px !important;
     height: 20px !important;
+  }
+
+  body.profile-page #profileMobileSettingsButton svg {
+    width: 22px !important;
+    height: 22px !important;
   }
 
   body.profile-page #profileMobileSettingsButton {

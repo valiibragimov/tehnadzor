@@ -84,4 +84,15 @@ test("profile page keeps its primary shell accessible", async () => {
   assert.match(body, /Профиль — Tehnadzor/);
   assert.match(body, /id="btnLogout"/);
   assert.match(body, /id="themeToggleBtn"/);
+  assert.match(body, /id="profileShareSheetHandle"/);
+  assert.match(body, /finishProfileShareSheetDrag/);
+  assert.match(body, /profile-settings-sheet__section-title">Security</);
+  assert.match(body, /id="profileCurrentPassword"/);
+  assert.match(body, /id="profileNewPassword"/);
+  assert.match(body, /id="profileConfirmPassword"/);
+  assert.match(body, /id="profileChangePasswordButton"/);
+  assert.match(body, /reauthenticateWithCredential/);
+  assert.match(body, /updatePassword/);
+  assert.doesNotMatch(body, /href="edit-profile\.html#auth"/);
+  assert.doesNotMatch(body, />Password and authentication</);
 });

@@ -29,7 +29,7 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="liquid-glass.css?v=1">
-<link rel="stylesheet" href="style.css?v=76">
+<link rel="stylesheet" href="style.css?v=77">
 </head>
 <body class="profile-page">
   <script>
@@ -77,9 +77,10 @@
       aria-controls="profileSettingsSheet"
       title="Profile settings"
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="3.1"></circle>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0A1.65 1.65 0 0 0 10.91 3H11a2 2 0 1 1 4 0h.09a1.65 1.65 0 0 0 1.51 1 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0A1.65 1.65 0 0 0 21 10.91V11a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"></path>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="5.5"></circle>
+        <circle cx="12" cy="12" r="2.25"></circle>
+        <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"></path>
       </svg>
     </button>
 
@@ -337,10 +338,6 @@
         <div class="profile-settings-sheet__signed">
           Signed in as <strong id="profileSettingsSignedIn">User</strong>
         </div>
-        <a href="edit-profile.html#auth" class="profile-settings-row profile-settings-row--link">
-          <span class="profile-settings-row__label">Password and authentication</span>
-          <span class="profile-settings-row__chevron" aria-hidden="true">›</span>
-        </a>
         <button id="profileSheetLogoutButton" type="button" class="profile-settings-row profile-settings-row--danger">
           <span class="profile-settings-row__label">Sign out</span>
         </button>
@@ -392,6 +389,28 @@
           </button>
         </section>
 
+        <section class="profile-settings-sheet__group profile-settings-sheet__group--security" aria-labelledby="profileSettingsSecurityLabel">
+          <div id="profileSettingsSecurityLabel" class="profile-settings-sheet__section-title">Security</div>
+          <div class="profile-settings-sheet__rows profile-settings-sheet__rows--fields">
+            <label class="profile-settings-field">
+              <span class="profile-settings-field__label">Current password</span>
+              <input id="profileCurrentPassword" class="profile-settings-field__input" type="password" autocomplete="current-password" />
+            </label>
+            <label class="profile-settings-field">
+              <span class="profile-settings-field__label">New password</span>
+              <input id="profileNewPassword" class="profile-settings-field__input" type="password" autocomplete="new-password" />
+            </label>
+            <label class="profile-settings-field">
+              <span class="profile-settings-field__label">Confirm password</span>
+              <input id="profileConfirmPassword" class="profile-settings-field__input" type="password" autocomplete="new-password" />
+            </label>
+          </div>
+          <button id="profileChangePasswordButton" type="button" class="profile-settings-row profile-settings-row--password">
+            Change password
+          </button>
+          <div id="profilePasswordStatus" class="profile-settings-sheet__status profile-settings-password-status" aria-live="polite"></div>
+        </section>
+
         <div id="profileSettingsStatus" class="profile-settings-sheet__status" aria-live="polite"></div>
       </form>
     </div>
@@ -406,7 +425,14 @@
     aria-hidden="true"
     hidden
   >
-    <div class="profile-settings-sheet__handle" aria-hidden="true"></div>
+    <div class="profile-settings-sheet__handle">
+      <button
+        id="profileShareSheetHandle"
+        type="button"
+        class="profile-settings-sheet__handle-button"
+        aria-label="Swipe down or tap to close menu"
+      ></button>
+    </div>
     <div class="profile-share-sheet__body">
       <h2 id="profileShareSheetTitle" class="profile-share-sheet__title">Menu</h2>
       <button id="profileShareCopyButton" type="button" class="profile-share-sheet__action">
@@ -443,8 +469,11 @@
     } from "./dist/app/repositories/firestore-repository.js";
 
     import {
+      EmailAuthProvider,
       getAuth,
       onAuthStateChanged,
+      reauthenticateWithCredential,
+      updatePassword,
       updateEmail
     } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
@@ -475,6 +504,7 @@
     const profileSettingsBackdrop = document.getElementById("profileSettingsBackdrop");
     const profileSettingsSheet = document.getElementById("profileSettingsSheet");
     const profileShareSheet = document.getElementById("profileShareSheet");
+    const profileShareSheetHandle = document.getElementById("profileShareSheetHandle");
     const profileShareCopyButton = document.getElementById("profileShareCopyButton");
     const profileSettingsCancel = document.getElementById("profileSettingsCancel");
     const profileSettingsSave = document.getElementById("profileSettingsSave");
@@ -491,6 +521,11 @@
     const profileSettingsLastName = document.getElementById("profileSettingsLastName");
     const profileSettingsEmail = document.getElementById("profileSettingsEmail");
     const profileSettingsLocation = document.getElementById("profileSettingsLocation");
+    const profileCurrentPassword = document.getElementById("profileCurrentPassword");
+    const profileNewPassword = document.getElementById("profileNewPassword");
+    const profileConfirmPassword = document.getElementById("profileConfirmPassword");
+    const profileChangePasswordButton = document.getElementById("profileChangePasswordButton");
+    const profilePasswordStatus = document.getElementById("profilePasswordStatus");
     let activeProjectFilter = "all";
     let activeFeedSection = "regulatory";
     let uidForCopy = "";
@@ -508,6 +543,11 @@
     let profileOverlayHideTimer = 0;
     let profileSettingsHideTimer = 0;
     let profileShareHideTimer = 0;
+    let profileShareDragPointerId = -1;
+    let profileShareDragStartY = 0;
+    let profileShareDragCurrentY = 0;
+    let profileShareDragStartedAt = 0;
+    let profileShareHandleSuppressClick = false;
     const PROFILE_SHEET_ANIMATION_MS = 320;
     const profileMobileQuery = window.matchMedia("(max-width: 768px)");
     initThemeControls();
@@ -822,6 +862,16 @@
       }
     }
 
+    function setProfilePasswordStatus(text = "", tone = "") {
+      if (!profilePasswordStatus) return;
+      profilePasswordStatus.textContent = text;
+      if (tone) {
+        profilePasswordStatus.dataset.tone = tone;
+      } else {
+        delete profilePasswordStatus.dataset.tone;
+      }
+    }
+
     function syncProfileSettingsForm() {
       if (profileSettingsFirstName) profileSettingsFirstName.value = profileFirstName;
       if (profileSettingsLastName) profileSettingsLastName.value = profileLastName;
@@ -884,6 +934,10 @@
         });
       } else {
         profileSettingsSheet.classList.remove("is-open");
+        if (profileCurrentPassword) profileCurrentPassword.value = "";
+        if (profileNewPassword) profileNewPassword.value = "";
+        if (profileConfirmPassword) profileConfirmPassword.value = "";
+        setProfilePasswordStatus("");
         syncProfileOverlay();
         profileSettingsHideTimer = window.setTimeout(() => {
           if (!profileSettingsOpen) {
@@ -904,7 +958,24 @@
         profileSettingsAvatarAction,
         profileSettingsAvatarButton,
         profileSheetThemeButton,
-        profileSheetLogoutButton
+        profileSheetLogoutButton,
+        profileCurrentPassword,
+        profileNewPassword,
+        profileConfirmPassword,
+        profileChangePasswordButton
+      ].forEach((control) => {
+        if (control instanceof HTMLInputElement || control instanceof HTMLButtonElement) {
+          control.disabled = isBusy;
+        }
+      });
+    }
+
+    function setProfilePasswordBusy(isBusy) {
+      [
+        profileCurrentPassword,
+        profileNewPassword,
+        profileConfirmPassword,
+        profileChangePasswordButton
       ].forEach((control) => {
         if (control instanceof HTMLInputElement || control instanceof HTMLButtonElement) {
           control.disabled = isBusy;
@@ -940,6 +1011,7 @@
 
     function setProfileShareSheetOpen(isOpen) {
       if (!profileShareSheet || !profileMobileShareButton) return;
+      resetProfileShareSheetDrag();
       profileShareSheetOpen = !!isOpen;
       profileMobileShareButton.setAttribute("aria-expanded", profileShareSheetOpen ? "true" : "false");
       profileShareSheet.setAttribute("aria-hidden", profileShareSheetOpen ? "false" : "true");
@@ -965,6 +1037,55 @@
           profileShareHideTimer = 0;
         }, PROFILE_SHEET_ANIMATION_MS);
       }
+    }
+
+    function setProfileShareSheetDragOffset(offset) {
+      if (!profileShareSheet) return;
+      profileShareSheet.style.setProperty("--profile-share-sheet-drag-y", `${Math.max(0, offset)}px`);
+    }
+
+    function resetProfileShareSheetDrag() {
+      if (!profileShareSheet || !profileShareSheetHandle) return;
+      if (
+        profileShareDragPointerId >= 0
+        && profileShareSheetHandle.hasPointerCapture?.(profileShareDragPointerId)
+      ) {
+        profileShareSheetHandle.releasePointerCapture(profileShareDragPointerId);
+      }
+      profileShareDragPointerId = -1;
+      profileShareDragStartY = 0;
+      profileShareDragCurrentY = 0;
+      profileShareDragStartedAt = 0;
+      profileShareSheet.classList.remove("is-dragging");
+      profileShareSheet.style.removeProperty("--profile-share-sheet-drag-y");
+    }
+
+    function finishProfileShareSheetDrag(event, cancelled = false) {
+      if (
+        !profileShareSheet
+        || !profileShareSheetHandle
+        || profileShareDragPointerId !== event.pointerId
+      ) return;
+
+      profileShareDragCurrentY = event.clientY;
+      const distance = Math.max(0, profileShareDragCurrentY - profileShareDragStartY);
+      const elapsed = Math.max(1, performance.now() - profileShareDragStartedAt);
+      const velocity = distance / elapsed;
+      const dismissDistance = Math.max(72, Math.min(120, profileShareSheet.offsetHeight * 0.2));
+
+      if (profileShareSheetHandle.hasPointerCapture?.(event.pointerId)) {
+        profileShareSheetHandle.releasePointerCapture(event.pointerId);
+      }
+      profileShareDragPointerId = -1;
+      profileShareSheet.classList.remove("is-dragging");
+
+      if (!cancelled && (distance >= dismissDistance || (distance >= 32 && velocity >= 0.55))) {
+        profileShareSheet.style.removeProperty("--profile-share-sheet-drag-y");
+        setProfileShareSheetOpen(false);
+        return;
+      }
+
+      profileShareSheet.style.removeProperty("--profile-share-sheet-drag-y");
     }
 
     const updateProjectsCount = (count) => {
@@ -1217,6 +1338,48 @@
       setProfileShareSheetOpen(!profileShareSheetOpen);
     });
 
+    profileShareSheetHandle?.addEventListener("pointerdown", (event) => {
+      if (!profileShareSheetOpen || !profileMobileQuery.matches || (event.button !== 0 && event.pointerType === "mouse")) {
+        return;
+      }
+      profileShareDragPointerId = event.pointerId;
+      profileShareDragStartY = event.clientY;
+      profileShareDragCurrentY = event.clientY;
+      profileShareDragStartedAt = performance.now();
+      profileShareHandleSuppressClick = false;
+      profileShareSheet.classList.add("is-dragging");
+      profileShareSheetHandle.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+    });
+
+    profileShareSheetHandle?.addEventListener("pointermove", (event) => {
+      if (profileShareDragPointerId !== event.pointerId) return;
+      profileShareDragCurrentY = event.clientY;
+      const distance = Math.max(0, profileShareDragCurrentY - profileShareDragStartY);
+      if (distance > 6) {
+        profileShareHandleSuppressClick = true;
+      }
+      setProfileShareSheetDragOffset(distance);
+      event.preventDefault();
+    });
+
+    profileShareSheetHandle?.addEventListener("pointerup", (event) => {
+      finishProfileShareSheetDrag(event);
+    });
+
+    profileShareSheetHandle?.addEventListener("pointercancel", (event) => {
+      finishProfileShareSheetDrag(event, true);
+    });
+
+    profileShareSheetHandle?.addEventListener("click", (event) => {
+      if (profileShareHandleSuppressClick) {
+        profileShareHandleSuppressClick = false;
+        event.preventDefault();
+        return;
+      }
+      setProfileShareSheetOpen(false);
+    });
+
     profileShareCopyButton?.addEventListener("click", async () => {
       const targetRect = profileMobileShareButton
         ? profileMobileShareButton.getBoundingClientRect()
@@ -1323,6 +1486,58 @@
     profileSheetThemeButton?.addEventListener("click", () => {
       document.getElementById("themeToggleBtn")?.click();
       window.setTimeout(updateProfileThemeLabel, 0);
+    });
+
+    profileChangePasswordButton?.addEventListener("click", async () => {
+      if (!currentAuthUser) return;
+
+      const currentPassword = String(profileCurrentPassword?.value || "");
+      const newPassword = String(profileNewPassword?.value || "");
+      const confirmPassword = String(profileConfirmPassword?.value || "");
+      const currentEmail = String(currentAuthUser.email || "").trim();
+      const hasPasswordProvider = Array.isArray(currentAuthUser.providerData)
+        && currentAuthUser.providerData.some((provider) => provider?.providerId === "password");
+
+      if (!hasPasswordProvider) {
+        setProfilePasswordStatus("Password change is available only for email/password accounts.", "warning");
+        return;
+      }
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        setProfilePasswordStatus("Fill in all password fields.", "warning");
+        return;
+      }
+      if (newPassword.length < 6) {
+        setProfilePasswordStatus("New password must be at least 6 characters long.", "warning");
+        profileNewPassword?.focus();
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setProfilePasswordStatus("New password and confirmation do not match.", "warning");
+        profileConfirmPassword?.focus();
+        return;
+      }
+      if (!currentEmail) {
+        setProfilePasswordStatus("Current account email was not found.", "error");
+        return;
+      }
+
+      setProfilePasswordBusy(true);
+      setProfilePasswordStatus("Updating password...");
+
+      try {
+        const credential = EmailAuthProvider.credential(currentEmail, currentPassword);
+        await reauthenticateWithCredential(currentAuthUser, credential);
+        await updatePassword(currentAuthUser, newPassword);
+        profileCurrentPassword.value = "";
+        profileNewPassword.value = "";
+        profileConfirmPassword.value = "";
+        setProfilePasswordStatus("Password changed successfully.", "success");
+      } catch (error) {
+        console.error("Password change error:", error);
+        setProfilePasswordStatus("Could not change password. Check the current password and try again.", "error");
+      } finally {
+        setProfilePasswordBusy(false);
+      }
     });
 
     profileSheetLogoutButton?.addEventListener("click", () => {
