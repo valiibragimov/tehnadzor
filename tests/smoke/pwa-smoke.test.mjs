@@ -227,7 +227,10 @@ test("object overview and grouped inspection navigation are present", async () =
   assert.match(css, /\.tabs-group-item__icon\s*\{/u);
   assert.match(css, /body\.home-page > main\s*\{[\s\S]*?max-width:\s*none/u);
   assert.match(css, /body\.home-page\.theme-light > main\s*\{[\s\S]*?background:\s*#f1f5f9\s*!important/u);
-  assert.match(css, /body\.home-page\.theme-light \.site-footer\.site-footer--profile-like\s*\{[\s\S]*?background:\s*#f1f5f9\s*!important/u);
+  assert.match(css, /body\.home-page > header,[\s\S]*?body\.profile-edit-page > header\s*\{[\s\S]*?rgba\(15,\s*23,\s*42,\s*0\.92\)/u);
+  assert.match(css, /body\.home-page \.site-footer,[\s\S]*?body\.profile-edit-page \.site-footer\s*\{[\s\S]*?rgba\(15,\s*23,\s*42,\s*0\.92\)/u);
+  assert.match(css, /body\.theme-light\.home-page > header,[\s\S]*?body\.theme-light\.profile-edit-page > header\s*\{[\s\S]*?background:\s*#000000\s*!important/u);
+  assert.match(css, /body\.theme-light\.home-page \.site-footer,[\s\S]*?body\.theme-light\.profile-edit-page \.site-footer\s*\{[\s\S]*?background:\s*#000000\s*!important/u);
 });
 
 test("bim viewer runtime assets are reachable after client build", async () => {

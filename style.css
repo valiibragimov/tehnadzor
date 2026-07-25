@@ -28978,39 +28978,69 @@ body.home-page.theme-light > main {
   background: #f1f5f9 !important;
 }
 
+/* Shared themed chrome for the home, profile and profile editor pages. */
+body.home-page > header,
+body.profile-page > header,
+body.profile-edit-page > header {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.92) 0%,
+    rgba(15, 23, 42, 0.82) 100%
+  ) !important;
+  box-shadow: none !important;
+}
+
 body.home-page .site-footer,
-body.home-page .site-footer.site-footer--profile-like {
-  border-top: 1px solid rgba(148, 163, 184, 0.14);
-  background: #0f172a !important;
+body.home-page .site-footer.site-footer--profile-like,
+body.profile-page .site-footer,
+body.profile-edit-page .site-footer {
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.92) 0%,
+    rgba(15, 23, 42, 0.82) 100%
+  ) !important;
+  box-shadow: none !important;
 }
 
 body.home-page .site-footer__link,
-body.home-page .site-footer__icon-link {
-  color: #cbd5e1;
+body.home-page .site-footer__icon-link,
+body.profile-page .site-footer__link,
+body.profile-page .site-footer__icon-link,
+body.profile-edit-page .site-footer__link,
+body.profile-edit-page .site-footer__icon-link {
+  color: #f6f6f6 !important;
 }
 
-body.home-page .site-footer__copy {
-  color: #94a3b8;
+body.home-page .site-footer__copy,
+body.profile-page .site-footer__copy,
+body.profile-edit-page .site-footer__copy {
+  color: #959599 !important;
 }
 
-body.home-page.theme-light .site-footer,
-body.home-page.theme-light .site-footer.site-footer--profile-like {
-  border-top-color: #d5dde8;
-  background: #f1f5f9 !important;
+body.theme-light.home-page > header,
+body.theme-light.profile-page > header,
+body.theme-light.profile-edit-page > header {
+  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+  background: #000000 !important;
 }
 
-body.home-page.theme-light .site-footer__link,
-body.home-page.theme-light .site-footer__icon-link {
-  color: #475569;
+body.theme-light.home-page .site-footer,
+body.theme-light.home-page .site-footer.site-footer--profile-like,
+body.theme-light.profile-page .site-footer,
+body.theme-light.profile-edit-page .site-footer {
+  border-top-color: rgba(255, 255, 255, 0.12);
+  background: #000000 !important;
 }
 
-body.home-page.theme-light .site-footer__copy {
-  color: #64748b;
-}
-
-body.home-page.theme-light .site-footer__link:hover,
-body.home-page.theme-light .site-footer__icon-link:hover {
-  color: #172033;
+body.theme-light.home-page .site-footer__link:hover,
+body.theme-light.home-page .site-footer__icon-link:hover,
+body.theme-light.profile-page .site-footer__link:hover,
+body.theme-light.profile-page .site-footer__icon-link:hover,
+body.theme-light.profile-edit-page .site-footer__link:hover,
+body.theme-light.profile-edit-page .site-footer__icon-link:hover {
+  color: #ffffff !important;
 }
 
 @media (max-width: 520px) {
