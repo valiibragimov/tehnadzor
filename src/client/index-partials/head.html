@@ -11,7 +11,7 @@
       }
       const normalizedTheme = theme === "light" ? "light" : "dark";
       const className = normalizedTheme === "light" ? "theme-light" : "theme-dark";
-      const backgroundColor = normalizedTheme === "light" ? "#eef2f7" : "#0f172a";
+      const backgroundColor = normalizedTheme === "light" ? "#f1f5f9" : "#0f172a";
 
       window.__appThemeClass = className;
       document.documentElement.classList.add(className);
@@ -35,7 +35,7 @@
   <style>
     html.theme-light,
     html.theme-light body {
-      background-color: #eef2f7;
+      background-color: #f1f5f9;
     }
 
     html.theme-dark,
@@ -53,7 +53,7 @@
   <meta id="appThemeColor" name="theme-color" content="#1e293b">
   <script>
     document.getElementById("appThemeColor").content =
-      window.__appThemeClass === "theme-light" ? "#eef2f7" : "#1e293b";
+      window.__appThemeClass === "theme-light" ? "#f1f5f9" : "#0f172a";
   </script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -63,7 +63,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" onerror="this.onerror=null; console.warn('Google Fonts не загружен, используется системный шрифт');" />
-  <link rel="stylesheet" href="style.css?v=79" />
+  <link rel="stylesheet" href="style.css?v=80" />
   <link rel="stylesheet" href="liquid-glass.css?v=1" />
   <link rel="stylesheet" href="dist/modules/summary/analytics-block.css?v=3" />
 

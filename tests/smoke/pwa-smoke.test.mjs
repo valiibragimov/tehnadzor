@@ -76,7 +76,7 @@ test("index page still wires PWA registration and manifest link", async () => {
   assert.match(html, /rel="manifest" href="manifest\.json"/);
   assert.match(html, /navigator\.serviceWorker\.register\('sw\.js', \{ updateViaCache: 'none' \}\)/);
   assert.match(html, /window\.__appThemeClass = className/u);
-  assert.match(html, /html\.theme-light body\s*\{\s*background-color:\s*#eef2f7/u);
+  assert.match(html, /html\.theme-light body\s*\{\s*background-color:\s*#f1f5f9/u);
   assert.match(html, /<body class="home-page">\s*<script>\s*document\.body\.classList\.add\(window\.__appThemeClass/u);
   assert.match(html, /id="appThemeColor"/u);
 });
@@ -225,6 +225,9 @@ test("object overview and grouped inspection navigation are present", async () =
   assert.match(css, /\.overview-module-row\s*\{[\s\S]*?min-height:\s*58px/u);
   assert.match(css, /body\.home-page \.tabs > \.tab::before/u);
   assert.match(css, /\.tabs-group-item__icon\s*\{/u);
+  assert.match(css, /body\.home-page > main\s*\{[\s\S]*?max-width:\s*none/u);
+  assert.match(css, /body\.home-page\.theme-light > main\s*\{[\s\S]*?background:\s*#f1f5f9\s*!important/u);
+  assert.match(css, /body\.home-page\.theme-light \.site-footer\.site-footer--profile-like\s*\{[\s\S]*?background:\s*#f1f5f9\s*!important/u);
 });
 
 test("bim viewer runtime assets are reachable after client build", async () => {
