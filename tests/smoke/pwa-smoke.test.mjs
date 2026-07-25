@@ -229,7 +229,9 @@ test("object overview and grouped inspection navigation are present", async () =
   assert.match(css, /body\.home-page\.theme-light > main\s*\{[\s\S]*?background:\s*#f1f5f9\s*!important/u);
   assert.match(css, /body\.home-page > header,[\s\S]*?body\.profile-edit-page > header\s*\{[\s\S]*?background:\s*#0f172a\s*!important/u);
   assert.match(css, /body\.home-page \.site-footer,[\s\S]*?body\.profile-edit-page \.site-footer\s*\{[\s\S]*?background:\s*#0f172a\s*!important/u);
-  assert.match(css, /html\.theme-dark body\.profile-page,[\s\S]*?body\.theme-dark\.profile-page\s*\{[\s\S]*?linear-gradient\(135deg,\s*#1e293b\s*0%,\s*#0f172a\s*100%\)\s*fixed\s*!important/u);
+  assert.match(css, /html\.theme-dark body\.profile-page,[\s\S]*?body\.theme-dark\.profile-page\s*\{[\s\S]*?background:\s*#0f172a\s*!important[\s\S]*?background-image:\s*none\s*!important/u);
+  assert.match(css, /body\.theme-dark\.profile-page > main,[\s\S]*?body\.theme-dark\.profile-edit-page > main\s*\{[\s\S]*?background:\s*#0f172a\s*!important/u);
+  assert.match(css, /html\.theme-light body\.profile-page,[\s\S]*?body\.theme-light\.profile-edit-page > main\s*\{[\s\S]*?background:\s*#f1f5f9\s*!important/u);
   assert.match(css, /body\.theme-light\.home-page > header,[\s\S]*?body\.theme-light\.profile-edit-page > header\s*\{[\s\S]*?background:\s*#000000\s*!important/u);
   assert.match(css, /body\.theme-light\.home-page \.site-footer,[\s\S]*?body\.theme-light\.profile-edit-page \.site-footer\s*\{[\s\S]*?background:\s*#000000\s*!important/u);
 });

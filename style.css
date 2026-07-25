@@ -28998,12 +28998,22 @@ body.profile-edit-page .site-footer {
 
 html.theme-dark body.profile-page,
 body.theme-dark.profile-page {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) fixed !important;
+  background: #0f172a !important;
+  background-image: none !important;
+  background-attachment: scroll !important;
 }
 
 body.theme-dark.profile-page > main,
 body.theme-dark.profile-edit-page > main {
-  background: transparent !important;
+  background: #0f172a !important;
+}
+
+html.theme-light body.profile-page,
+body.theme-light.profile-page,
+body.theme-light.profile-page > main,
+body.theme-light.profile-edit-page > main {
+  background: #f1f5f9 !important;
+  background-image: none !important;
 }
 
 body.home-page .site-footer__link,

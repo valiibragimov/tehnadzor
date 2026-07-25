@@ -96,7 +96,7 @@ test("profile page keeps its primary shell accessible", async () => {
   assert.match(body, /class="profile-page is-profile-loading"/);
   assert.match(body, /document\.documentElement\.style\.backgroundColor = normalized === "light" \? "#f1f5f9" : "#0f172a"/u);
   assert.match(body, /document\.body\.classList\.add\(window\.__appThemeClass \|\| "theme-dark"\)/u);
-  assert.match(body, /style\.css\?v=82/u);
+  assert.match(body, /style\.css\?v=83/u);
   assert.match(body, /function revealProfilePage\(\)/);
   assert.match(body, /document\.body\.classList\.add\("is-profile-ready"\)/);
   assert.doesNotMatch(body, /href="edit-profile\.html#auth"/);
