@@ -28864,6 +28864,94 @@ body.home-page.theme-light .bottom-nav-group-option small {
   color: #64748b !important;
 }
 
+/* Stable navigation geometry: one clipped surface without legacy glass layers. */
+body.home-page .tabs > .tab,
+body.home-page .tabs-group-trigger,
+body.home-page .tabs-group-item,
+body.home-page .overview-module-row,
+body.home-page .overview-action-button,
+body.home-page .overview-text-action,
+body.home-page .overview-shortcuts button {
+  transform: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+  overflow: hidden;
+  background-clip: padding-box;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease !important;
+}
+
+body.home-page .tabs > .tab,
+body.home-page .tabs-group-trigger,
+body.home-page .tabs-group-item {
+  border-radius: var(--ui-radius-md) !important;
+}
+
+body.home-page .tabs > .tab::before,
+body.home-page .tabs > .tab::after,
+body.home-page .tabs-group-trigger::before,
+body.home-page .tabs-group-trigger::after,
+body.home-page .tabs-group-item::before,
+body.home-page .tabs-group-item::after {
+  content: none !important;
+  display: none !important;
+}
+
+body.home-page .tabs > .tab:hover,
+body.home-page .tabs > .tab:active,
+body.home-page .tabs > .tab:focus-visible,
+body.home-page .tabs-group-trigger:hover,
+body.home-page .tabs-group-trigger:active,
+body.home-page .tabs-group-trigger:focus-visible,
+body.home-page .tabs-group-item:hover,
+body.home-page .tabs-group-item:active,
+body.home-page .tabs-group-item:focus-visible,
+body.home-page .overview-module-row:hover,
+body.home-page .overview-module-row:active,
+body.home-page .overview-action-button:hover,
+body.home-page .overview-action-button:active,
+body.home-page .overview-text-action:hover,
+body.home-page .overview-text-action:active,
+body.home-page .overview-shortcuts button:hover,
+body.home-page .overview-shortcuts button:active {
+  transform: none !important;
+  filter: none !important;
+  box-shadow: none !important;
+}
+
+body.home-page .tabs-group-item {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: var(--ui-space-3);
+}
+
+.tabs-group-item__icon {
+  width: 36px;
+  height: 36px;
+  display: inline-grid !important;
+  place-items: center;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-surface-soft);
+  color: var(--ui-muted);
+}
+
+.tabs-group-item__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+body.home-page .tabs-group-item:hover .tabs-group-item__icon,
+body.home-page .tabs-group-item.active .tabs-group-item__icon {
+  color: var(--ui-text);
+}
+
+body.home-page.theme-light .tabs-group-item__icon {
+  background: #f1f5f9;
+  border-color: #d5dde8;
+  color: #475569;
+}
+
 @media (max-width: 520px) {
   .overview-heading {
     padding-inline: 2px;

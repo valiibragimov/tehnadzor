@@ -39,7 +39,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" onerror="this.onerror=null; console.warn('Google Fonts не загружен, используется системный шрифт');" />
-  <link rel="stylesheet" href="style.css?v=78" />
+  <link rel="stylesheet" href="style.css?v=79" />
   <link rel="stylesheet" href="liquid-glass.css?v=1" />
   <link rel="stylesheet" href="dist/modules/summary/analytics-block.css?v=3" />
 
@@ -212,24 +212,48 @@
         </button>
         <div class="tabs-group-menu" id="inspectionTabsMenu" role="menu">
           <button type="button" class="tab tabs-group-item" data-target="geo" role="menuitem">
+            <span class="tabs-group-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path>
+                <circle cx="12" cy="12" r="8"></circle>
+              </svg>
+            </span>
             <span>
               <strong>Геодезия</strong>
               <small>Привязка и положение конструкций</small>
             </span>
           </button>
           <button type="button" class="tab tabs-group-item" data-target="reinforcement" role="menuitem">
+            <span class="tabs-group-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M5 3v18M12 3v18M19 3v18M3 7h18M3 17h18"></path>
+              </svg>
+            </span>
             <span>
               <strong>Армирование</strong>
               <small>Состав и параметры армирования</small>
             </span>
           </button>
           <button type="button" class="tab tabs-group-item" data-target="geometry" role="menuitem">
+            <span class="tabs-group-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"></path>
+                <path d="m4.5 7.8 7.5 4.3 7.5-4.3M12 12v9"></path>
+              </svg>
+            </span>
             <span>
               <strong>Геометрия</strong>
               <small>Размеры и допустимые отклонения</small>
             </span>
           </button>
           <button type="button" class="tab tabs-group-item" data-target="strength" role="menuitem">
+            <span class="tabs-group-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M12 3 5 6v5c0 4.8 2.8 8 7 10 4.2-2 7-5.2 7-10V6l-7-3Z"></path>
+                <path d="m9 12 2 2 4-4"></path>
+              </svg>
+            </span>
             <span>
               <strong>Прочность</strong>
               <small>Контроль прочности бетона</small>

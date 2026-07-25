@@ -201,6 +201,8 @@ test("object overview and grouped inspection navigation are present", async () =
   assert.doesNotMatch(html, /<header class="overview-heading">/u);
   assert.match(html, /data-tabs-group="inspections"/u);
   assert.match(html, /id="inspectionTabsMenu"/u);
+  assert.match(html, /class="tabs-group-item__icon"/u);
+  assert.match(html, /data-target="geo"[\s\S]*?<circle cx="12" cy="12" r="3">/u);
   assert.match(html, /data-tab-group="inspections"/u);
   assert.match(html, /id="bottomInspectionMenu"/u);
   assert.match(runtimeSource, /modules\/overview\.js/u);
@@ -217,6 +219,8 @@ test("object overview and grouped inspection navigation are present", async () =
   assert.match(css, /body\.home-page\.theme-light \.tabs-group-trigger/u);
   assert.match(css, /body\.home-page\.theme-light \.overview-module-row/u);
   assert.match(css, /\.overview-module-row\s*\{[\s\S]*?min-height:\s*58px/u);
+  assert.match(css, /body\.home-page \.tabs > \.tab::before/u);
+  assert.match(css, /\.tabs-group-item__icon\s*\{/u);
 });
 
 test("bim viewer runtime assets are reachable after client build", async () => {
