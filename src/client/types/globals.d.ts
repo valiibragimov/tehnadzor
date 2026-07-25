@@ -116,6 +116,7 @@ declare global {
     reinfChecks?: unknown[];
     geomChecks?: unknown[];
     strengthChecks?: unknown[];
+    journalEntries?: Array<Record<string, unknown>>;
     state?: Record<string, unknown>;
     LS?: Record<string, string>;
     construction?: HTMLSelectElement | null;

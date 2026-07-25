@@ -206,6 +206,9 @@ export async function selectProject(projectId, deps: SelectProjectDeps) {
   checked.strength = false;
 
   updateSummaryTab();
+  document.dispatchEvent(new CustomEvent("app:project-context-updated", {
+    detail: { projectId: normalizedProjectId }
+  }));
 }
 
 export async function loadProjects(deps: LoadProjectsDeps) {

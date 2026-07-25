@@ -1,0 +1,128 @@
+    <section class="section active object-overview-section" id="overview">
+      <div class="object-overview" id="objectOverview" aria-live="polite">
+        <header class="overview-heading">
+          <div>
+            <span class="overview-eyebrow">Рабочая сводка</span>
+            <h2>Обзор объекта</h2>
+            <p class="subtitle" id="overviewProjectName">Выберите объект, чтобы увидеть текущее состояние контроля.</p>
+          </div>
+          <span class="overview-status-badge" id="overviewStatusBadge" data-tone="neutral">Нет данных</span>
+        </header>
+
+        <div class="overview-readiness">
+          <div class="overview-readiness-copy">
+            <div>
+              <span class="overview-readiness-label">Готовность объекта</span>
+              <strong class="overview-readiness-value" id="overviewReadinessValue">0%</strong>
+            </div>
+            <p id="overviewReadinessNote">Данные появятся после выбора объекта.</p>
+          </div>
+          <div
+            class="overview-progress"
+            id="overviewProgress"
+            role="progressbar"
+            aria-label="Готовность объекта"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
+            <span id="overviewProgressBar"></span>
+          </div>
+        </div>
+
+        <div class="overview-metrics" aria-label="Ключевые показатели объекта">
+          <article class="overview-metric">
+            <span class="overview-metric-label">Проверок</span>
+            <strong id="overviewChecksCount">0</strong>
+            <span class="overview-metric-note">во всех разделах</span>
+          </article>
+          <article class="overview-metric">
+            <span class="overview-metric-label">Открытых замечаний</span>
+            <strong id="overviewIssuesCount">0</strong>
+            <span class="overview-metric-note" id="overviewIssuesNote">нет активных</span>
+          </article>
+          <article class="overview-metric">
+            <span class="overview-metric-label">IFC-моделей</span>
+            <strong id="overviewIfcCount">0</strong>
+            <span class="overview-metric-note">загружено в объект</span>
+          </article>
+          <article class="overview-metric">
+            <span class="overview-metric-label">Разделов выполнено</span>
+            <strong id="overviewModulesCount">0 / 4</strong>
+            <span class="overview-metric-note">обязательных проверок</span>
+          </article>
+        </div>
+
+        <div class="overview-content-grid">
+          <article class="overview-panel overview-next-action">
+            <div class="overview-panel-heading">
+              <div>
+                <span class="overview-panel-kicker">Приоритет</span>
+                <h3>Следующее действие</h3>
+              </div>
+              <span class="overview-action-marker" id="overviewActionMarker" data-tone="neutral"></span>
+            </div>
+            <p class="overview-next-title" id="overviewNextTitle">Выберите объект</p>
+            <p class="overview-next-description" id="overviewNextDescription">
+              После загрузки данных здесь появится наиболее важный следующий шаг.
+            </p>
+            <button
+              type="button"
+              class="overview-action-button"
+              id="overviewNextAction"
+              data-overview-target="overview"
+              disabled
+            >
+              Перейти
+            </button>
+          </article>
+
+          <article class="overview-panel overview-inspections">
+            <div class="overview-panel-heading">
+              <div>
+                <span class="overview-panel-kicker">Контроль</span>
+                <h3>Проверки</h3>
+              </div>
+              <button type="button" class="overview-text-action" data-overview-target="controlPlan">План контроля</button>
+            </div>
+            <div class="overview-module-list">
+              <button type="button" class="overview-module-row" data-overview-target="geo" data-tone="warning">
+                <span>
+                  <strong>Геодезия</strong>
+                  <small id="overviewGeoStatus">Не выполнялась</small>
+                </span>
+                <span class="overview-module-count" id="overviewGeoCount">0</span>
+              </button>
+              <button type="button" class="overview-module-row" data-overview-target="reinforcement" data-tone="warning">
+                <span>
+                  <strong>Армирование</strong>
+                  <small id="overviewReinforcementStatus">Не выполнялась</small>
+                </span>
+                <span class="overview-module-count" id="overviewReinforcementCount">0</span>
+              </button>
+              <button type="button" class="overview-module-row" data-overview-target="geometry" data-tone="warning">
+                <span>
+                  <strong>Геометрия</strong>
+                  <small id="overviewGeometryStatus">Не выполнялась</small>
+                </span>
+                <span class="overview-module-count" id="overviewGeometryCount">0</span>
+              </button>
+              <button type="button" class="overview-module-row" data-overview-target="strength" data-tone="warning">
+                <span>
+                  <strong>Прочность</strong>
+                  <small id="overviewStrengthStatus">Не выполнялась</small>
+                </span>
+                <span class="overview-module-count" id="overviewStrengthCount">0</span>
+              </button>
+            </div>
+          </article>
+        </div>
+
+        <div class="overview-shortcuts" aria-label="Быстрые действия">
+          <button type="button" data-overview-target="geo">Начать проверку</button>
+          <button type="button" data-overview-action="ifc">Загрузить IFC</button>
+          <button type="button" data-overview-target="journal">Открыть замечания</button>
+          <button type="button" data-overview-target="summary">Сформировать итог</button>
+        </div>
+      </div>
+    </section>

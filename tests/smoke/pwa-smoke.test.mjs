@@ -186,6 +186,33 @@ test("control plan module exposes ITP workflow", async () => {
   assert.match(css, /#btnControlPlanRefresh\.btn-small/u);
 });
 
+test("object overview and grouped inspection navigation are present", async () => {
+  const response = await fetch(`${staticServer.url}/index.html`);
+  const html = await response.text();
+  const runtimeSource = await readFile(resolve(projectRoot, "src/client/app/module-runtime.ts"), "utf8");
+  const overviewSource = await readFile(resolve(projectRoot, "src/client/app/modules/overview.ts"), "utf8");
+  const css = await readFile(resolve(projectRoot, "style.css"), "utf8");
+
+  assert.equal(response.status, 200);
+  assert.match(html, /id="overview"/u);
+  assert.match(html, /Обзор объекта/u);
+  assert.match(html, /id="overviewReadinessValue"/u);
+  assert.match(html, /data-tabs-group="inspections"/u);
+  assert.match(html, /id="inspectionTabsMenu"/u);
+  assert.match(html, /data-tab-group="inspections"/u);
+  assert.match(html, /id="bottomInspectionMenu"/u);
+  assert.match(runtimeSource, /modules\/overview\.js/u);
+  assert.match(runtimeSource, /INSPECTION_TARGETS/u);
+  assert.match(runtimeSource, /syncDesktopTabState/u);
+  assert.match(overviewSource, /loadProjectIssues/u);
+  assert.match(overviewSource, /loadProjectControlPlan/u);
+  assert.match(overviewSource, /app:project-context-updated/u);
+  assert.match(css, /--ui-radius-md:\s*12px/u);
+  assert.match(css, /\.overview-metrics/u);
+  assert.match(css, /\.tabs-group-menu/u);
+  assert.match(css, /\.bottom-nav-group-menu/u);
+});
+
 test("bim viewer runtime assets are reachable after client build", async () => {
   const assets = [
     "/dist/app/vendor/thatopen-bim-visual-panel.bundle.js",

@@ -124,6 +124,9 @@ export function createIfcImportRuntime({
     bimImportedIfcCount.title = count > 0
       ? `Загружено IFC-файлов: ${count}`
       : "IFC-файлы ещё не загружены";
+    document.dispatchEvent(new CustomEvent("app:ifc-count-updated", {
+      detail: { count }
+    }));
   };
 
   const setIfcPrimaryActionLabel = (label: string) => {

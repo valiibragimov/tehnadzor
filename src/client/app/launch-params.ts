@@ -1,6 +1,8 @@
 import { APP_STORAGE_KEYS } from "./storage.js";
 
 const VALID_TAB_TARGETS = new Set([
+  "overview",
+  "controlPlan",
   "geo",
   "reinforcement",
   "geometry",
@@ -12,7 +14,8 @@ const VALID_TAB_TARGETS = new Set([
 
 const TAB_ALIASES: Record<string, string> = {
   plate: "geo",
-  slab: "geo"
+  slab: "geo",
+  controlplan: "controlPlan"
 };
 
 const CONSTRUCTION_ALIASES: Record<string, string> = {

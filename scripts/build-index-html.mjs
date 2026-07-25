@@ -11,6 +11,7 @@ const outputPath = resolve(projectRoot, "index.html");
 const orderedPartials = [
   "head.html",
   "header-shell.html",
+  "sections/overview.html",
   "sections/geo.html",
   "sections/reinforcement.html",
   "sections/geometry.html",

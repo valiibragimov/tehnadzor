@@ -6,6 +6,9 @@ type ReinforcementModule = typeof import("./modules/reinforcement.js");
 type StrengthModule = typeof import("./modules/strength.js");
 type SummaryModule = typeof import("./modules/summary.js");
 type ControlPlanModule = typeof import("./modules/control-plan.js");
+type OverviewModule = typeof import("./modules/overview.js");
+
+const INSPECTION_TARGETS = new Set(["geo", "reinforcement", "geometry", "strength"]);
 
 interface ModuleRuntimeOptions {
   onJournalTabActivated?: () => void;
@@ -20,6 +23,7 @@ export function createModuleRuntime({ onJournalTabActivated }: ModuleRuntimeOpti
   let strengthModulePromise: Promise<StrengthModule> | null = null;
   let summaryModulePromise: Promise<SummaryModule> | null = null;
   let controlPlanModulePromise: Promise<ControlPlanModule> | null = null;
+  let overviewModulePromise: Promise<OverviewModule> | null = null;
   const tabModulePromises = new Map<string, Promise<void>>();
 
   const withModule = <TModule, TResult>(
@@ -125,12 +129,28 @@ export function createModuleRuntime({ onJournalTabActivated }: ModuleRuntimeOpti
     return controlPlanModulePromise;
   };
 
+  const getOverviewModule = () => {
+    if (!overviewModulePromise) {
+      overviewModulePromise = import("./modules/overview.js")
+        .then((module) => {
+          module.initOverviewModule();
+          return module;
+        })
+        .catch((error) => {
+          overviewModulePromise = null;
+          throw error;
+        });
+    }
+    return overviewModulePromise;
+  };
+
   const loadKnowledgeModule = async () => {
     const module = await import("./modules/knowledge.js");
     module.initKnowledgeModule();
   };
 
   const tabModuleLoaders = new Map<string, () => Promise<void>>([
+    ["overview", async () => void (await getOverviewModule())],
     ["journal", async () => void (await getJournalModule())],
     ["controlPlan", async () => void (await getControlPlanModule())],
     ["summary", async () => void (await getSummaryModule())],
@@ -139,6 +159,33 @@ export function createModuleRuntime({ onJournalTabActivated }: ModuleRuntimeOpti
     ["strength", async () => void (await getStrengthModule())],
     ["knowledge", loadKnowledgeModule]
   ]);
+
+  const closeNavigationGroups = () => {
+    document.querySelectorAll<HTMLElement>(".tabs-group.is-open").forEach((group) => {
+      group.classList.remove("is-open");
+      group.querySelector<HTMLElement>(".tabs-group-trigger")?.setAttribute("aria-expanded", "false");
+    });
+    const bottomMenu = document.getElementById("bottomInspectionMenu");
+    bottomMenu?.classList.remove("is-open");
+    bottomMenu?.setAttribute("aria-hidden", "true");
+    document
+      .querySelector<HTMLElement>('.bottom-nav-item[data-tab-group="inspections"]')
+      ?.setAttribute("aria-expanded", "false");
+  };
+
+  const syncDesktopTabState = (target: string | null | undefined) => {
+    document.querySelectorAll<HTMLElement>(".tab").forEach((tab) => {
+      tab.classList.toggle("active", tab.dataset.target === target);
+    });
+    document.querySelectorAll<HTMLElement>(".tabs-group").forEach((group) => {
+      const isActive = group.dataset.tabsGroup === "inspections" && INSPECTION_TARGETS.has(String(target || ""));
+      group.classList.toggle("is-active", isActive);
+      group.querySelector<HTMLElement>(".tabs-group-trigger")?.setAttribute(
+        "aria-current",
+        isActive ? "page" : "false"
+      );
+    });
+  };
 
   const ensureTabModule = (target: string | null | undefined) => {
     if (!target) return;
@@ -217,7 +264,9 @@ export function createModuleRuntime({ onJournalTabActivated }: ModuleRuntimeOpti
     let activeItem: HTMLElement | null = null;
 
     items.forEach((item) => {
-      const isActive = item.dataset.tab === target;
+      const isActive =
+        item.dataset.tab === target
+        || (item.dataset.tabGroup === "inspections" && INSPECTION_TARGETS.has(String(target || "")));
       item.classList.toggle("active", isActive);
       item.setAttribute("aria-selected", isActive ? "true" : "false");
       item.tabIndex = isActive ? 0 : -1;
@@ -232,13 +281,12 @@ export function createModuleRuntime({ onJournalTabActivated }: ModuleRuntimeOpti
   const activateTarget = (target: string | null | undefined, storageKey: string) => {
     if (!target) return;
 
-    document.querySelectorAll<HTMLElement>(".tab").forEach((tab) => {
-      tab.classList.toggle("active", tab.dataset.target === target);
-    });
+    syncDesktopTabState(target);
     document.querySelectorAll<HTMLElement>(".section").forEach((section) => {
       section.classList.toggle("active", section.id === target);
     });
     syncBottomNavState(target);
+    closeNavigationGroups();
 
     localStorage.setItem(storageKey, target);
     ensureTabModule(target);
@@ -251,15 +299,46 @@ export function createModuleRuntime({ onJournalTabActivated }: ModuleRuntimeOpti
 
   const initTabsNavigation = (storageKey: string) => {
     document.querySelectorAll<HTMLElement>(".tab").forEach((tab) => {
+      if (tab.dataset.navigationBound === "true") return;
+      tab.dataset.navigationBound = "true";
       tab.addEventListener("click", () => {
         activateTarget(tab.dataset.target, storageKey);
       });
     });
 
-    const savedTarget = localStorage.getItem(storageKey);
-    if (savedTarget) {
-      activateTarget(savedTarget, storageKey);
+    document.querySelectorAll<HTMLElement>(".tabs-group-trigger").forEach((trigger) => {
+      if (trigger.dataset.navigationBound === "true") return;
+      trigger.dataset.navigationBound = "true";
+      trigger.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const group = trigger.closest<HTMLElement>(".tabs-group");
+        if (!group) return;
+        const shouldOpen = !group.classList.contains("is-open");
+        closeNavigationGroups();
+        group.classList.toggle("is-open", shouldOpen);
+        trigger.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+      });
+    });
+
+    if (document.body.dataset.navigationGroupsBound !== "true") {
+      document.body.dataset.navigationGroupsBound = "true";
+      document.addEventListener("click", (event) => {
+        if ((event.target as Element | null)?.closest?.(".tabs-group, #bottomNav")) return;
+        closeNavigationGroups();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeNavigationGroups();
+      });
     }
+
+    const savedTarget = localStorage.getItem(storageKey);
+    const sectionTargets = new Set(
+      Array.from(document.querySelectorAll<HTMLElement>(".section")).map((section) => section.id)
+    );
+    const initialTarget = savedTarget && sectionTargets.has(savedTarget)
+      ? savedTarget
+      : document.querySelector<HTMLElement>(".tab.active[data-target]")?.dataset.target || "overview";
+    activateTarget(initialTarget, storageKey);
   };
 
   const initBottomNav = (storageKey: string) => {
@@ -425,6 +504,16 @@ export function createModuleRuntime({ onJournalTabActivated }: ModuleRuntimeOpti
         event.preventDefault();
         event.stopPropagation();
 
+        if (newItem.dataset.tabGroup === "inspections") {
+          const menu = document.getElementById("bottomInspectionMenu");
+          const shouldOpen = !menu?.classList.contains("is-open");
+          closeNavigationGroups();
+          menu?.classList.toggle("is-open", shouldOpen);
+          menu?.setAttribute("aria-hidden", shouldOpen ? "false" : "true");
+          newItem.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+          return;
+        }
+
         const target = newItem.dataset.tab;
         console.log("[BottomNav] Клик по:", target);
         if (!target) return;
@@ -434,6 +523,16 @@ export function createModuleRuntime({ onJournalTabActivated }: ModuleRuntimeOpti
         if (navigator.vibrate) {
           navigator.vibrate(10);
         }
+      });
+    });
+
+    bottomNav.querySelectorAll<HTMLElement>(".bottom-nav-group-option").forEach((option) => {
+      if (option.dataset.navigationBound === "true") return;
+      option.dataset.navigationBound = "true";
+      option.addEventListener("click", () => {
+        const target = option.dataset.tab;
+        if (!target) return;
+        activateTarget(target, storageKey);
       });
     });
 

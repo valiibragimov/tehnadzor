@@ -9,7 +9,7 @@
        HEADER
        ======================= -->
   <header>
-    <div class="brand" role="button" tabindex="0" onclick="document.querySelector('.tab[data-target=\'geo\']').click(); window.scrollTo({ top: 0, behavior: 'smooth' });" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); this.click(); }">
+    <div class="brand" role="button" tabindex="0" onclick="document.querySelector('.tab[data-target=\'overview\']').click(); window.scrollTo({ top: 0, behavior: 'smooth' });" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); this.click(); }">
       <svg width="24" height="24" viewBox="0 0 40 30" class="brand-icon">
         <!-- Кирпичи - первый ряд -->
         <rect x="2" y="2" width="12" height="6" class="brand-brick brand-brick-1" rx="1" />
@@ -144,21 +144,49 @@
 
     <!-- Вкладки -->
     <div class="tabs">
-      <div class="tab lg-btn active" data-target="geo">
-        <span class="lg-btn__label">Геодезическая привязка</span>
+      <div class="tab lg-btn active" data-target="overview">
+        <span class="lg-btn__label">Обзор объекта</span>
         <span class="lg-btn__glow" aria-hidden="true"></span>
       </div>
-      <div class="tab lg-btn" data-target="reinforcement">
-        <span class="lg-btn__label">Армирование</span>
-        <span class="lg-btn__glow" aria-hidden="true"></span>
-      </div>
-      <div class="tab lg-btn" data-target="geometry">
-        <span class="lg-btn__label">Геометрия</span>
-        <span class="lg-btn__glow" aria-hidden="true"></span>
-      </div>
-      <div class="tab lg-btn" data-target="strength">
-        <span class="lg-btn__label">Прочность бетона</span>
-        <span class="lg-btn__glow" aria-hidden="true"></span>
+      <div class="tabs-group" data-tabs-group="inspections">
+        <button
+          type="button"
+          class="tabs-group-trigger lg-btn"
+          aria-haspopup="menu"
+          aria-expanded="false"
+          aria-controls="inspectionTabsMenu"
+        >
+          <span class="lg-btn__label">Проверки</span>
+          <svg class="tabs-group-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+        </button>
+        <div class="tabs-group-menu" id="inspectionTabsMenu" role="menu">
+          <button type="button" class="tab tabs-group-item" data-target="geo" role="menuitem">
+            <span>
+              <strong>Геодезия</strong>
+              <small>Привязка и положение конструкций</small>
+            </span>
+          </button>
+          <button type="button" class="tab tabs-group-item" data-target="reinforcement" role="menuitem">
+            <span>
+              <strong>Армирование</strong>
+              <small>Состав и параметры армирования</small>
+            </span>
+          </button>
+          <button type="button" class="tab tabs-group-item" data-target="geometry" role="menuitem">
+            <span>
+              <strong>Геометрия</strong>
+              <small>Размеры и допустимые отклонения</small>
+            </span>
+          </button>
+          <button type="button" class="tab tabs-group-item" data-target="strength" role="menuitem">
+            <span>
+              <strong>Прочность</strong>
+              <small>Контроль прочности бетона</small>
+            </span>
+          </button>
+        </div>
       </div>
       <div class="tab lg-btn" data-target="controlPlan">
         <span class="lg-btn__label">План контроля</span>
