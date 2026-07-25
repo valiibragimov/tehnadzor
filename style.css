@@ -28983,11 +28983,7 @@ body.home-page > header,
 body.profile-page > header,
 body.profile-edit-page > header {
   border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
-  background: linear-gradient(
-    180deg,
-    rgba(15, 23, 42, 0.92) 0%,
-    rgba(15, 23, 42, 0.82) 100%
-  ) !important;
+  background: #0f172a !important;
   box-shadow: none !important;
 }
 
@@ -28996,12 +28992,18 @@ body.home-page .site-footer.site-footer--profile-like,
 body.profile-page .site-footer,
 body.profile-edit-page .site-footer {
   border-top: 1px solid rgba(148, 163, 184, 0.16);
-  background: linear-gradient(
-    180deg,
-    rgba(15, 23, 42, 0.92) 0%,
-    rgba(15, 23, 42, 0.82) 100%
-  ) !important;
+  background: #0f172a !important;
   box-shadow: none !important;
+}
+
+html.theme-dark body.profile-page,
+body.theme-dark.profile-page {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) fixed !important;
+}
+
+body.theme-dark.profile-page > main,
+body.theme-dark.profile-edit-page > main {
+  background: transparent !important;
 }
 
 body.home-page .site-footer__link,
