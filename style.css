@@ -28648,3 +28648,233 @@ body.home-page .tabs-group-item.active {
     transition: none !important;
   }
 }
+
+/* Light theme corrections and compact object overview */
+.object-overview {
+  gap: var(--ui-space-3);
+}
+
+.overview-heading {
+  min-height: 0;
+  padding: 2px 4px 4px;
+  background: transparent;
+}
+
+.overview-heading h2 {
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.overview-readiness {
+  gap: 10px;
+  padding: 14px 18px;
+}
+
+.overview-readiness-value {
+  font-size: clamp(30px, 3vw, 36px);
+}
+
+.overview-metrics,
+.overview-content-grid {
+  gap: 10px;
+}
+
+.overview-metric {
+  padding: 12px 14px;
+}
+
+.overview-metric strong {
+  font-size: 24px;
+}
+
+.overview-panel {
+  padding: 16px;
+}
+
+.overview-next-title {
+  margin: 14px 0 6px;
+  font-size: 18px;
+}
+
+.overview-next-description {
+  min-height: 0;
+  margin: 0 0 14px;
+}
+
+.overview-module-list {
+  margin-top: 12px;
+}
+
+.overview-module-row {
+  min-height: 58px;
+  padding: 10px 12px;
+}
+
+.overview-shortcuts button {
+  min-height: 40px;
+}
+
+body.home-page.theme-light .object-overview {
+  color: #172033;
+}
+
+body.home-page.theme-light .overview-heading {
+  background: transparent !important;
+  color: #172033 !important;
+}
+
+body.home-page.theme-light .overview-heading h2,
+body.home-page.theme-light .overview-panel h3,
+body.home-page.theme-light .overview-next-title,
+body.home-page.theme-light .overview-metric strong,
+body.home-page.theme-light .overview-module-row strong,
+body.home-page.theme-light .overview-module-count {
+  color: #172033 !important;
+}
+
+body.home-page.theme-light .overview-heading .subtitle,
+body.home-page.theme-light .overview-readiness-copy p,
+body.home-page.theme-light .overview-metric-note,
+body.home-page.theme-light .overview-next-description,
+body.home-page.theme-light .overview-module-row small,
+body.home-page.theme-light .overview-eyebrow,
+body.home-page.theme-light .overview-panel-kicker,
+body.home-page.theme-light .overview-readiness-label,
+body.home-page.theme-light .overview-metric-label {
+  color: #64748b !important;
+}
+
+body.home-page.theme-light .overview-readiness,
+body.home-page.theme-light .overview-panel,
+body.home-page.theme-light .overview-metric {
+  background: #ffffff !important;
+  border-color: #d5dde8 !important;
+  color: #172033 !important;
+  box-shadow: none !important;
+}
+
+body.home-page.theme-light .overview-progress {
+  background: #e8edf4 !important;
+}
+
+body.home-page.theme-light .overview-progress span {
+  background: #64748b !important;
+}
+
+body.home-page.theme-light .overview-module-row,
+body.home-page.theme-light .overview-action-button,
+body.home-page.theme-light .overview-text-action,
+body.home-page.theme-light .overview-shortcuts button {
+  background: #f8fafc !important;
+  border-color: #d5dde8 !important;
+  color: #172033 !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+body.home-page.theme-light .overview-module-row:hover,
+body.home-page.theme-light .overview-module-row:focus-visible,
+body.home-page.theme-light .overview-action-button:not(:disabled):hover,
+body.home-page.theme-light .overview-action-button:not(:disabled):focus-visible,
+body.home-page.theme-light .overview-text-action:hover,
+body.home-page.theme-light .overview-text-action:focus-visible,
+body.home-page.theme-light .overview-shortcuts button:hover,
+body.home-page.theme-light .overview-shortcuts button:focus-visible {
+  background: #eef2f7 !important;
+  border-color: #aeb9c8 !important;
+  color: #0f172a !important;
+}
+
+body.home-page.theme-light .overview-module-count {
+  background: #e8edf4 !important;
+}
+
+body.home-page.theme-light .tabs-group-menu,
+body.home-page.theme-light .bottom-nav-group-menu {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12) !important;
+}
+
+body.home-page.theme-light .tabs > .tab,
+body.home-page.theme-light .tabs > .tab.lg-btn,
+body.home-page.theme-light .tabs-group-trigger,
+body.home-page.theme-light .tabs-group-trigger.lg-btn {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: #475569 !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+body.home-page.theme-light .tabs > .tab .lg-btn__label,
+body.home-page.theme-light .tabs > .tab.lg-btn .lg-btn__label,
+body.home-page.theme-light .tabs-group-trigger .lg-btn__label {
+  color: #475569 !important;
+}
+
+body.home-page.theme-light .tabs > .tab:hover,
+body.home-page.theme-light .tabs > .tab:focus-visible,
+body.home-page.theme-light .tabs > .tab.active,
+body.home-page.theme-light .tabs-group-trigger:hover,
+body.home-page.theme-light .tabs-group-trigger:focus-visible,
+body.home-page.theme-light .tabs-group.is-active .tabs-group-trigger,
+body.home-page.theme-light .tabs-group.is-open .tabs-group-trigger {
+  background: #e8edf4 !important;
+  border-color: #cbd5e1 !important;
+  color: #172033 !important;
+  box-shadow: none !important;
+}
+
+body.home-page.theme-light .tabs > .tab:hover .lg-btn__label,
+body.home-page.theme-light .tabs > .tab:focus-visible .lg-btn__label,
+body.home-page.theme-light .tabs > .tab.active .lg-btn__label,
+body.home-page.theme-light .tabs-group-trigger:hover .lg-btn__label,
+body.home-page.theme-light .tabs-group-trigger:focus-visible .lg-btn__label,
+body.home-page.theme-light .tabs-group.is-active .tabs-group-trigger .lg-btn__label,
+body.home-page.theme-light .tabs-group.is-open .tabs-group-trigger .lg-btn__label {
+  color: #172033 !important;
+}
+
+body.home-page.theme-light .tabs-group-item,
+body.home-page.theme-light .bottom-nav-group-option {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: #172033 !important;
+  box-shadow: none !important;
+}
+
+body.home-page.theme-light .tabs-group-item:hover,
+body.home-page.theme-light .tabs-group-item:focus-visible,
+body.home-page.theme-light .tabs-group-item.active,
+body.home-page.theme-light .bottom-nav-group-option:hover,
+body.home-page.theme-light .bottom-nav-group-option:focus-visible {
+  background: #eef2f7 !important;
+  border-color: #d5dde8 !important;
+  color: #172033 !important;
+}
+
+body.home-page.theme-light .tabs-group-item strong,
+body.home-page.theme-light .bottom-nav-group-option span {
+  color: #172033 !important;
+}
+
+body.home-page.theme-light .tabs-group-item small,
+body.home-page.theme-light .bottom-nav-group-option small {
+  color: #64748b !important;
+}
+
+@media (max-width: 520px) {
+  .overview-heading {
+    padding-inline: 2px;
+  }
+
+  .overview-readiness,
+  .overview-panel {
+    padding: 12px;
+  }
+
+  .overview-metric {
+    padding: 10px 12px;
+  }
+}
