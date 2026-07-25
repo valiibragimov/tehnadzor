@@ -10,6 +10,7 @@
       window.__appThemeClass = className;
       document.documentElement.classList.add(className);
       document.documentElement.style.colorScheme = normalized;
+      document.documentElement.style.backgroundColor = normalized === "light" ? "#eef2f7" : "#0f172a";
 
       document.addEventListener(
         "DOMContentLoaded",

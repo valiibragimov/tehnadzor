@@ -75,6 +75,10 @@ test("index page still wires PWA registration and manifest link", async () => {
   assert.equal(response.status, 200);
   assert.match(html, /rel="manifest" href="manifest\.json"/);
   assert.match(html, /navigator\.serviceWorker\.register\('sw\.js', \{ updateViaCache: 'none' \}\)/);
+  assert.match(html, /window\.__appThemeClass = className/u);
+  assert.match(html, /html\.theme-light body\s*\{\s*background-color:\s*#eef2f7/u);
+  assert.match(html, /<body class="home-page">\s*<script>\s*document\.body\.classList\.add\(window\.__appThemeClass/u);
+  assert.match(html, /id="appThemeColor"/u);
 });
 
 test("firebase hosting keeps baseline security headers", async () => {

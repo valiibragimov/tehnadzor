@@ -3,11 +3,20 @@
 <head>
   <script>
     (function () {
-      const theme = localStorage.getItem("app_theme") || "dark";
+      let theme = "dark";
+      try {
+        theme = localStorage.getItem("app_theme") || "dark";
+      } catch (error) {
+        console.warn("Не удалось прочитать сохранённую тему", error);
+      }
       const normalizedTheme = theme === "light" ? "light" : "dark";
       const className = normalizedTheme === "light" ? "theme-light" : "theme-dark";
+      const backgroundColor = normalizedTheme === "light" ? "#eef2f7" : "#0f172a";
 
+      window.__appThemeClass = className;
       document.documentElement.classList.add(className);
+      document.documentElement.style.colorScheme = normalizedTheme;
+      document.documentElement.style.backgroundColor = backgroundColor;
 
       if (document.body) {
         document.body.classList.add(className);
@@ -23,6 +32,17 @@
       );
     })();
   </script>
+  <style>
+    html.theme-light,
+    html.theme-light body {
+      background-color: #eef2f7;
+    }
+
+    html.theme-dark,
+    html.theme-dark body {
+      background-color: #0f172a;
+    }
+  </style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
     <title>Tehnadzor</title>
@@ -30,7 +50,11 @@
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1e293b">
+  <meta id="appThemeColor" name="theme-color" content="#1e293b">
+  <script>
+    document.getElementById("appThemeColor").content =
+      window.__appThemeClass === "theme-light" ? "#eef2f7" : "#1e293b";
+  </script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
