@@ -1,9 +1,10 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
-const projectRoot = resolve(__filename, "..", "..");
+const __dirname = dirname(__filename);
+const projectRoot = resolve(__dirname, "..", "..");
 
 const targets = [
   resolve(projectRoot, "node_modules", "@thatopen", "fragments", "dist", "index.mjs"),

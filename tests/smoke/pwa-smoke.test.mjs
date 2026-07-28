@@ -304,7 +304,10 @@ test("client feature data is colocated with its owning module", async () => {
     "app/modules/reinforcement/data.ts",
     "app/modules/journal/data.ts",
     "app/modules/summary/data.ts",
-    "app/modules/summary/analytics-block.ts"
+    "app/modules/summary/analytics-block.ts",
+    "app/profile/runtime.ts",
+    "app/profile/feed-fallback.ts",
+    "app/project/runtime.ts"
   ];
 
   for (const relativePath of featureDataFiles) {
@@ -313,6 +316,39 @@ test("client feature data is colocated with its owning module", async () => {
       `${relativePath} should stay with its owning feature`
     );
   }
+
+  const legacyRuntimeFiles = [
+    "app/profile-runtime.ts",
+    "app/project-runtime.ts",
+    "app/data/profile-feed-fallback.ts"
+  ];
+
+  for (const relativePath of legacyRuntimeFiles) {
+    assert.ok(
+      !normalizedFiles.some((filePath) => filePath.endsWith(`/src/client/${relativePath}`)),
+      `${relativePath} should not return outside its owning feature`
+    );
+  }
+});
+
+test("support scripts are grouped by responsibility", async () => {
+  const scriptsRoot = resolve(projectRoot, "scripts");
+  const entries = await readdir(scriptsRoot, { withFileTypes: true });
+  const rootScripts = entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".mjs"))
+    .map((entry) => entry.name);
+  const directories = entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+  const packageSource = await readFile(resolve(projectRoot, "package.json"), "utf8");
+
+  assert.deepEqual(rootScripts, []);
+  assert.ok(directories.includes("build"));
+  assert.ok(directories.includes("checks"));
+  assert.ok(directories.includes("dev"));
+  assert.match(packageSource, /scripts\/build\/build-index-html\.mjs/u);
+  assert.match(packageSource, /scripts\/checks\/run-smoke-tests\.mjs/u);
+  await assert.rejects(readFile(resolve(projectRoot, "mobile-preview.html"), "utf8"));
 });
 
 test("IFC import runtime is not embedded back into app entrypoint", async () => {

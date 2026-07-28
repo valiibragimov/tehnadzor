@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node dist/server/src/index.js",
-    "dev": "node ../scripts/dev-server.mjs",
+    "dev": "node ../scripts/dev/dev-server.mjs",
     "backfill:inspections": "node dist/server/src/scripts/backfill-inspections.js"
   },
   "keywords": [],

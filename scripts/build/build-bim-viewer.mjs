@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const projectRoot = resolve(__dirname, "..");
+const projectRoot = resolve(__dirname, "..", "..");
 
 const outDir = resolve(projectRoot, "dist", "app", "vendor");
 const entryFile = resolve(projectRoot, "dist", "app", "vendor-src", "thatopen-bim-visual-panel.js");

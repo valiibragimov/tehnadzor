@@ -128,7 +128,7 @@ Build/runtime artifacts:
 Что было найдено:
 
 - полный дубль `profile-feed` логики между `server/src/services/profile-feed.ts` и `functions/src/services/profile-feed.ts`;
-- отдельный JS-вариант той же логики в `scripts/build-profile-feed.mjs`;
+- отдельный JS-вариант той же логики в `scripts/build/build-profile-feed.mjs`;
 - отсутствие фактического `src/shared`, несмотря на упоминание в `README.md`.
 
 Что изменено:
@@ -139,7 +139,7 @@ Build/runtime artifacts:
 
 Что осталось:
 
-- `scripts/build-profile-feed.mjs` все еще содержит отдельную JS-реализацию генерации статического feed JSON.
+- `scripts/build/build-profile-feed.mjs` все еще содержит отдельную JS-реализацию генерации статического feed JSON.
 
 Статус:
 
@@ -210,7 +210,7 @@ Build/runtime artifacts:
 - `server/src/services/ifc-import.ts` переведен на TS exports;
 - обновлены `tsconfig.server.json` и `tsconfig.functions.json` для компиляции `src/shared/**`;
 - обновлены `server/package.json` и `functions/package.json` под новые build entrypoints;
-- обновлены `.gitignore`, `scripts/clean-runtime-artifacts.mjs`, `server/.env.example`;
+- обновлены `.gitignore`, `scripts/build/clean-runtime-artifacts.mjs`, `server/.env.example`;
 - добавлен `server/serviceAccount.local.example.json`;
 - удален `server/serviceAccount.json`;
 - создан `AGENTS.md`;
@@ -241,7 +241,7 @@ Build/runtime artifacts:
 1. Декомпозировать `src/client/app.ts` на более явные `state / bindings / actions / services` модули.
 2. Разделить `src/client/app/modules/knowledge.ts` на контентный слой и UI-логику.
 3. Постепенно дробить `server/src/services/ifc-import.ts` на parser/adapters/geometry helpers без изменения бизнес-логики.
-4. Вынести `scripts/build-profile-feed.mjs` на более явный shared data-source, если позже появится безопасный TS build-runtime для CI.
+4. Вынести `scripts/build/build-profile-feed.mjs` на более явный shared data-source, если позже появится безопасный TS build-runtime для CI.
 5. Отдельно спланировать инфраструктурный перенос deploy surface из корня в `public/` или эквивалентный publish-layer.
 
 Кандидаты на ручную проверку:
@@ -539,3 +539,48 @@ Smoke-регрессия:
 - `npm run lint` — успешно;
 - `npm run build` — успешно;
 - `npm test` — `30/30` smoke-тестов успешно.
+
+## Phase 4 — Repository Layout Cleanup
+
+Дата выполнения: 2026-07-28.
+
+Цель фазы:
+
+- убрать подтверждённый устаревший статический снимок;
+- разнести служебные сценарии по назначению;
+- приблизить runtime профиля и объекта к feature-colocation;
+- сохранить все публичные пути, внешний вид и поведение.
+
+Изменения:
+
+- удалён `mobile-preview.html`: файл не входил в hosting surface, не
+  подключался из HTML/manifest/service worker и являлся устаревшей копией
+  главной страницы;
+- `scripts/*.mjs` распределены по `scripts/build`, `scripts/checks` и
+  `scripts/dev`;
+- обновлены корневой `package.json`, `server/package.json` и вычисление
+  `projectRoot` после переноса сценариев;
+- добавлена карта `scripts/README.md`;
+- `app/profile-runtime.ts` и `app/data/profile-feed-fallback.ts` перенесены в
+  `app/profile/`;
+- `app/project-runtime.ts` перенесён в `app/project/`;
+- обновлены статические и HTML-импорты;
+- добавлены smoke-регрессии, запрещающие возврат runtime-файлов и служебных
+  сценариев в прежние плоские каталоги.
+
+Проверка зависимостей:
+
+- построен граф относительных импортов клиентского TypeScript с учётом
+  entrypoints, динамических импортов, worker и vendor build entrypoint;
+- отдельно проверены HTML-импорты, npm scripts, server scripts, hosting
+  allowlist и service worker assets;
+- точных дубликатов среди tracked source-файлов не найдено;
+- других файлов, безопасных для удаления без ручной runtime-проверки, не
+  обнаружено.
+
+Проверки после Phase 4:
+
+- `npm run typecheck` — успешно;
+- `npm run lint` — успешно;
+- `npm run build` — успешно;
+- `npm test` — `37/37` smoke-тестов успешно.

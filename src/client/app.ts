@@ -56,7 +56,7 @@ import {
 } from "./app/inspection-registry.js";
 import { applyLaunchParamsFromUrl } from "./app/launch-params.js";
 import { createAppModuleBridge } from "./app/module-bridge.js";
-import { createProfileRuntime } from "./app/profile-runtime.js";
+import { createProfileRuntime } from "./app/profile/runtime.js";
 import {
   clearInspectionsByModuleAndRefreshAnalytics,
   deleteInspectionAndRefreshAnalytics,
@@ -66,7 +66,7 @@ import {
   readStoredProjectId,
   writeStoredProjectId
 } from "./app/services/project-context.js";
-import { createProjectRuntime } from "./app/project-runtime.js";
+import { createProjectRuntime } from "./app/project/runtime.js";
 import {
   clearGeoNodesForProjectData,
   deleteGeoNodeFromProject,
