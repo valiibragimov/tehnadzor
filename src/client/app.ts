@@ -22,24 +22,14 @@ import type {
 } from "./app/geo-bim-types.js";
 import { createIfcImportRuntime } from "./app/ifc-import-runtime.js";
 import {
-  CONSTRUCTION_CATEGORIES,
-  getConstructionCategoryKey,
   getConstructionEntityLabels,
   getConstructionLabel,
   getConstructionModuleBehavior,
   getConstructionModuleFallbackMessage,
-  getConstructionOptionsByCategory,
   getConstructionProfile,
   getConstructionSelectionState,
-  getConstructionSubtypeLabel,
-  getConstructionSubtypeOptionLabel,
-  getConstructionSubtypeOptions,
-  getLegacyConstructionType,
-  getConstructionCategory,
   isConstructionProfile,
   isConstructionSupportedInModule,
-  isConstructionVisibleInSelector,
-  normalizeConstructionSubtype,
   normalizeConstructionKey
 } from "./app/construction.js";
 import {
@@ -63,10 +53,13 @@ import {
   saveInspectionAndRefreshAnalytics
 } from "./app/services/inspection-sync.js";
 import {
+  createConstructionSelectionRuntime,
+  createProjectDesignAutosave,
+  createProjectRuntime,
   readStoredProjectId,
+  saveProjectDesignToProject,
   writeStoredProjectId
-} from "./app/services/project-context.js";
-import { createProjectRuntime } from "./app/project/runtime.js";
+} from "./features/projects/index.js";
 import {
   clearGeoNodesForProjectData,
   deleteGeoNodeFromProject,
@@ -91,10 +84,6 @@ import {
   parseGeoBimFiniteNumber,
   pushGeoGridSample
 } from "./app/geo-bim-utils.js";
-import {
-  createProjectDesignAutosave,
-  saveProjectDesignToProject
-} from "./app/services/project-design.js";
 import {
   renderRegulatoryBasisHtml
 } from "./app/services/regulatory-basis.js";
@@ -332,10 +321,6 @@ const geoPlateFlatnessBaseEl = document.getElementById("geoPlateFlatnessBase") a
 const geoPlateFlatnessClassEl = document.getElementById("geoPlateFlatnessClass") as HTMLSelectElement | null;
 const geoPlateFlatnessToleranceEl = document.getElementById("geoPlateFlatnessTolerance") as HTMLInputElement | null;
 
-let currentConstructionKey = normalizeConstructionKey(APP_CONFIG.DEFAULT_CONSTRUCTION, "floor_slab");
-let currentConstructionSubtype = "";
-let currentPileElement = "pile";
-
 // ============================
 //  Состояние модулей
 // ============================
@@ -364,36 +349,27 @@ let currentGeomCheckId = null;
 const strengthChecks = globalThis.strengthChecks instanceof Map ? globalThis.strengthChecks : new Map();
 let currentStrengthCheckId = null;
 
-function getCurrentConstructionKey() {
-  return construction?.dataset.machineValue || currentConstructionKey || APP_CONFIG.DEFAULT_CONSTRUCTION;
-}
-
-function getCurrentConstructionSubtype() {
-  return construction?.dataset.subtypeKey || currentConstructionSubtype || "";
-}
-
-function getCurrentConstructionSubtypeLabel() {
-  return (
-    construction?.dataset.subtypeLabel ||
-    getConstructionSubtypeOptionLabel(getCurrentConstructionKey(), getCurrentConstructionSubtype(), "")
-  );
-}
-
-function getCurrentPileElement() {
-  return construction?.dataset.pileElementKey || currentPileElement || "pile";
-}
-
-function getCurrentPileElementLabel() {
-  return construction?.dataset.pileElementLabel || (getCurrentPileElement() === "grillage" ? "Ростверк" : "Свая");
-}
-
-function getCurrentConstructionLabel() {
-  return construction?.dataset.displayLabel || getConstructionLabel(getCurrentConstructionKey(), construction?.value || "");
-}
-
-function getCurrentConstructionCategoryKey() {
-  return construction?.dataset.categoryKey || getConstructionCategoryKey(getCurrentConstructionKey(), "");
-}
+const constructionSelectionRuntime = createConstructionSelectionRuntime({
+  construction,
+  category: constructionCategory,
+  type: constructionTypeSelect,
+  subtype: constructionSubtypeSelect,
+  subtypeShell: constructionSubtypeShell,
+  subtypeLabel: constructionSubtypeLabelEl,
+  pileElement: constructionPileElementSelect,
+  pileElementShell: constructionPileElementShell,
+  pileElementLabel: constructionPileElementLabelEl
+});
+const {
+  buildCurrentConstructionPayload,
+  getCurrentConstructionCategoryKey,
+  getCurrentConstructionKey,
+  getCurrentConstructionLabel,
+  getCurrentConstructionSubtype,
+  getCurrentPileElement,
+  initializeConstructionControls,
+  syncConstructionSelectionState
+} = constructionSelectionRuntime;
 
 function getGeoConstructionProfile(value = getCurrentConstructionKey()) {
   return getConstructionProfile(value, "geo");
@@ -567,248 +543,6 @@ function setGeoUnsupportedState({ notify = false } = {}) {
     showNotification(message, "warning");
   }
   return message;
-}
-
-function buildCurrentConstructionPayload() {
-  const constructionKey = getCurrentConstructionKey();
-  const subtypeKey = getCurrentConstructionSubtype();
-  const includePileElement = hasInspectionField(constructionKey, "geo", "constructionPileElement", subtypeKey);
-  return {
-    construction: constructionKey,
-    constructionCategory: getCurrentConstructionCategoryKey(),
-    constructionLabel: getCurrentConstructionLabel(),
-    constructionType: construction?.value || getLegacyConstructionType(constructionKey),
-    constructionSubtype: subtypeKey,
-    constructionSubtypeLabel: getCurrentConstructionSubtypeLabel(),
-    constructionPileElement: includePileElement
-      ? getCurrentPileElement()
-      : "",
-    constructionPileElementLabel: includePileElement
-      ? getCurrentPileElementLabel()
-      : ""
-  };
-}
-
-function fillConstructionCategorySelect(selectedCategoryKey) {
-  if (!constructionCategory) return;
-
-  constructionCategory.textContent = "";
-  CONSTRUCTION_CATEGORIES.forEach((category) => {
-    const option = document.createElement("option");
-    option.value = category.key;
-    option.textContent = category.label;
-    constructionCategory.appendChild(option);
-  });
-
-  const selectedCategory = getConstructionCategory(selectedCategoryKey);
-  if (
-    selectedCategoryKey &&
-    selectedCategory &&
-    !CONSTRUCTION_CATEGORIES.some((category) => category.key === selectedCategoryKey)
-  ) {
-    const hiddenOption = document.createElement("option");
-    hiddenOption.value = selectedCategory.key;
-    hiddenOption.textContent = selectedCategory.label;
-    hiddenOption.hidden = true;
-    constructionCategory.appendChild(hiddenOption);
-  }
-
-  if (selectedCategoryKey) {
-    constructionCategory.value = selectedCategoryKey;
-  }
-}
-
-function fillConstructionTypeSelect(categoryKey, selectedConstructionKey) {
-  if (!constructionTypeSelect) return false;
-
-  const options = getConstructionOptionsByCategory(categoryKey);
-  const fallbackOption = options[0] || null;
-  const normalizedSelectedKey = normalizeConstructionKey(
-    selectedConstructionKey,
-    fallbackOption?.key || currentConstructionKey
-  );
-
-  constructionTypeSelect.textContent = "";
-  options.forEach((item) => {
-    const option = document.createElement("option");
-    option.value = item.key;
-    option.textContent = item.label;
-    constructionTypeSelect.appendChild(option);
-  });
-
-  if (
-    normalizedSelectedKey &&
-    !options.some((item) => item.key === normalizedSelectedKey) &&
-    !isConstructionVisibleInSelector(normalizedSelectedKey)
-  ) {
-    const hiddenSelection = getConstructionSelectionState(normalizedSelectedKey, fallbackOption?.key || "floor_slab");
-    const hiddenOption = document.createElement("option");
-    hiddenOption.value = hiddenSelection.key;
-    hiddenOption.textContent = hiddenSelection.label || hiddenSelection.key;
-    hiddenOption.hidden = true;
-    constructionTypeSelect.appendChild(hiddenOption);
-  }
-
-  const hasSelectedOption = Array.from(constructionTypeSelect.options).some(
-    (item) => item.value === normalizedSelectedKey
-  );
-  const finalOption = hasSelectedOption ? normalizedSelectedKey : (fallbackOption?.key || "");
-  if (finalOption) {
-    constructionTypeSelect.value = finalOption;
-  }
-
-  return Boolean(finalOption);
-}
-
-function fillConstructionSubtypeSelect(constructionKey, selectedSubtypeValue = "") {
-  if (!constructionSubtypeSelect || !constructionSubtypeShell || !constructionSubtypeLabelEl) {
-    return "";
-  }
-
-  const subtypeOptions = getConstructionSubtypeOptions(constructionKey);
-  const subtypeLabel = getConstructionSubtypeLabel(constructionKey, "Подтип");
-  constructionSubtypeSelect.textContent = "";
-
-  if (!subtypeOptions.length) {
-    constructionSubtypeShell.hidden = true;
-    constructionSubtypeShell.style.display = "none";
-    constructionSubtypeLabelEl.textContent = "";
-    constructionSubtypeSelect.value = "";
-    return "";
-  }
-
-  constructionSubtypeShell.hidden = false;
-  constructionSubtypeShell.style.display = "";
-  constructionSubtypeLabelEl.textContent = subtypeLabel;
-  subtypeOptions.forEach((item) => {
-    const option = document.createElement("option");
-    option.value = item.key;
-    option.textContent = item.label;
-    constructionSubtypeSelect.appendChild(option);
-  });
-
-  const normalizedSubtype = normalizeConstructionSubtype(
-    constructionKey,
-    selectedSubtypeValue,
-    constructionKey
-  );
-  constructionSubtypeSelect.value = normalizedSubtype || subtypeOptions[0]?.key || "";
-  return constructionSubtypeSelect.value;
-}
-
-function syncPileElementSelect(constructionKey, subtypeKey, selectedPileElement = getCurrentPileElement()) {
-  const showPileElement = hasInspectionField(constructionKey, "geo", "constructionPileElement", subtypeKey);
-  if (!constructionPileElementShell || !constructionPileElementSelect) return showPileElement ? selectedPileElement : "";
-
-  constructionPileElementShell.hidden = !showPileElement;
-  constructionPileElementShell.style.display = showPileElement ? "" : "none";
-  if (constructionPileElementLabelEl) {
-    constructionPileElementLabelEl.textContent = "Элемент";
-  }
-
-  if (!showPileElement) {
-    constructionPileElementSelect.value = "pile";
-    return "";
-  }
-
-  const normalized = selectedPileElement === "grillage" || selectedPileElement === "Ростверк" ? "grillage" : "pile";
-  constructionPileElementSelect.value = normalized;
-  return normalized;
-}
-
-function syncConstructionSelectionState(
-  nextConstructionValue,
-  {
-    syncVisibleControls = true,
-    nextSubtypeValue = getCurrentConstructionSubtype(),
-    nextPileElementValue = getCurrentPileElement()
-  }: { syncVisibleControls?: boolean; nextSubtypeValue?: string; nextPileElementValue?: string } = {}
-) {
-  if (!construction) return false;
-
-  const selection = getConstructionSelectionState(
-    nextConstructionValue,
-    normalizeConstructionKey(APP_CONFIG.DEFAULT_CONSTRUCTION, "floor_slab"),
-    nextSubtypeValue
-  );
-
-  currentConstructionKey = selection.key;
-  currentConstructionSubtype = selection.subtypeKey;
-  currentPileElement = syncPileElementSelect(selection.key, selection.subtypeKey, nextPileElementValue) || "pile";
-
-  if (syncVisibleControls) {
-    fillConstructionCategorySelect(selection.categoryKey);
-    fillConstructionTypeSelect(selection.categoryKey, selection.key);
-    fillConstructionSubtypeSelect(selection.key, selection.subtypeKey);
-    currentPileElement = syncPileElementSelect(selection.key, selection.subtypeKey, nextPileElementValue) || "pile";
-  }
-
-  construction.value = selection.legacyType;
-  construction.dataset.machineValue = selection.key;
-  construction.dataset.displayLabel = selection.label;
-  construction.dataset.categoryKey = selection.categoryKey;
-  construction.dataset.categoryLabel = selection.categoryLabel;
-  construction.dataset.legacyType = selection.legacyType;
-  construction.dataset.subtypeKey = selection.subtypeKey || "";
-  construction.dataset.subtypeLabel = selection.subtypeLabel || "";
-  construction.dataset.subtypeControlLabel = selection.subtypeControlLabel || "";
-  construction.dataset.pileElementKey = hasInspectionField(selection.key, "geo", "constructionPileElement", selection.subtypeKey) ? currentPileElement : "";
-  construction.dataset.pileElementLabel = construction.dataset.pileElementKey
-    ? (currentPileElement === "grillage" ? "Ростверк" : "Свая")
-    : "";
-
-  return true;
-}
-
-function initializeConstructionControls(initialConstructionValue) {
-  if (!construction || !constructionCategory || !constructionTypeSelect) {
-    return;
-  }
-
-  syncConstructionSelectionState(initialConstructionValue, { syncVisibleControls: true });
-
-  constructionCategory.addEventListener("change", () => {
-    const nextCategoryKey = constructionCategory.value;
-    const hasSelection = fillConstructionTypeSelect(nextCategoryKey, "");
-    if (!hasSelection) return;
-
-    const nextConstructionKey = constructionTypeSelect.value;
-    const nextSubtypeValue = fillConstructionSubtypeSelect(nextConstructionKey, "");
-    syncConstructionSelectionState(nextConstructionKey, {
-      syncVisibleControls: false,
-      nextSubtypeValue
-    });
-    construction.dispatchEvent(new Event("change", { bubbles: true }));
-  });
-
-  constructionTypeSelect.addEventListener("change", () => {
-    const nextConstructionKey = constructionTypeSelect.value;
-    const nextSubtypeValue = fillConstructionSubtypeSelect(nextConstructionKey, "");
-    syncConstructionSelectionState(nextConstructionKey, {
-      syncVisibleControls: false,
-      nextSubtypeValue
-    });
-    construction.dispatchEvent(new Event("change", { bubbles: true }));
-  });
-
-  constructionSubtypeSelect?.addEventListener("change", () => {
-    const nextPileElementValue = syncPileElementSelect(constructionTypeSelect.value, constructionSubtypeSelect.value, getCurrentPileElement()) || "pile";
-    syncConstructionSelectionState(constructionTypeSelect.value, {
-      syncVisibleControls: false,
-      nextSubtypeValue: constructionSubtypeSelect.value,
-      nextPileElementValue
-    });
-    construction.dispatchEvent(new Event("change", { bubbles: true }));
-  });
-
-  constructionPileElementSelect?.addEventListener("change", () => {
-    syncConstructionSelectionState(constructionTypeSelect.value, {
-      syncVisibleControls: false,
-      nextSubtypeValue: getCurrentConstructionSubtype(),
-      nextPileElementValue: constructionPileElementSelect.value
-    });
-    construction.dispatchEvent(new Event("change", { bubbles: true }));
-  });
 }
 
 const profileRuntime = createProfileRuntime({

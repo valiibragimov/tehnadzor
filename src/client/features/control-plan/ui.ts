@@ -1,15 +1,15 @@
 import { escapeHtml, setButtonBusyState, showNotification } from "../../utils.js";
-import { formatLastCheckDate } from "./summary/data.js";
+import { formatLastCheckDate } from "../../shared/date-time.js";
 import {
   loadProjectControlPlan,
   type ControlPlanResult,
   type ControlPlanRow,
   type ControlPlanTask
-} from "../services/control-plan.js";
-import { getConstructionLabel } from "../construction.js";
-import { ensureJsPdfLoaded } from "../ui/lazy-libs.js";
-import { ensurePdfFontLoaded, registerPdfFont } from "../pdf/pdf-font.js";
-import { loadDocumentRequisites } from "../services/document-requisites.js";
+} from "./service.js";
+import { getConstructionLabel } from "../../app/construction.js";
+import { ensureJsPdfLoaded } from "../../app/ui/lazy-libs.js";
+import { ensurePdfFontLoaded, registerPdfFont } from "../../app/pdf/pdf-font.js";
+import { loadDocumentRequisites } from "../../app/services/document-requisites.js";
 
 let controlPlanInitialized = false;
 let lastControlPlan: ControlPlanResult | null = null;

@@ -59,6 +59,7 @@ import {
 } from "../services/bim-runtime-context.js";
 import { onAppTabActivated } from "../services/module-activation.js";
 import { buildNodeDeleteIconButton } from "../ui/node-card-interactions.js";
+import { APP_STORAGE_KEYS } from "../storage.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 const safeValue = (value) => escapeHtml(value == null ? "" : String(value));
@@ -293,8 +294,7 @@ function moduleStorageKey(base) {
 }
 
 function getStorageKey() {
-  const ls = globalThis.LS || {};
-  return ls.streng || "strength_checks_v1";
+  return APP_STORAGE_KEYS.streng;
 }
 
 function normalizeStrengthBimValue(value) {

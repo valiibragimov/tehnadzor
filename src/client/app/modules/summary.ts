@@ -8,9 +8,7 @@ import {
 import { auth } from "../../firebase.js";
 import { ensureJsPdfLoaded } from "../ui/lazy-libs.js";
 import { ensurePdfFontLoaded, registerPdfFont } from "../pdf/pdf-font.js";
-import {
-  formatLastCheckDate
-} from "./summary/data.js";
+import { formatLastCheckDate } from "../../shared/date-time.js";
 import { getProjectCollectionSnapshot, getProjectDocSnapshot } from "../repositories/firestore-repository.js";
 import {
   getIssueStatusLabel,
@@ -21,7 +19,7 @@ import {
 import {
   loadProjectControlPlan,
   type ControlPlanResult
-} from "../services/control-plan.js";
+} from "../../features/control-plan/index.js";
 import { loadDocumentRequisites } from "../services/document-requisites.js";
 import type { IssueRecord, SummaryPdfTextOptions, SummaryRecord } from "../../types/module-records.js";
 

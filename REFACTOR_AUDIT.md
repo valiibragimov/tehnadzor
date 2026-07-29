@@ -584,3 +584,97 @@ Smoke-регрессия:
 - `npm run lint` — успешно;
 - `npm run build` — успешно;
 - `npm test` — `37/37` smoke-тестов успешно.
+
+## Phase 5 — Feature-Based Modular Monolith
+
+Дата выполнения: 2026-07-29.
+
+Цель фазы:
+
+- перейти от каталогов по типу к первым вертикальным features;
+- уменьшить `app.ts` реальным переносом orchestration, а не legacy-wrapper;
+- заменить часть скрытого mutable context явными импортами;
+- вынести безопасный inline JavaScript без изменения публичного поведения.
+
+### Этап A — runtime context
+
+- `globalThis.LS` заменён прямым импортом `APP_STORAGE_KEYS` в geometry,
+  reinforcement, strength и journal;
+- удалены ambient declarations `LS`;
+- добавлена регрессия, запрещающая возврат bridge.
+
+Проверки этапа:
+
+- `npm run typecheck` — успешно;
+- `npm run lint` — успешно;
+- `npm run build` — успешно;
+- `npm test` — `38/38`.
+
+### Этап B — vertical features
+
+- UI и service control-plan перенесены в `features/control-plan`;
+- добавлен небольшой публичный `features/control-plan/index.ts`;
+- control-plan и summary используют общий `shared/date-time.ts`;
+- две дублирующиеся реализации `formatLastCheckDate` удалены;
+- project context, design use cases и runtime перенесены в
+  `features/projects`;
+- `app.ts` импортирует projects только через feature public API;
+- добавлен compatibility public API journal для чтения данных control-plan.
+
+Каждый перенос отдельно прошёл:
+
+- `npm run typecheck`;
+- `npm run lint`;
+- `npm run build`;
+- `npm test`.
+
+### Этап C — уменьшение entrypoint
+
+- construction selector и формирование construction payload вынесены в
+  `features/projects/construction-selection.ts`;
+- DOM elements передаются фабрике явно;
+- `app.ts` уменьшен с 6 154 до 5 888 физических строк;
+- добавлен regression limit и запрет возвращать selector implementation в
+  entrypoint.
+
+Проверки этапа:
+
+- `npm run typecheck` — успешно;
+- `npm run lint` — успешно;
+- `npm run build` — успешно;
+- `npm test` — `39/39`.
+
+### Этап D — HTML module
+
+- inline module страницы privacy перенесён в `app/pages/privacy.ts`;
+- HTML подключает собранный `dist/app/pages/privacy.js`;
+- синхронный pre-paint theme bootstrap оставлен inline для предотвращения
+  вспышки неверной темы;
+- публичный URL страницы и формат разметки сохранены.
+
+Проверки этапа:
+
+- `npm run typecheck` — успешно;
+- `npm run lint` — успешно;
+- `npm run build` — успешно;
+- `npm test` — `39/39`.
+
+### Финальный аудит зависимостей
+
+- 77 исполняемых TypeScript-файлов;
+- 0 статических циклических импортов;
+- 0 использований `globalThis.LS`;
+- новых `globalThis` bridges не добавлено;
+- старые пути control-plan и projects отсутствуют в production imports;
+- Firebase repository остаётся централизованным;
+- generated output вручную не редактировался.
+
+Оставшийся долг:
+
+- перенести geodesy form, node actions и BIM/geodesy binding из `app.ts`;
+- ввести use-case boundaries перед удалением прямых Firebase imports из
+  inspection UI;
+- перенести journal, summary, knowledge и inspections целиком с небольшими
+  публичными API;
+- отдельно мигрировать inline modules about, profile и edit-profile;
+- продолжить сокращение `utils.ts` по предметным областям.

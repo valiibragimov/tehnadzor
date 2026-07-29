@@ -3,20 +3,20 @@ import {
   getConstructionLabel,
   getConstructionModuleBehavior,
   normalizeConstructionKey
-} from "../construction.js";
+} from "../../app/construction.js";
 import {
   getInspectionConfig,
   getInspectionModuleStatus,
   type InspectionModule,
   type InspectionStatus
-} from "../inspection-registry.js";
-import { getProjectCollectionSnapshot } from "../repositories/firestore-repository.js";
-import { loadJournalEntries } from "../modules/journal/data.js";
+} from "../../app/inspection-registry.js";
+import { getProjectCollectionSnapshot } from "../../app/repositories/firestore-repository.js";
+import { loadJournalEntries } from "../journal/index.js";
 import {
   getRuntimeIssueStatus,
   hasIssueRepeatControl,
   loadProjectIssues
-} from "./issues.js";
+} from "../../app/services/issues.js";
 import type { IssueRecord, JournalEntryRecord, SummaryRecord } from "../../types/module-records.js";
 
 export type ControlPlanTaskStatus =

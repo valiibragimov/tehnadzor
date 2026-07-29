@@ -1,4 +1,4 @@
-import { normalizeConstructionKey } from "../construction.js";
+import { normalizeConstructionKey } from "../../app/construction.js";
 
 function normalizeProjectId(value) {
   if (value == null) return "";

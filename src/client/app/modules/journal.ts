@@ -31,6 +31,7 @@ import {
 } from "../services/issues.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { showNotification, showConfirm } from "../../utils.js";
+import { APP_STORAGE_KEYS } from "../storage.js";
 import {
   createJournalEntry,
   addJournalEntry as addJournalEntryToFirestore,
@@ -661,7 +662,7 @@ syncJournalStatusFilterUI();
 
 function journalStorageKey() {
   const id = currentProjectId || "no_project";
-  return `${LS.journal}_${id}`;
+  return `${APP_STORAGE_KEYS.journal}_${id}`;
 }
 
 function loadJournal() {

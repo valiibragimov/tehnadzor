@@ -92,6 +92,7 @@ import {
   buildNodeDeleteIconButton,
   setupNodeCardInteractions
 } from "../ui/node-card-interactions.js";
+import { APP_STORAGE_KEYS } from "../storage.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 const safeValue = (value) => escapeHtml(value == null ? "" : String(value));
@@ -741,8 +742,7 @@ function moduleStorageKey(base) {
 }
 
 function getStorageKey() {
-  const ls = globalThis.LS || {};
-  return ls.geom || "geom_checks_v1";
+  return APP_STORAGE_KEYS.geom;
 }
 
 function normalizeGeomBimValue(value) {

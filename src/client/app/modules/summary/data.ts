@@ -3,10 +3,7 @@
  * Использует данные журнала как единственный источник информации
  */
 
-import { 
-  getModuleStats, 
-  formatJournalTimestamp
-} from "../journal/data.js";
+import { getModuleStats } from "../journal/data.js";
 
 // ============================
 // Константы
@@ -89,16 +86,4 @@ export function formatStatus(status) {
     default:
       return "нет данных";
   }
-}
-
-/**
- * Форматирует дату последней проверки
- * @param {Timestamp|number|null} timestamp - Временная метка
- * @returns {string} Отформатированная дата или "—"
- */
-export function formatLastCheckDate(timestamp) {
-  if (!timestamp) {
-    return "—";
-  }
-  return formatJournalTimestamp(timestamp);
 }

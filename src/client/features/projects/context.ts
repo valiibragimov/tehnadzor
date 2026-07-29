@@ -1,4 +1,4 @@
-import { normalizeConstructionKey } from "../construction.js";
+import { normalizeConstructionKey } from "../../app/construction.js";
 
 export const PROJECT_ID_STORAGE_KEY = "current_project_id";
 

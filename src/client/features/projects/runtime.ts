@@ -1,15 +1,15 @@
 import {
   getProjectsByFieldSnapshot,
   getProjectDocSnapshot
-} from "../repositories/firestore-repository.js";
+} from "../../app/repositories/firestore-repository.js";
 import {
   MODULE_SECTIONS as PROJECT_MODULE_SECTIONS,
   loadProjects as loadProjectsFromService,
   restoreSelectedProjectState as restoreSelectedProjectStateFromService,
   selectProject as selectProjectFromService,
   setModulesEnabled as setProjectModulesEnabled
-} from "../services/project-context.js";
-import { loadProjectDataIntoForm } from "../services/project-design.js";
+} from "./context.js";
+import { loadProjectDataIntoForm } from "./design.js";
 
 interface GeoProjectDataLoadOptions {
   preserveConstruction?: boolean;

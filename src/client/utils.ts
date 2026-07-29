@@ -1006,32 +1006,6 @@ export function formatStatus(status) {
 }
 
 /**
- * Форматирует дату последней проверки
- * @param {Timestamp|Date|number} timestamp - Временная метка
- * @returns {string} - Отформатированная дата
- */
-export function formatLastCheckDate(timestamp) {
-  if (!timestamp) return "—";
-  
-  let date;
-  if (timestamp.toDate) {
-    // Это Firestore Timestamp
-    date = timestamp.toDate();
-  } else if (typeof timestamp === "number") {
-    // Это Unix timestamp в миллисекундах
-    date = new Date(timestamp);
-  } else if (timestamp instanceof Date) {
-    date = timestamp;
-  } else {
-    return "—";
-  }
-  
-  if (isNaN(date.getTime())) return "—";
-  
-  return formatDate(date);
-}
-
-/**
  * Проверяет дубликаты в массиве
  * @param {Array} array - Массив для проверки
  * @param {Function} compareFn - Функция сравнения элементов

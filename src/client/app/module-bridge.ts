@@ -269,7 +269,6 @@ export function createAppModuleBridge({
   globalThis.renderStrengthChecks = renderStrengthChecks;
   globalThis.loadStrengthCheck = loadStrengthCheck;
   globalThis.updateStrengthFieldsVisibility = updateStrengthFieldsVisibility;
-  globalThis.LS = APP_STORAGE_KEYS;
 
   return {
     initNavigation,

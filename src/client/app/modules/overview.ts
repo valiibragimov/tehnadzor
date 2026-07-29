@@ -1,5 +1,8 @@
 import { getRuntimeIssueStatus, loadProjectIssues } from "../services/issues.js";
-import { loadProjectControlPlan, type ControlPlanResult } from "../services/control-plan.js";
+import {
+  loadProjectControlPlan,
+  type ControlPlanResult
+} from "../../features/control-plan/index.js";
 import type { IssueRecord } from "../../types/module-records.js";
 
 const MODULES = [

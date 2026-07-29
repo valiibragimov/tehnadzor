@@ -5,7 +5,7 @@ type GeometryModule = typeof import("./modules/geometry.js");
 type ReinforcementModule = typeof import("./modules/reinforcement.js");
 type StrengthModule = typeof import("./modules/strength.js");
 type SummaryModule = typeof import("./modules/summary.js");
-type ControlPlanModule = typeof import("./modules/control-plan.js");
+type ControlPlanModule = typeof import("../features/control-plan/index.js");
 type OverviewModule = typeof import("./modules/overview.js");
 
 const INSPECTION_TARGETS = new Set(["geo", "reinforcement", "geometry", "strength"]);
@@ -116,7 +116,7 @@ export function createModuleRuntime({ onJournalTabActivated }: ModuleRuntimeOpti
 
   const getControlPlanModule = () => {
     if (!controlPlanModulePromise) {
-      controlPlanModulePromise = import("./modules/control-plan.js")
+      controlPlanModulePromise = import("../features/control-plan/index.js")
         .then((module) => {
           module.initControlPlanModule();
           return module;

@@ -145,8 +145,9 @@ test("control plan module exposes ITP workflow", async () => {
   const response = await fetch(`${staticServer.url}/index.html`);
   const html = await response.text();
   const runtimeSource = await readFile(resolve(projectRoot, "src/client/app/module-runtime.ts"), "utf8");
-  const serviceSource = await readFile(resolve(projectRoot, "src/client/app/services/control-plan.ts"), "utf8");
-  const moduleSource = await readFile(resolve(projectRoot, "src/client/app/modules/control-plan.ts"), "utf8");
+  const publicApiSource = await readFile(resolve(projectRoot, "src/client/features/control-plan/index.ts"), "utf8");
+  const serviceSource = await readFile(resolve(projectRoot, "src/client/features/control-plan/service.ts"), "utf8");
+  const moduleSource = await readFile(resolve(projectRoot, "src/client/features/control-plan/ui.ts"), "utf8");
   const summarySource = await readFile(resolve(projectRoot, "src/client/app/modules/summary.ts"), "utf8");
   const css = await readFile(resolve(projectRoot, "style.css"), "utf8");
 
@@ -158,7 +159,10 @@ test("control plan module exposes ITP workflow", async () => {
   assert.match(html, /id="controlPlanSearch"/u);
   assert.match(html, /id="btnControlPlanExportCsv"/u);
   assert.match(html, /id="btnControlPlanExportPdf"/u);
-  assert.match(runtimeSource, /modules\/control-plan\.js/u);
+  assert.match(runtimeSource, /features\/control-plan\/index\.js/u);
+  assert.match(publicApiSource, /loadProjectControlPlan/u);
+  assert.match(publicApiSource, /initControlPlanModule/u);
+  assert.doesNotMatch(moduleSource, /modules\/summary\/data/u);
   assert.match(serviceSource, /loadProjectControlPlan/u);
   assert.match(serviceSource, /getInspectionConfig/u);
   assert.match(serviceSource, /loadJournalEntries/u);
@@ -307,7 +311,10 @@ test("client feature data is colocated with its owning module", async () => {
     "app/modules/summary/analytics-block.ts",
     "app/profile/runtime.ts",
     "app/profile/feed-fallback.ts",
-    "app/project/runtime.ts"
+    "features/projects/context.ts",
+    "features/projects/design.ts",
+    "features/projects/runtime.ts",
+    "features/projects/index.ts"
   ];
 
   for (const relativePath of featureDataFiles) {
@@ -320,7 +327,10 @@ test("client feature data is colocated with its owning module", async () => {
   const legacyRuntimeFiles = [
     "app/profile-runtime.ts",
     "app/project-runtime.ts",
-    "app/data/profile-feed-fallback.ts"
+    "app/data/profile-feed-fallback.ts",
+    "app/project/runtime.ts",
+    "app/services/project-context.ts",
+    "app/services/project-design.ts"
   ];
 
   for (const relativePath of legacyRuntimeFiles) {
@@ -349,6 +359,27 @@ test("support scripts are grouped by responsibility", async () => {
   assert.match(packageSource, /scripts\/build\/build-index-html\.mjs/u);
   assert.match(packageSource, /scripts\/checks\/run-smoke-tests\.mjs/u);
   await assert.rejects(readFile(resolve(projectRoot, "mobile-preview.html"), "utf8"));
+});
+
+test("inspection modules import storage keys instead of using a global bridge", async () => {
+  const modulePaths = [
+    "src/client/app/modules/geometry.ts",
+    "src/client/app/modules/journal.ts",
+    "src/client/app/modules/reinforcement.ts",
+    "src/client/app/modules/strength.ts"
+  ];
+
+  for (const relativePath of modulePaths) {
+    const source = await readFile(resolve(projectRoot, relativePath), "utf8");
+    assert.match(source, /import \{ APP_STORAGE_KEYS \} from "\.\.\/storage\.js";/u);
+    assert.doesNotMatch(source, /globalThis\.LS/u);
+  }
+
+  const bridgeSource = await readFile(
+    resolve(projectRoot, "src/client/app/module-bridge.ts"),
+    "utf8"
+  );
+  assert.doesNotMatch(bridgeSource, /globalThis\.LS\s*=/u);
 });
 
 test("IFC import runtime is not embedded back into app entrypoint", async () => {
@@ -390,6 +421,29 @@ test("app entrypoint delegates inspection evaluation and BIM helpers", async () 
   assert.match(evaluationSource, /export function evaluateReinfCheck/u);
   assert.match(bimUtilsSource, /export function normalizeGeoBimSnapshotValue/u);
   assert.match(bimUtilsSource, /export function formatResolvedLinearAxes/u);
+});
+
+test("app entrypoint delegates construction selection to the projects feature", async () => {
+  const appSource = await readFile(resolve(projectRoot, "src/client/app.ts"), "utf8");
+  const projectsApiSource = await readFile(
+    resolve(projectRoot, "src/client/features/projects/index.ts"),
+    "utf8"
+  );
+  const selectionSource = await readFile(
+    resolve(projectRoot, "src/client/features/projects/construction-selection.ts"),
+    "utf8"
+  );
+
+  assert.match(appSource, /createConstructionSelectionRuntime/u);
+  assert.match(projectsApiSource, /createConstructionSelectionRuntime/u);
+  assert.match(selectionSource, /function initializeConstructionControls/u);
+  assert.match(selectionSource, /function syncConstructionSelectionState/u);
+  assert.doesNotMatch(appSource, /function initializeConstructionControls/u);
+  assert.doesNotMatch(appSource, /function fillConstructionCategorySelect/u);
+  assert.ok(
+    appSource.split(/\r?\n/u).length < 5950,
+    "app.ts should remain below the post-migration size boundary"
+  );
 });
 
 test("strip foundation geodesy axis mode selection is not reset on change", async () => {

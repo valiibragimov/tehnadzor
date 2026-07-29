@@ -118,7 +118,6 @@ declare global {
     strengthChecks?: unknown[];
     journalEntries?: Array<Record<string, unknown>>;
     state?: Record<string, unknown>;
-    LS?: Record<string, string>;
     construction?: HTMLSelectElement | null;
     engineer?: HTMLInputElement | HTMLSelectElement | null;
     dateInput?: HTMLInputElement | null;
@@ -175,7 +174,6 @@ declare global {
   var construction: HTMLSelectElement | null;
   var dateInput: HTMLInputElement | null;
   var projectSelector: HTMLSelectElement | null;
-  var LS: Record<string, string>;
   var updateSummaryTab: (...args: unknown[]) => unknown;
   var applyJournalFilter: (...args: unknown[]) => unknown;
   var setJournalFilters: (...args: unknown[]) => unknown;

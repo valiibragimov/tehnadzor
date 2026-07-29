@@ -72,7 +72,8 @@ test("privacy page explains product data handling in plain language", async () =
   assert.match(body, /Федерального закона №152-ФЗ/);
   assert.match(body, /BIM \/ IFC-файлами/);
   assert.match(body, /Права пользователя/);
-  assert.match(body, /import\("\.\/app\/ui\/theme\.js"\)/);
+  assert.match(body, /src="dist\/app\/pages\/privacy\.js"/);
+  assert.doesNotMatch(body, /<script type="module">\s*import/u);
   assert.doesNotMatch(body, /import \{ initThemeControls \}/);
   assert.doesNotMatch(body, /class="header-actions"/);
 });
