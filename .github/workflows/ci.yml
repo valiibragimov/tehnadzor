@@ -31,10 +31,19 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+            functions/package-lock.json
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install server dependencies
+        run: npm ci --prefix server
+
+      - name: Install functions dependencies
+        run: npm ci --prefix functions
 
       - name: Typecheck
         run: npm run typecheck
