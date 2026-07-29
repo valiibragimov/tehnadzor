@@ -1,11 +1,17 @@
+import type {
+  GeodesyColumnDraft,
+  GeodesyCurrentNodeKeys,
+  GeodesyLinearDraft,
+  GeodesyNodeRecord,
+  GeodesyOpeningPointDraft
+} from "./types.js";
+
 export interface GeodesyNodeState {
-  nodes: Map<string, any>;
-  currentNodeKeys: {
-    column: string | null;
-    wall: string | null;
-    beam: string | null;
-  };
+  nodes: Map<string, GeodesyNodeRecord>;
+  currentNodeKeys: GeodesyCurrentNodeKeys;
 }
+
+export type GeodesyFormCollection = "column" | "wall" | "beam" | "node";
 
 export interface GeodesyState<
   TBimElement = Record<string, unknown>,
@@ -22,10 +28,10 @@ export interface GeodesyState<
     type: string;
     axes: string;
   };
-  columns: any[];
-  walls: any[];
-  beams: any[];
-  plateOpeningPoints: any[];
+  columns: GeodesyColumnDraft[];
+  walls: GeodesyLinearDraft[];
+  beams: GeodesyLinearDraft[];
+  plateOpeningPoints: GeodesyOpeningPointDraft[];
   skipJournalOnce: boolean;
 }
 
@@ -35,7 +41,7 @@ export function createGeodesyState<
   TBimPanel = unknown
 >(): GeodesyState<TBimElement, TBimBinding, TBimPanel> {
   return {
-    nodes: new Map<string, any>(),
+    nodes: new Map<string, GeodesyNodeRecord>(),
     currentNodeKeys: {
       column: null,
       wall: null,
@@ -71,4 +77,19 @@ export function resetGeodesyCurrentNodeKeys(state: GeodesyNodeState) {
   state.currentNodeKeys.column = null;
   state.currentNodeKeys.wall = null;
   state.currentNodeKeys.beam = null;
+}
+
+export function resetGeodesyFormState<
+  TBimElement,
+  TBimBinding,
+  TBimPanel
+>(
+  state: GeodesyState<TBimElement, TBimBinding, TBimPanel>,
+  collection: GeodesyFormCollection
+) {
+  resetGeodesyCurrentNodeKeys(state);
+  state.plateOpeningPoints.length = 0;
+  if (collection === "column") state.columns.length = 0;
+  if (collection === "wall") state.walls.length = 0;
+  if (collection === "beam") state.beams.length = 0;
 }

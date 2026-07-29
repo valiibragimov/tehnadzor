@@ -212,6 +212,13 @@ hosting surface и отсутствие новых `globalThis` assignments.
   публичным `index.ts`;
 - DOM bindings, изменяемое состояние формы/BIM selection, node actions и
   rendering списка геодезических узлов находятся рядом с geodesy service;
+- оставшаяся логика геодезической формы вынесена из entrypoint:
+  `runtime.ts` создаёт и связывает feature, `form.ts` читает, очищает,
+  восстанавливает и отображает форму, `evaluation.ts` содержит чистые расчёты
+  и journal payload, `handlers.ts` — пользовательские действия, `types.ts` —
+  известные структуры данных геодезии;
+- `app.ts` сократился до 2 280 строк и для геодезической формы только создаёт
+  runtime, передаёт внешние зависимости и запускает его;
 - geodesy UI вызывает service, а Firestore и dual-write доступны только через
   локальный adapter над централизованным repository;
 - journal получает geodesy API явно через bootstrap вместо глобальных
@@ -220,16 +227,18 @@ hosting surface и отсутствие новых `globalThis` assignments.
 
 Повторный аудит после миграции:
 
-- 77 исполняемых клиентских TypeScript-файлов;
+- 92 исполняемых клиентских TypeScript-файла;
 - 0 статических циклов импортов;
 - 0 обращений к `globalThis.LS`;
-- 47 smoke/regression-тестов;
+- 51 smoke/regression-тест;
 - все этапы отдельно прошли typecheck, lint, build и test.
 
 Оставшиеся наиболее важные зависимости:
 
-1. `app.ts` всё ещё содержит расчёты geodesy form и BIM/geodesy binding; node
-   state/actions и DOM-query уже вынесены.
+1. `app.ts` всё ещё содержит BIM/geodesy selection runtime. Его перенос
+   намеренно оставлен отдельным этапом, чтобы не смешивать форму с BIM
+   pipeline; расчётов и обработчиков самой геодезической формы в entrypoint
+   больше нет.
 2. Geometry, reinforcement и strength UI всё ещё напрямую используют
    repository/Firebase runtime; geodesy уже обращается к данным через локальный
    service boundary.
@@ -240,3 +249,6 @@ hosting surface и отсутствие новых `globalThis` assignments.
 5. Journal public API пока является compatibility boundary над старым
    `app/modules/journal/data.ts`; реализацию следует переносить вместе со всей
    feature, а не дублировать.
+6. `form.ts` и `handlers.ts` пока крупные из-за объёма существующей DOM-формы.
+   Дальнейшее деление допустимо только по подтверждённым поведенческим границам,
+   а не ради уменьшения размера файлов.

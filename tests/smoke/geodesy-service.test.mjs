@@ -10,11 +10,20 @@ const { createGeodesyNodeActions } = await import(
 const {
   createGeodesyNodeState,
   createGeodesyState,
-  replaceGeodesyItems
+  replaceGeodesyItems,
+  resetGeodesyFormState
 } = await import(
   "../../dist/features/inspections/geodesy/state.js"
 );
-
+const {
+  buildColumnJournalPayload,
+  buildLinearJournalPayload,
+  evaluateGeoColumnNode,
+  evaluateGeoNode,
+  evaluateGeoWallNode
+} = await import(
+  "../../dist/features/inspections/geodesy/evaluation.js"
+);
 function createRepository(overrides = {}) {
   const calls = [];
   const repository = {
@@ -229,4 +238,211 @@ test("geodesy state keeps stable collection references while replacing form data
     type: "all",
     axes: "all"
   });
+});
+
+test("geodesy evaluation distinguishes incomplete, accepted and exceeded coordinates", () => {
+  const incomplete = evaluateGeoColumnNode([
+    {
+      id: 1,
+      mark: "К1",
+      projX: "100",
+      projY: "200",
+      factX: "",
+      factY: ""
+    }
+  ], 8);
+  const accepted = evaluateGeoNode(
+    {
+      projX: 100,
+      projY: 200,
+      projH: 300,
+      factX: 105,
+      factY: 193,
+      factH: 309
+    },
+    8,
+    10
+  );
+  const exceeded = evaluateGeoNode(
+    {
+      projX: 100,
+      projY: 200,
+      projH: null,
+      factX: 109,
+      factY: 200,
+      factH: null
+    },
+    8,
+    10
+  );
+
+  assert.deepEqual(incomplete, {
+    status: "empty",
+    hasAllData: false,
+    hasProjXY: true,
+    hasFactXY: false
+  });
+  assert.equal(accepted.status, "ok");
+  assert.deepEqual(
+    accepted.details.map(({ axis, dev, ok }) => ({ axis, dev, ok })),
+    [
+      { axis: "X", dev: 5, ok: true },
+      { axis: "Y", dev: 7, ok: true },
+      { axis: "H", dev: 9, ok: true }
+    ]
+  );
+  assert.equal(exceeded.status, "bad");
+});
+
+test("geodesy linear evaluation supports both axis binding modes", () => {
+  const base = {
+    id: 1,
+    numberAxis: "1",
+    letterAxis1: "А",
+    letterAxis2: "Б",
+    letterAxis: "А",
+    numberAxis1: "1",
+    numberAxis2: "2",
+    projX_num_let1: "100",
+    factX_num_let1: "104",
+    projY_num_let1: "200",
+    factY_num_let1: "204",
+    projX_num_let2: "300",
+    factX_num_let2: "304",
+    projY_num_let2: "400",
+    factY_num_let2: "404",
+    projX_let_num1: "100",
+    factX_let_num1: "104",
+    projY_let_num1: "200",
+    factY_let_num1: "204",
+    projX_let_num2: "300",
+    factX_let_num2: "304",
+    projY_let_num2: "400",
+    factY_let_num2: "404"
+  };
+
+  assert.equal(
+    evaluateGeoWallNode(
+      [{ ...base, bindingType: "number_letters" }],
+      8
+    ).status,
+    "ok"
+  );
+  assert.equal(
+    evaluateGeoWallNode(
+      [{
+        ...base,
+        bindingType: "letter_numbers",
+        factY_let_num2: "412"
+      }],
+      8
+    ).status,
+    "bad"
+  );
+});
+
+test("geodesy journal payload keeps persisted source context and deviations", () => {
+  const columnPayload = buildColumnJournalPayload({
+    key: "columns_K1_2",
+    construction: "column",
+    columnMark: "К1",
+    floor: "2",
+    status: "bad",
+    columns: [
+      {
+        id: 1,
+        mark: "К1",
+        projX: "100",
+        projY: "200",
+        factX: "110",
+        factY: "204"
+      }
+    ]
+  });
+  const wallPayload = buildLinearJournalPayload({
+    key: "walls_2",
+    construction: "wall",
+    floor: "2",
+    status: "ok",
+    entityLabel: "Стена",
+    entityPlural: "Стены",
+    emptyDetails: "Проверка стен",
+    rows: [
+      {
+        id: 1,
+        bindingType: "number_letters",
+        numberAxis: "1",
+        letterAxis1: "А",
+        letterAxis2: "Б",
+        letterAxis: "",
+        numberAxis1: "",
+        numberAxis2: "",
+        projX_num_let1: "100",
+        factX_num_let1: "104",
+        projY_num_let1: "200",
+        factY_num_let1: "206",
+        projX_num_let2: "",
+        factX_num_let2: "",
+        projY_num_let2: "",
+        factY_num_let2: "",
+        projX_let_num1: "",
+        factX_let_num1: "",
+        projY_let_num1: "",
+        factY_let_num1: "",
+        projX_let_num2: "",
+        factX_let_num2: "",
+        projY_let_num2: "",
+        factY_let_num2: ""
+      }
+    ]
+  });
+
+  assert.deepEqual(columnPayload, {
+    module: "Геодезия",
+    status: "exceeded",
+    context: "К1, 2",
+    details: "К1: ΔX=10.0, ΔY=4.0",
+    sourceId: "columns_K1_2",
+    construction: "column"
+  });
+  assert.equal(wallPayload.context, "Этаж 2, Стены");
+  assert.equal(wallPayload.details, "Стена1: ΔX=4.0, ΔY=6.0");
+});
+
+test("clearing a geodesy form resets edit keys and only its active collection", () => {
+  const state = createGeodesyState();
+  state.currentNodeKeys = {
+    column: "column-1",
+    wall: "wall-1",
+    beam: "beam-1"
+  };
+  state.columns.push({
+    id: 1,
+    mark: "К1",
+    projX: "",
+    factX: "",
+    projY: "",
+    factY: ""
+  });
+  state.walls.push({ id: 2 });
+  state.beams.push({ id: 3 });
+  state.plateOpeningPoints.push({
+    id: 4,
+    projX: "",
+    projY: "",
+    factX: "",
+    factY: ""
+  });
+
+  resetGeodesyFormState(state, "column");
+
+  assert.deepEqual(state.currentNodeKeys, {
+    column: null,
+    wall: null,
+    beam: null
+  });
+  assert.equal(state.columns.length, 0);
+  assert.equal(state.walls.length, 1);
+  assert.equal(state.beams.length, 1);
+  assert.equal(state.plateOpeningPoints.length, 0);
 });

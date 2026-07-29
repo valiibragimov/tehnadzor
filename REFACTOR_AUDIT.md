@@ -707,8 +707,46 @@ Smoke-регрессия:
 
 Оставшийся geodesy-долг:
 
-- вынести из `app.ts` расчёты и rendering самой формы;
 - перенести BIM/geodesy selection runtime отдельным этапом без изменения BIM
   pipeline;
 - заменить оставшийся read-only `globalThis.nodes` context в overview/summary
   явным публичным API после миграции этих потребителей.
+
+## Geodesy form runtime — 2026-07-29
+
+Выполнен следующий отдельный этап только для геодезической формы:
+
+- `app.ts` уменьшен примерно с 5 800 до 2 280 строк;
+- `runtime.ts` создаёт state, form, handlers и node actions, связывает их через
+  явные параметры и возвращает небольшой runtime API;
+- `form.ts` отвечает за чтение, очистку, восстановление и rendering колонн,
+  стен, балок и обычных узлов, включая текущие ключи редактирования;
+- `evaluation.ts` содержит чистые расчёты допусков и формирование journal
+  payload без DOM и инфраструктурных импортов;
+- `handlers.ts` содержит действия проверки, сохранения, обновления и очистки;
+- `types.ts` фиксирует известные структуры state и документов без `any`;
+- дублирующиеся геодезические расчёты удалены из
+  `app/inspection-evaluation.ts`;
+- Firestore-формат, dual-write и journal integration сохранены; repository
+  импортирует только инфраструктурный `firestore-service.ts`, а UI и расчёты
+  работают через переданные service/callback зависимости;
+- в feature не добавлены `globalThis`, прямые импорты Firebase SDK или новые
+  compatibility bridges;
+- добавлены поведенческие тесты расчётов, journal payload и очистки состояния
+  формы.
+
+Осознанно не входит в этот этап:
+
+- BIM/geodesy selection runtime остаётся в `app.ts` до следующего отдельного
+  изменения;
+- CSS, bundler, Service Worker, BIM pipeline и другие inspection features не
+  изменялись;
+- дальнейшее деление крупных `form.ts` и `handlers.ts` возможно только при
+  появлении самостоятельной поведенческой границы и regression-тестов.
+
+Финальная проверка этапа:
+
+- `npm run typecheck` — успешно;
+- `npm run lint` — успешно;
+- `npm run build` — успешно;
+- `npm test` — `51/51` тест успешно.

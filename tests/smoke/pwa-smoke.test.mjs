@@ -406,9 +406,16 @@ test("IFC import runtime is not embedded back into app entrypoint", async () => 
   assert.match(css, /@keyframes app-page-reveal/u);
 });
 
-test("app entrypoint delegates inspection evaluation and BIM helpers", async () => {
+test("app entrypoint delegates inspection evaluation to feature modules", async () => {
   const appSource = await readFile(resolve(projectRoot, "src/client/app.ts"), "utf8");
   const evaluationSource = await readFile(resolve(projectRoot, "src/client/app/inspection-evaluation.ts"), "utf8");
+  const geodesyEvaluationSource = await readFile(
+    resolve(
+      projectRoot,
+      "src/client/features/inspections/geodesy/evaluation.ts"
+    ),
+    "utf8"
+  );
   const bimUtilsSource = await readFile(resolve(projectRoot, "src/client/app/geo-bim-utils.ts"), "utf8");
 
   assert.match(appSource, /from "\.\/app\/inspection-evaluation\.js"/u);
@@ -417,7 +424,8 @@ test("app entrypoint delegates inspection evaluation and BIM helpers", async () 
   assert.doesNotMatch(appSource, /function evaluateReinfCheck/u);
   assert.doesNotMatch(appSource, /function normalizeGeoBimSnapshotValue/u);
 
-  assert.match(evaluationSource, /export function evaluateGeoNode/u);
+  assert.match(geodesyEvaluationSource, /export function evaluateGeoNode/u);
+  assert.doesNotMatch(evaluationSource, /export function evaluateGeoNode/u);
   assert.match(evaluationSource, /export function evaluateReinfCheck/u);
   assert.match(bimUtilsSource, /export function normalizeGeoBimSnapshotValue/u);
   assert.match(bimUtilsSource, /export function formatResolvedLinearAxes/u);
@@ -448,8 +456,26 @@ test("app entrypoint delegates construction selection to the projects feature", 
 
 test("strip foundation geodesy axis mode selection is not reset on change", async () => {
   const appSource = await readFile(resolve(projectRoot, "src/client/app.ts"), "utf8");
-  assert.match(appSource, /geoStripAxisModeEl\?\.addEventListener\("change"/u);
-  assert.ok(appSource.includes('resetGeoPlateAxisFields({ axisMode: geoStripAxisModeEl.value || "letter_numbers" });'));
+  const formSource = await readFile(
+    resolve(
+      projectRoot,
+      "src/client/features/inspections/geodesy/form.ts"
+    ),
+    "utf8"
+  );
+  assert.doesNotMatch(
+    appSource,
+    /geoStripAxisModeEl\?\.addEventListener\("change"/u
+  );
+  assert.match(
+    formSource,
+    /geoStripAxisModeEl\?\.addEventListener\("change"/u
+  );
+  assert.ok(
+    formSource.includes(
+      'resetGeoPlateAxisFields({ axisMode: geoStripAxisModeEl.value || "letter_numbers" });'
+    )
+  );
 });
 
 test("summary analytics keeps data preparation outside UI block", async () => {
