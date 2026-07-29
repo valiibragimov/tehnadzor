@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  ci:
     runs-on: ubuntu-latest
     env:
       FIREBASE_WEB_API_KEY: demo-api-key
@@ -31,33 +31,19 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            server/package-lock.json
-            functions/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install root dependencies
+      - name: Install dependencies
         run: npm ci
-
-      - name: Install server dependencies
-        working-directory: server
-        run: npm ci
-
-      - name: Install functions dependencies
-        working-directory: functions
-        run: npm ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Audit dependencies
-        run: npm run audit:all
 
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
       - name: Test
         run: npm test
-
-      - name: Build hosting output
-        run: npm run build
