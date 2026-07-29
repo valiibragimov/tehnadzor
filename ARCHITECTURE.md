@@ -144,7 +144,9 @@ shared -X-> feature
 - передавать DOM-зависимости явно при создании runtime;
 - оставить в `app.ts` только создание runtime и использование его публичных
   методов;
-- далее тем же способом переносить geodesy form, node actions и BIM binding.
+- geodesy node state/actions и DOM bindings перенесены в vertical feature;
+- оставшиеся расчёты геодезической формы и BIM binding переносить отдельными
+  поведенчески нейтральными этапами.
 
 ### Этап D — HTML entrypoints
 
@@ -206,20 +208,31 @@ hosting surface и отсутствие новых `globalThis` assignments.
   theme bootstrap оставлен в HTML для сохранения визуального поведения;
 - публичные HTML URL, Firebase data format, Service Worker source и bundler не
   изменены.
+- создана vertical feature `features/inspections/geodesy` с небольшим
+  публичным `index.ts`;
+- DOM bindings, изменяемое состояние формы/BIM selection, node actions и
+  rendering списка геодезических узлов находятся рядом с geodesy service;
+- geodesy UI вызывает service, а Firestore и dual-write доступны только через
+  локальный adapter над централизованным repository;
+- journal получает geodesy API явно через bootstrap вместо глобальных
+  `saveNodes`, `renderNodes`, `loadNode` и current-node bridges;
+- добавлены поведенческие тесты service и node actions.
 
 Повторный аудит после миграции:
 
 - 77 исполняемых клиентских TypeScript-файлов;
 - 0 статических циклов импортов;
 - 0 обращений к `globalThis.LS`;
-- 39 smoke/regression-тестов;
+- 47 smoke/regression-тестов;
 - все этапы отдельно прошли typecheck, lint, build и test.
 
 Оставшиеся наиболее важные зависимости:
 
-1. `app.ts` всё ещё содержит geodesy form, node actions и BIM/geodesy binding.
-2. Inspection UI напрямую импортирует repository и Firebase Auth; это нужно
-   разрывать через use cases по одной feature.
+1. `app.ts` всё ещё содержит расчёты geodesy form и BIM/geodesy binding; node
+   state/actions и DOM-query уже вынесены.
+2. Geometry, reinforcement и strength UI всё ещё напрямую используют
+   repository/Firebase runtime; geodesy уже обращается к данным через локальный
+   service boundary.
 3. `globalThis` всё ещё используется как legacy runtime context; новых bridges
    в текущей фазе не добавлено.
 4. Inline modules остаются в about, profile и edit-profile; их перенос требует

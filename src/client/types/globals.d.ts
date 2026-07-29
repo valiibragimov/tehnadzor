@@ -122,8 +122,6 @@ declare global {
     engineer?: HTMLInputElement | HTMLSelectElement | null;
     dateInput?: HTMLInputElement | null;
     projectSelector?: HTMLSelectElement | null;
-    loadNode?: (...args: unknown[]) => unknown;
-    saveNodes?: (...args: unknown[]) => unknown;
     loadReinfCheck?: (...args: unknown[]) => unknown;
     loadGeomCheck?: (...args: unknown[]) => unknown;
     loadStrengthCheck?: (...args: unknown[]) => unknown;
@@ -138,11 +136,9 @@ declare global {
     addJournalEntry?: (entry: Inspection | Record<string, unknown>) => unknown;
     applyJournalFilter?: (...args: unknown[]) => unknown;
     notifyFirestoreSyncStatus?: (...args: unknown[]) => unknown;
-    renderNodes?: (...args: unknown[]) => unknown;
     renderReinfChecks?: (...args: unknown[]) => unknown;
     renderGeomChecks?: (...args: unknown[]) => unknown;
     renderStrengthChecks?: (...args: unknown[]) => unknown;
-    saveNodes?: (...args: unknown[]) => unknown;
     saveReinfChecks?: (...args: unknown[]) => unknown;
     saveGeomChecks?: (...args: unknown[]) => unknown;
     saveStrengthChecks?: (...args: unknown[]) => unknown;
@@ -154,11 +150,7 @@ declare global {
       selectedBimElement?: BimElement | null
     ) => unknown;
     loadJournalFromFirestore?: (...args: unknown[]) => unknown;
-    evaluateGeoNode?: (...args: unknown[]) => unknown;
     upsertJournalEntry?: (entry: Inspection | Record<string, unknown>) => unknown;
-    currentColumnNodeKey?: string | null;
-    currentWallNodeKey?: string | null;
-    currentBeamNodeKey?: string | null;
     currentReinfCheckId?: string | null;
     currentGeomCheckId?: string | null;
     currentStrengthCheckId?: string | null;
@@ -184,17 +176,11 @@ declare global {
   var strengthChecks: Map<string, Record<string, unknown>>;
   var state: Record<string, unknown>;
   var checked: Record<string, unknown>;
-  var saveNodes: (...args: unknown[]) => unknown;
-  var renderNodes: (...args: unknown[]) => unknown;
   var saveGeomChecks: (...args: unknown[]) => unknown;
   var renderGeomChecks: (...args: unknown[]) => unknown;
-  var loadNode: (...args: unknown[]) => unknown;
   var loadGeomCheck: (...args: unknown[]) => unknown;
   var selectProject: (...args: unknown[]) => unknown;
   var setConstructionAndTrigger: (...args: unknown[]) => unknown;
-  var currentColumnNodeKey: string | null;
-  var currentWallNodeKey: string | null;
-  var currentBeamNodeKey: string | null;
   var currentReinfCheckId: string | null;
   var currentGeomCheckId: string | null;
   var currentStrengthCheckId: string | null;

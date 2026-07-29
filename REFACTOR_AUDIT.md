@@ -678,3 +678,37 @@ Smoke-регрессия:
   публичными API;
 - отдельно мигрировать inline modules about, profile и edit-profile;
 - продолжить сокращение `utils.ts` по предметным областям.
+
+## Geodesy vertical slice — 2026-07-29
+
+Выполнен отдельный поведенчески нейтральный этап:
+
+- создан `src/client/features/inspections/geodesy` с публичным `index.ts`;
+- `app/services/geo-nodes.ts` перенесён внутрь feature и разделён по
+  ответственности: DOM bindings, изменяемое состояние геодезической формы и
+  BIM selection, node actions, список узлов, service и Firestore adapter;
+- geodesy service работает через порт repository; Firebase SDK и
+  централизованный Firestore repository не импортируются DOM/node actions;
+- сохранены существующие коллекции `geoNodes`, `elements`, dual-write в
+  `inspections` и формат документов;
+- journal получает node API через явный bootstrap parameter;
+- удалены заменённые bridges `saveNodes`, `renderNodes`, `loadNode`,
+  `evaluateGeoNode`, `currentColumnNodeKey`, `currentWallNodeKey` и
+  `currentBeamNodeKey`;
+- добавлены поведенческие тесты загрузки, сохранения, отказа dual-write,
+  удаления, очистки и синхронизации локального node state.
+
+Проверки после service boundary и после state/DOM/actions выполнялись отдельно:
+
+- `npm run typecheck` — успешно;
+- `npm run lint` — успешно;
+- `npm run build` — успешно;
+- `npm test` — `47/47`.
+
+Оставшийся geodesy-долг:
+
+- вынести из `app.ts` расчёты и rendering самой формы;
+- перенести BIM/geodesy selection runtime отдельным этапом без изменения BIM
+  pipeline;
+- заменить оставшийся read-only `globalThis.nodes` context в overview/summary
+  явным публичным API после миграции этих потребителей.

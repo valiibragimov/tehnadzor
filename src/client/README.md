@@ -9,6 +9,8 @@ feature-логику не следует добавлять в него напр
   - `projects/` — выбор объекта, construction selector, design data и runtime;
   - `control-plan/` — UI и use case плана контроля;
   - `journal/` — публичный API данных журнала для других features.
+  - `inspections/geodesy/` — DOM bindings, node state/actions, список узлов и
+    service boundary над централизованным Firestore repository.
 - `app/modules/` — ещё не мигрированные пользовательские разделы. Внутренние
   data/UI файлы конкретного раздела лежат в одноименной подпапке:
   - `geometry/` — состояние и операции геометрического контроля;

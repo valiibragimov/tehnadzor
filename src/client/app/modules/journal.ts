@@ -60,6 +60,29 @@ let journalIssueOverdueCountEl = null;
 let issueRecords: IssueRecord[] = [];
 const ISSUE_REPEAT_CONTROL_STORAGE_KEY = "tehnadzor_repeat_control";
 
+export interface JournalGeodesyApi {
+  nodes: Map<string, Record<string, unknown>>;
+  saveNodes(): void;
+  renderNodes(): void;
+  loadNode(nodeId: string): void;
+  resetCurrentNodeKeys(): void;
+  clearCurrentNodeKey(nodeId: string): void;
+  resetInspectionStatus(): void;
+}
+
+let geodesyApi: JournalGeodesyApi | null = null;
+
+export function configureJournalGeodesy(api: JournalGeodesyApi) {
+  geodesyApi = api;
+}
+
+function getGeodesyApi() {
+  if (!geodesyApi) {
+    throw new Error("Journal geodesy dependency is not configured.");
+  }
+  return geodesyApi;
+}
+
 function getEntryConstructionKey(value) {
   return normalizeConstructionKey(value, String(value || "").trim());
 }
@@ -139,6 +162,7 @@ function buildGeoNodeContextCandidates(node) {
 }
 
 function findGeoNodeKeyForJournalEntry(entry) {
+  const { nodes } = getGeodesyApi();
   const sourceId = String(entry?.sourceId || "").trim();
   if (sourceId && nodes.has(sourceId)) return sourceId;
 
@@ -1059,17 +1083,15 @@ async function clearModuleCollection(collectionName, map, saveFn, renderFn, rese
 }
 
 async function clearAllModuleChecksForProject() {
+  const geodesy = getGeodesyApi();
   await clearModuleCollection(
     "geoNodes",
-    nodes,
-    saveNodes,
-    renderNodes,
+    geodesy.nodes,
+    geodesy.saveNodes,
+    geodesy.renderNodes,
     () => {
-      currentColumnNodeKey = null;
-      currentWallNodeKey = null;
-      currentBeamNodeKey = null;
-      state.geo = false;
-      checked.geo = false;
+      geodesy.resetCurrentNodeKeys();
+      geodesy.resetInspectionStatus();
     }
   );
   await clearModuleCollection(
@@ -1119,21 +1141,19 @@ async function deleteModuleCheckFromEntry(entry) {
 
   try {
     if (moduleKey.includes("геодез")) {
+      const geodesy = getGeodesyApi();
       if (!sourceId) sourceId = findGeoNodeKeyForJournalEntry(entry);
 
       if (!sourceId) return;
       await deleteProjectCollectionDoc(currentProjectId, "geoNodes", sourceId);
       await deleteInspectionAndRefreshAnalytics(currentProjectId, sourceId);
-      if (nodes.has(sourceId)) {
-        nodes.delete(sourceId);
-        saveNodes();
-        renderNodes();
+      if (geodesy.nodes.has(sourceId)) {
+        geodesy.nodes.delete(sourceId);
+        geodesy.saveNodes();
+        geodesy.renderNodes();
       }
-      if (currentColumnNodeKey === sourceId) currentColumnNodeKey = null;
-      if (currentWallNodeKey === sourceId) currentWallNodeKey = null;
-      if (currentBeamNodeKey === sourceId) currentBeamNodeKey = null;
-      state.geo = false;
-      checked.geo = false;
+      geodesy.clearCurrentNodeKey(sourceId);
+      geodesy.resetInspectionStatus();
       return;
     }
 
@@ -1331,12 +1351,13 @@ async function onJournalRowClick(entry) {
     let found = false;
 
     if (entry.module === "Геодезия") {
+      const geodesy = getGeodesyApi();
       // Ищем узел геодезии
       const targetNodeKey = findGeoNodeKeyForJournalEntry(entry);
 
-      if (targetNodeKey && nodes.has(targetNodeKey)) {
+      if (targetNodeKey && geodesy.nodes.has(targetNodeKey)) {
         console.log("[Journal] Открываем узел геодезии:", targetNodeKey);
-        loadNode(targetNodeKey);
+        geodesy.loadNode(targetNodeKey);
         found = true;
 
         // Прокручиваем к форме

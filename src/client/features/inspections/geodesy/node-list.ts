@@ -1,4 +1,7 @@
-import { getConstructionModuleBehavior, getConstructionProfile } from "../construction.js";
+import {
+  getConstructionModuleBehavior,
+  getConstructionProfile
+} from "../../../app/construction.js";
 
 function formatNodeValue(value, unit = "") {
   if (value === null || value === undefined || value === "") return "—";
@@ -112,79 +115,6 @@ function setupNodeCardInteractions(row, { onOpen, onDelete }: NodeCardInteractio
 export function saveGeoNodesToStorage({ nodes, storage = localStorage, storageKey }) {
   const payload = Array.from(nodes.entries());
   storage.setItem(storageKey, JSON.stringify(payload));
-}
-
-export async function loadGeoNodesForProjectData({
-  projectId,
-  nodes,
-  renderNodes,
-  saveNodes,
-  getProjectCollectionSnapshot
-}) {
-  nodes.clear();
-  renderNodes();
-
-  if (!projectId || projectId.trim() === "") return;
-
-  try {
-    const snap = await getProjectCollectionSnapshot(projectId, "geoNodes");
-    snap.forEach((docSnap) => {
-      const data = docSnap.data();
-      if (data.deleted) return;
-      nodes.set(docSnap.id, data);
-    });
-    renderNodes();
-    saveNodes();
-  } catch (e) {
-    console.error("Ошибка загрузки узлов проекта:", e);
-  }
-}
-
-export async function saveGeoNodeToProject({
-  projectId,
-  nodeId,
-  data,
-  setProjectCollectionDoc,
-  upsertGeoInspectionDualWrite
-}) {
-  await setProjectCollectionDoc(projectId, "geoNodes", nodeId, data);
-  try {
-    await upsertGeoInspectionDualWrite(projectId, nodeId, data);
-  } catch (dualWriteError) {
-    console.warn("[DualWrite][geo] inspections upsert failed:", dualWriteError);
-  }
-}
-
-export async function deleteGeoNodeFromProject({
-  projectId,
-  nodeId,
-  setProjectCollectionDoc,
-  deleteGeoInspectionDualWrite
-}) {
-  await setProjectCollectionDoc(projectId, "geoNodes", nodeId, { deleted: true }, { merge: true });
-  await deleteGeoInspectionDualWrite(projectId, nodeId);
-}
-
-export async function clearGeoNodesForProjectData({
-  projectId,
-  clearProjectCollection,
-  clearGeoInspectionDualWrite,
-  nodes,
-  saveNodes,
-  renderNodes,
-  resetCurrentNodeKeys
-}) {
-  const deletedCount = await clearProjectCollection(projectId, "geoNodes");
-  const deletedDualWriteCount = await clearGeoInspectionDualWrite(projectId);
-
-  nodes.clear();
-  saveNodes();
-  renderNodes();
-  if (typeof resetCurrentNodeKeys === "function") {
-    resetCurrentNodeKeys();
-  }
-
-  return { deletedCount, deletedDualWriteCount };
 }
 
 export function renderGeoNodesList({

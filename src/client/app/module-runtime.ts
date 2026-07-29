@@ -1,4 +1,5 @@
 import { dispatchAppTabActivated } from "./services/module-activation.js";
+import type { JournalGeodesyApi } from "./modules/journal.js";
 
 type JournalModule = typeof import("./modules/journal.js");
 type GeometryModule = typeof import("./modules/geometry.js");
@@ -12,11 +13,15 @@ const INSPECTION_TARGETS = new Set(["geo", "reinforcement", "geometry", "strengt
 
 interface ModuleRuntimeOptions {
   onJournalTabActivated?: () => void;
+  journalGeodesy: JournalGeodesyApi;
 }
 
 type ModuleAction<TModule, TResult> = (module: TModule) => TResult | Promise<TResult>;
 
-export function createModuleRuntime({ onJournalTabActivated }: ModuleRuntimeOptions = {}) {
+export function createModuleRuntime({
+  onJournalTabActivated,
+  journalGeodesy
+}: ModuleRuntimeOptions) {
   let journalModulePromise: Promise<JournalModule> | null = null;
   let geometryModulePromise: Promise<GeometryModule> | null = null;
   let reinforcementModulePromise: Promise<ReinforcementModule> | null = null;
@@ -43,6 +48,7 @@ export function createModuleRuntime({ onJournalTabActivated }: ModuleRuntimeOpti
     if (!journalModulePromise) {
       journalModulePromise = import("./modules/journal.js")
         .then((module) => {
+          module.configureJournalGeodesy(journalGeodesy);
           module.initJournalModule();
           return module;
         })

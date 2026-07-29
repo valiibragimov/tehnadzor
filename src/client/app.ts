@@ -3,12 +3,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 import {
-  clearProjectCollection,
-  getProjectCollectionSnapshot,
   getProjectDocSnapshot,
   getUserDocSnapshot,
-  mergeProjectDoc,
-  setProjectCollectionDoc
+  mergeProjectDoc
 } from "./app/repositories/firestore-repository.js";
 import { initAuthBootstrap, initStaticBootstrap } from "./app/bootstrap.js";
 import type {
@@ -48,11 +45,6 @@ import { applyLaunchParamsFromUrl } from "./app/launch-params.js";
 import { createAppModuleBridge } from "./app/module-bridge.js";
 import { createProfileRuntime } from "./app/profile/runtime.js";
 import {
-  clearInspectionsByModuleAndRefreshAnalytics,
-  deleteInspectionAndRefreshAnalytics,
-  saveInspectionAndRefreshAnalytics
-} from "./app/services/inspection-sync.js";
-import {
   createConstructionSelectionRuntime,
   createProjectDesignAutosave,
   createProjectRuntime,
@@ -61,13 +53,13 @@ import {
   writeStoredProjectId
 } from "./features/projects/index.js";
 import {
-  clearGeoNodesForProjectData,
-  deleteGeoNodeFromProject,
-  loadGeoNodesForProjectData,
-  renderGeoNodesList,
-  saveGeoNodeToProject,
-  saveGeoNodesToStorage
-} from "./app/services/geo-nodes.js";
+  createGeodesyDomBindings,
+  createGeodesyNodeActions,
+  createGeodesyState,
+  createFirestoreGeodesyService,
+  replaceGeodesyItems,
+  renderGeoNodesList
+} from "./features/inspections/geodesy/index.js";
 import {
   buildGeoAxisEntries,
   createGeoLinearPrefillPoints,
@@ -117,7 +109,7 @@ import {
 import { initSettingsPanel, initThemeControls } from "./app/ui/theme.js";
 import { APP_CONFIG, REGULATORY_DOCS, TOLERANCES, UI_TEXT } from "./config.js";
 import type { JournalEntryRecord, JournalViewEntry } from "./types/module-records.js";
-import type { BimElement, GeoPrefill, Project } from "./types/domain.js";
+import type { BimElement, GeoPrefill } from "./types/domain.js";
 import {
   debounce,
   defaultNumbers,
@@ -160,18 +152,8 @@ let journalEntries: JournalEntryRecord[] = [];
 let journalFilteredEntries: JournalEntryRecord[] = [];
 let journalFilterModule: JournalFilterValue = null;
 let journalFilterConstruction: JournalFilterValue = null;
-let bimElements: EnrichedBimElement[] = [];
-let selectedGeoBimElementId = "";
-let geoBimBindingSnapshot: GeoBimBindingSnapshot | null = null;
-let geoBimVisualPanel: BimVisualPanelApi | null = null;
 let ifcImportRuntime: ReturnType<typeof createIfcImportRuntime> | null = null;
 let geoNodesRegistry: GeoNodesRegistry | null = null;
-const bimElementsById = new Map<string, EnrichedBimElement>();
-const geoBimFilters = {
-  search: "",
-  type: "all",
-  axes: "all"
-};
 
 function setCurrentProjectIdState(projectId) {
   currentProjectId = writeStoredProjectId(projectId);
@@ -244,7 +226,6 @@ const btnClearIfcImport   = document.getElementById("btnClearIfcImport");
 const btnChooseAnotherIfc = document.getElementById("btnChooseAnotherIfc");
 const btnResetSelectedIfc = document.getElementById("btnResetSelectedIfc");
 const btnIfcMoreActions   = document.getElementById("btnIfcMoreActions");
-const btnClearNodes       = document.getElementById("btnClearNodes");
 const ifcActionsMenu      = document.getElementById("ifcActionsMenu");
 const bimImportFileState  = document.getElementById("bimImportFileState");
 const bimImportStatus     = document.getElementById("bimImportStatus");
@@ -252,74 +233,93 @@ const bimImportedIfcCount = document.getElementById("bimImportedIfcCount");
 
 // Отладочные запросы отключены
 
-const columnMarkEl        = document.getElementById("columnMark");
-const columnMarkField    = document.getElementById("columnMarkField");
-const columnsBlock        = document.getElementById("columnsBlock");
-const columnsList         = document.getElementById("columnsList");
-const btnAddColumn        = document.getElementById("btnAddColumn");
-const wallsBlock          = document.getElementById("wallsBlock");
-const wallsList           = document.getElementById("wallsList");
-const btnAddWall          = document.getElementById("btnAddWall");
-const geoWallsLimitLabel  = document.getElementById("geoWallsLimitLabel");
-const beamsBlock          = document.getElementById("beamsBlock");
-const beamsList           = document.getElementById("beamsList");
-const btnAddBeam          = document.getElementById("btnAddBeam");
-const axisFields          = document.getElementById("axisFields");
-const geoStripAxisModeField = document.getElementById("geoStripAxisModeField");
-const geoStripAxisModeEl = document.getElementById("geoStripAxisMode") as HTMLSelectElement | null;
-const axisLetterSingleField = document.getElementById("axisLetterSingleField");
-const axisNumberSingleField = document.getElementById("axisNumberSingleField");
-const axisLetterFromField = document.getElementById("axisLetterFromField");
-const axisLetterToField = document.getElementById("axisLetterToField");
-const axisNumberFromField = document.getElementById("axisNumberFromField");
-const axisNumberToField = document.getElementById("axisNumberToField");
-const coordinatesBlock    = document.getElementById("coordinatesBlock");
-const projHField          = document.getElementById("projHField");
-const factHField          = document.getElementById("factHField");
-const tolHField           = document.getElementById("tolHFieldWrap") || document.getElementById("tolHField");
-const floorEl             = document.getElementById("floor");
-const axisLetterEl        = document.getElementById("axisLetter");
-const axisNumberEl        = document.getElementById("axisNumber");
-const axisLetterFromEl    = document.getElementById("axisLetterFrom");
-const axisLetterToEl      = document.getElementById("axisLetterTo");
-const axisNumberFromEl    = document.getElementById("axisNumberFrom");
-const axisNumberToEl      = document.getElementById("axisNumberTo");
-const nodeIdField         = document.getElementById("nodeIdField");
-const nodeIdEl            = document.getElementById("nodeId");
-const geoResult           = document.getElementById("geoResult");
-const geoBimSearchInput   = document.getElementById("geoBimSearchInput");
-const geoBimTypeFilter    = document.getElementById("geoBimTypeFilter");
-const geoBimAxesFilter    = document.getElementById("geoBimAxesFilter");
-const geoBimElementSelect = document.getElementById("geoBimElementSelect");
-const geoBimElementStatus = document.getElementById("geoBimElementStatus");
-const geoBimSourceCard    = document.getElementById("geoBimSourceCard");
-const geoBimSourceTitle   = document.getElementById("geoBimSourceTitle");
-const geoBimSourceState   = document.getElementById("geoBimSourceState");
-const geoBimSourceMeta    = document.getElementById("geoBimSourceMeta");
-const geoBimAppliedTypeEl = document.getElementById("geoBimAppliedType");
-const geoBimAppliedProjXEl = document.getElementById("geoBimAppliedProjX");
-const geoBimAppliedProjYEl = document.getElementById("geoBimAppliedProjY");
-const geoBimAppliedProjHEl = document.getElementById("geoBimAppliedProjH");
-const geoBimAppliedMarkEl = document.getElementById("geoBimAppliedMark");
-const geoBimAppliedAxesEl = document.getElementById("geoBimAppliedAxes");
-const geoBimSourceHint    = document.getElementById("geoBimSourceHint");
-const geoBimMarkEl        = document.getElementById("geoBimMark");
-const geoBimAxesEl        = document.getElementById("geoBimAxes");
-const btnClearGeoBimSelection = document.getElementById("btnClearGeoBimSelection");
-const geoManualAssistNote = document.getElementById("geoManualAssistNote");
-const geoBimPanelHost     = geoBimSourceCard?.parentElement || geoBimElementSelect?.closest(".geo-bim-card");
-const geoPlateOpeningPointsField = document.getElementById("geoPlateOpeningPointsField");
-const geoPlateOpeningPointsList = document.getElementById("geoPlateOpeningPointsList");
-const btnAddGeoPlateOpeningPoint = document.getElementById("btnAddGeoPlateOpeningPoint");
-const geoBehaviorMessage = document.getElementById("geoBehaviorMessage");
-const geoStairNameField = document.getElementById("geoStairNameField");
-const geoStairNameEl = document.getElementById("geoStairName");
-const geoPlateFlatnessField = document.getElementById("geoPlateFlatnessField");
-const geoPlateFlatnessCheckedEl = document.getElementById("geoPlateFlatnessChecked") as HTMLInputElement | null;
-const geoPlateFlatnessActualEl = document.getElementById("geoPlateFlatnessActual") as HTMLInputElement | null;
-const geoPlateFlatnessBaseEl = document.getElementById("geoPlateFlatnessBase") as HTMLSelectElement | null;
-const geoPlateFlatnessClassEl = document.getElementById("geoPlateFlatnessClass") as HTMLSelectElement | null;
-const geoPlateFlatnessToleranceEl = document.getElementById("geoPlateFlatnessTolerance") as HTMLInputElement | null;
+const {
+  btnClearNodes,
+  btnGeo,
+  btnSaveNode,
+  btnUpdateNode,
+  btnClearForm,
+  btnGeoColumns,
+  btnGeoWalls,
+  btnGeoBeams,
+  columnMarkEl,
+  columnMarkField,
+  columnsBlock,
+  columnsList,
+  btnAddColumn,
+  wallsBlock,
+  wallsList,
+  btnAddWall,
+  geoWallsLimitLabel,
+  beamsBlock,
+  beamsList,
+  btnAddBeam,
+  axisFields,
+  geoStripAxisModeField,
+  geoStripAxisModeEl,
+  axisLetterSingleField,
+  axisNumberSingleField,
+  axisLetterFromField,
+  axisLetterToField,
+  axisNumberFromField,
+  axisNumberToField,
+  coordinatesBlock,
+  projHField,
+  factHField,
+  tolHField,
+  floorEl,
+  axisLetterEl,
+  axisNumberEl,
+  axisLetterFromEl,
+  axisLetterToEl,
+  axisNumberFromEl,
+  axisNumberToEl,
+  nodeIdField,
+  nodeIdEl,
+  geoResult,
+  geoBimSearchInput,
+  geoBimTypeFilter,
+  geoBimAxesFilter,
+  geoBimElementSelect,
+  geoBimElementStatus,
+  geoBimSourceCard,
+  geoBimSourceTitle,
+  geoBimSourceState,
+  geoBimSourceMeta,
+  geoBimAppliedTypeEl,
+  geoBimAppliedProjXEl,
+  geoBimAppliedProjYEl,
+  geoBimAppliedProjHEl,
+  geoBimAppliedMarkEl,
+  geoBimAppliedAxesEl,
+  geoBimSourceHint,
+  geoBimMarkEl,
+  geoBimAxesEl,
+  btnClearGeoBimSelection,
+  geoManualAssistNote,
+  geoBimPanelHost,
+  geoPlateOpeningPointsField,
+  geoPlateOpeningPointsList,
+  btnAddGeoPlateOpeningPoint,
+  geoBehaviorMessage,
+  geoStairNameField,
+  geoStairNameEl,
+  geoPlateFlatnessField,
+  geoPlateFlatnessCheckedEl,
+  geoPlateFlatnessActualEl,
+  geoPlateFlatnessBaseEl,
+  geoPlateFlatnessClassEl,
+  geoPlateFlatnessToleranceEl,
+  projX,
+  factX,
+  projY,
+  factY,
+  projH,
+  factH,
+  geoElementsTrigger,
+  geoCoordinatesTrigger,
+  nodesList
+} = createGeodesyDomBindings(document);
 
 // ============================
 //  Состояние модулей
@@ -370,6 +370,28 @@ const {
   initializeConstructionControls,
   syncConstructionSelectionState
 } = constructionSelectionRuntime;
+
+const geodesyService = createFirestoreGeodesyService({
+  getCurrentUserId: () => currentUserId,
+  getCurrentConstructionKey,
+  getCurrentConstructionCategoryKey,
+  getCurrentConstructionLabel,
+  getCurrentConstructionType: () => construction?.value || ""
+});
+const geodesyNodeState = createGeodesyState<
+  EnrichedBimElement,
+  GeoBimBindingSnapshot,
+  BimVisualPanelApi
+>();
+const nodes = geodesyNodeState.nodes;
+const bimElements = geodesyNodeState.bimElements;
+const bimElementsById = geodesyNodeState.bimElementsById;
+const geoBimFilters = geodesyNodeState.bimFilters;
+const columns = geodesyNodeState.columns;
+const walls = geodesyNodeState.walls;
+const beams = geodesyNodeState.beams;
+const plateOpeningPoints = geodesyNodeState.plateOpeningPoints;
+geoNodesRegistry = nodes;
 
 function getGeoConstructionProfile(value = getCurrentConstructionKey()) {
   return getConstructionProfile(value, "geo");
@@ -441,7 +463,6 @@ function updateGeoWallsLimitUi() {
     addWallButton.disabled = isAtLimit;
     addWallButton.title = isAtLimit ? `Достигнут лимит ${maxWalls}: ${getGeoWallEntityPluralGenitive()}` : "";
   }
-  const btnGeoWalls = document.getElementById("btnGeoWalls");
   if (btnGeoWalls) {
     btnGeoWalls.textContent = `Проверить ${getGeoWallEntityPluralGenitive()}`;
   }
@@ -554,13 +575,13 @@ const loadCurrentUserEngineerName = profileRuntime.loadCurrentUserEngineerName;
 const getEngineerValue = profileRuntime.getEngineerValue;
 
 function getSelectedGeoBimElement(): EnrichedBimElement | null {
-  return bimElementsById.get(selectedGeoBimElementId) || null;
+  return bimElementsById.get(geodesyNodeState.selectedBimElementId) || null;
 }
 
 function ensureGeoBimVisualSelector() {
-  if (geoBimVisualPanel) return geoBimVisualPanel;
+  if (geodesyNodeState.bimVisualPanel) return geodesyNodeState.bimVisualPanel;
 
-  geoBimVisualPanel = ensureBimVisualPanel({
+  geodesyNodeState.bimVisualPanel = ensureBimVisualPanel({
     host: geoBimPanelHost,
     sourceCard: geoBimSourceCard,
     getAllElements: () => bimElements as Array<Partial<BimElement> & Record<string, unknown>>,
@@ -568,7 +589,7 @@ function ensureGeoBimVisualSelector() {
       getFilteredGeoBimElements() as Array<Partial<BimElement> & Record<string, unknown>>,
     getSelectedElement: () =>
       getSelectedGeoBimElement() as (Partial<BimElement> & Record<string, unknown>) | null,
-    getSelectedId: () => selectedGeoBimElementId,
+    getSelectedId: () => geodesyNodeState.selectedBimElementId,
     getCurrentProjectId: () => currentProjectId,
     getCurrentIfcFile: () => getCurrentIfcFileFromInput(ifcFileInput),
     onSelect: (elementId) => {
@@ -578,7 +599,7 @@ function ensureGeoBimVisualSelector() {
     moduleKey: "geo"
   });
 
-  return geoBimVisualPanel;
+  return geodesyNodeState.bimVisualPanel;
 }
 
 function renderGeoBimVisualPanel() {
@@ -941,7 +962,7 @@ function refreshBimElementGeoHints() {
 }
 
 function renderGeoBimBindingSnapshot() {
-  const snapshot = geoBimBindingSnapshot;
+  const snapshot = geodesyNodeState.bimBindingSnapshot;
   const hasLink = Boolean(snapshot);
 
   if (geoBimSourceCard) {
@@ -1114,7 +1135,9 @@ function renderGeoBimFilterOptions() {
   syncGeoBimFilterControlsFromState();
 }
 
-function renderGeoBimElementOptions(selectedId = selectedGeoBimElementId) {
+function renderGeoBimElementOptions(
+  selectedId = geodesyNodeState.selectedBimElementId
+) {
   if (!geoBimElementSelect) return;
   refreshBimElementGeoHints();
 
@@ -1161,7 +1184,7 @@ function renderGeoBimElementOptions(selectedId = selectedGeoBimElementId) {
 
 function updateGeoBimControlsState() {
   const filteredElements = getFilteredGeoBimElements();
-  const snapshot = geoBimBindingSnapshot;
+  const snapshot = geodesyNodeState.bimBindingSnapshot;
 
   if (geoBimElementSelect) {
     geoBimElementSelect.disabled = !currentProjectId || bimElements.length === 0;
@@ -1176,7 +1199,7 @@ function updateGeoBimControlsState() {
     geoBimAxesFilter.disabled = !currentProjectId || bimElements.length === 0;
   }
   if (btnClearGeoBimSelection) {
-    btnClearGeoBimSelection.disabled = !selectedGeoBimElementId;
+    btnClearGeoBimSelection.disabled = !geodesyNodeState.selectedBimElementId;
   }
 
   if (!currentProjectId) {
@@ -1236,14 +1259,16 @@ function syncGeoBimFieldsFromState() {
   }
   if (geoBimMarkEl) geoBimMarkEl.value = selectedElement.mark || "";
   if (geoBimAxesEl) geoBimAxesEl.value = getBimAxesValue(selectedElement);
-  geoBimBindingSnapshot = buildGeoBimBindingSnapshot({ element: selectedElement });
+  geodesyNodeState.bimBindingSnapshot = buildGeoBimBindingSnapshot({
+    element: selectedElement
+  });
   renderGeoBimBindingSnapshot();
   updateGeoBimControlsState();
 }
 
 function clearGeoBimSelection({ keepManualFields = true } = {}) {
-  selectedGeoBimElementId = "";
-  geoBimBindingSnapshot = null;
+  geodesyNodeState.selectedBimElementId = "";
+  geodesyNodeState.bimBindingSnapshot = null;
   renderGeoBimElementOptions("");
   if (geoBimElementSelect) geoBimElementSelect.value = "";
 
@@ -1257,10 +1282,10 @@ function clearGeoBimSelection({ keepManualFields = true } = {}) {
 }
 
 async function loadProjectBimElements(projectId) {
-  bimElements = [];
+  bimElements.length = 0;
   bimElementsById.clear();
-  selectedGeoBimElementId = "";
-  geoBimBindingSnapshot = null;
+  geodesyNodeState.selectedBimElementId = "";
+  geodesyNodeState.bimBindingSnapshot = null;
   resetGeoBimFilters();
   syncGeoBimFilterControlsFromState();
   if (geoBimMarkEl) geoBimMarkEl.value = "";
@@ -1276,15 +1301,18 @@ async function loadProjectBimElements(projectId) {
   }
 
   try {
-    const snap = await getProjectCollectionSnapshot(projectId, "elements");
+    const elements = await geodesyService.loadBimElements(projectId);
     const loadedElements: EnrichedBimElement[] = [];
-    snap.forEach((docSnap) => {
-      const normalized = normalizeProjectBimElement(docSnap.id, docSnap.data());
+    elements.forEach(({ id, data }) => {
+      const normalized = normalizeProjectBimElement(id, data);
       if (!normalized.elementId || !normalized.type) return;
       loadedElements.push(normalized as EnrichedBimElement);
     });
 
-    bimElements = sortProjectBimElements(loadedElements);
+    replaceGeodesyItems(
+      bimElements,
+      sortProjectBimElements(loadedElements)
+    );
     bimElements.forEach((element) => {
       const key = element.elementId || element.id;
       if (key) bimElementsById.set(key, element);
@@ -1525,7 +1553,7 @@ function applyGeoBimElementSelection(elementId, { preserveManualFacts = true }: 
     return;
   }
 
-  selectedGeoBimElementId = nextId;
+  geodesyNodeState.selectedBimElementId = nextId;
   syncGeoBimFieldsFromState();
 
   const targetConstruction =
@@ -1534,7 +1562,7 @@ function applyGeoBimElementSelection(elementId, { preserveManualFacts = true }: 
     normalizeConstructionKey(APP_CONFIG.DEFAULT_CONSTRUCTION, "floor_slab");
   const targetGeoFlags = getGeoConstructionFlags(targetConstruction);
   setConstructionAndTrigger(targetConstruction);
-  geoBimBindingSnapshot = buildGeoBimBindingSnapshot({
+  geodesyNodeState.bimBindingSnapshot = buildGeoBimBindingSnapshot({
     element,
     constructionType: targetConstruction
   });
@@ -1577,7 +1605,7 @@ function applyGeoBimElementSelection(elementId, { preserveManualFacts = true }: 
       previousWall,
       createEmptyWallRow
     );
-    walls = [prefilledWall];
+    replaceGeodesyItems(walls, [prefilledWall]);
     renderWalls();
   }
 
@@ -1589,7 +1617,7 @@ function applyGeoBimElementSelection(elementId, { preserveManualFacts = true }: 
       previousBeam,
       createEmptyBeamRow
     );
-    beams = [prefilledBeam];
+    replaceGeodesyItems(beams, [prefilledBeam]);
     renderBeams();
   }
 
@@ -1610,7 +1638,7 @@ function applyGeoBimElementSelection(elementId, { preserveManualFacts = true }: 
 
 function syncGeoBimSelectionFromNode(nodeData: GeoBimNodeData = {}) {
   const nextId = String(nodeData.bimElementId || "").trim();
-  selectedGeoBimElementId = nextId;
+  geodesyNodeState.selectedBimElementId = nextId;
   const selectedElement = nextId ? bimElementsById.get(nextId) || null : null;
 
   renderGeoBimElementOptions(nextId);
@@ -1623,7 +1651,7 @@ function syncGeoBimSelectionFromNode(nodeData: GeoBimNodeData = {}) {
   if (geoBimAxesEl) {
     geoBimAxesEl.value = nodeData.bimAxes || getBimAxesValue(selectedElement);
   }
-  geoBimBindingSnapshot = buildGeoBimBindingSnapshot({
+  geodesyNodeState.bimBindingSnapshot = buildGeoBimBindingSnapshot({
     element: selectedElement,
     nodeData,
     constructionType: nodeData.construction || nodeData.constructionType || getCurrentConstructionKey()
@@ -1635,7 +1663,7 @@ function syncGeoBimSelectionFromNode(nodeData: GeoBimNodeData = {}) {
 function collectGeoBimNodeData() {
   const selectedElement = getSelectedGeoBimElement();
   return {
-    bimElementId: selectedGeoBimElementId || null,
+    bimElementId: geodesyNodeState.selectedBimElementId || null,
     bimSourceModelId: selectedElement?.sourceModelId || null,
     bimIfcGuid: selectedElement?.ifcGuid || null,
     bimType: selectedElement?.type || null,
@@ -1650,71 +1678,6 @@ function collectGeoBimNodeData() {
     bimLineEndY: selectedElement?.lineEndY ?? null
   };
 }
-
-async function upsertGeoInspectionDualWrite(projectId, sourceId, nodeData: GeoBimNodeData) {
-  if (!projectId || !sourceId) return;
-
-  const projectSnap = await getProjectDocSnapshot(projectId);
-  const projectData = (projectSnap.exists() ? projectSnap.data() || {} : {}) as Partial<Project>;
-  const authUid = String(auth.currentUser?.uid || currentUserId || "").trim();
-  const ownerUid = String(projectData.ownerUid || projectData.createdBy || authUid || "").trim();
-  const createdBy = String(projectData.createdBy || projectData.ownerUid || authUid || "").trim();
-  const contractorName = String(projectData.contractorName || "").trim();
-  const rawStatus = String(nodeData?.status || "").trim().toLowerCase();
-  const normalizedStatus = rawStatus === "bad"
-    ? "exceeded"
-    : (rawStatus || null);
-
-  const inspectionPayload: Record<string, unknown> & {
-    ownerUid?: string;
-    createdBy?: string;
-  } = {
-    projectId,
-    module: "Геодезия",
-    moduleKey: "geo",
-    sourceCollection: "geoNodes",
-    sourceId,
-    sourceDocId: sourceId,
-    construction: nodeData?.construction || getCurrentConstructionKey(),
-    constructionCategory: nodeData?.constructionCategory || getCurrentConstructionCategoryKey(),
-    constructionLabel: nodeData?.constructionLabel || getCurrentConstructionLabel(),
-    constructionType: nodeData?.constructionType || construction?.value || "Плита",
-    checkStatus: normalizedStatus,
-    summaryText: nodeData?.summaryText || "",
-    createdAt: nodeData?.createdAt || Date.now(),
-    updatedAt: Date.now(),
-    contractorName
-  };
-  if (ownerUid) inspectionPayload.ownerUid = ownerUid;
-  if (createdBy) inspectionPayload.createdBy = createdBy;
-
-  await saveInspectionAndRefreshAnalytics(
-    projectId,
-    sourceId,
-    inspectionPayload,
-    { merge: true }
-  );
-}
-
-async function deleteGeoInspectionDualWrite(projectId, sourceId) {
-  if (!projectId || !sourceId) return;
-  await deleteInspectionAndRefreshAnalytics(projectId, sourceId);
-}
-
-async function clearGeoInspectionDualWrite(projectId) {
-  return clearInspectionsByModuleAndRefreshAnalytics(projectId, {
-    sourceCollection: "geoNodes",
-    moduleKey: "geo"
-  });
-}
-
-// Геодезия поля
-const projX = document.getElementById("projX");
-const factX = document.getElementById("factX");
-const projY = document.getElementById("projY");
-const factY = document.getElementById("factY");
-const projH = document.getElementById("projH");
-const factH = document.getElementById("factH");
 
 // Армирование
 const reinfStairNameEl      = document.getElementById("reinfStairName");
@@ -1775,9 +1738,6 @@ function parseDecimal(value) {
 
 // Геометрия
 const projThick       = document.getElementById("projThick");
-
-const geoElementsTrigger = document.querySelector('[data-sheet-target="geoElementsSheet"]');
-const geoCoordinatesTrigger = document.querySelector('[data-sheet-target="geoCoordinatesSheet"]');
 
 // Прочность
 const strengthFloorEl = document.getElementById("strengthFloor");
@@ -2074,13 +2034,6 @@ construction.addEventListener("change", () => {
 //  Управление колоннами и балками в разделе армирования
 // ============================
 // Shared state for geo nodes and plate opening points remains in app bootstrap.
-let columns = [];
-let currentColumnNodeKey = null;
-let walls = [];
-let currentWallNodeKey = null;
-let beams = [];
-let currentBeamNodeKey = null;
-let plateOpeningPoints = [];
 
 function createGeoPlateOpeningPoint(point: GeoPlateOpeningPoint = {}) {
   return {
@@ -2147,7 +2100,10 @@ function renderGeoPlateOpeningPoints() {
     });
 
     pointDiv.querySelector(`[data-remove="${point.id}"]`)?.addEventListener("click", () => {
-      plateOpeningPoints = plateOpeningPoints.filter((entry) => entry.id !== point.id);
+      replaceGeodesyItems(
+        plateOpeningPoints,
+        plateOpeningPoints.filter((entry) => entry.id !== point.id)
+      );
       renderGeoPlateOpeningPoints();
     });
 
@@ -2217,7 +2173,7 @@ function updateGeoFieldsVisibility() {
   columnsBlock.style.display = behavior.elementSheetMode === "columns" ? "block" : "none";
   wallsBlock.style.display = behavior.elementSheetMode === "walls" ? "block" : "none";
   if (behavior.elementSheetMode === "walls" && walls.length > getGeoWallLimit()) {
-    walls = walls.slice(0, getGeoWallLimit());
+    walls.splice(getGeoWallLimit());
     renderWalls();
   } else {
     updateGeoWallsLimitUi();
@@ -2272,23 +2228,23 @@ function updateGeoFieldsVisibility() {
   }
 
   if (!isColumn) {
-    columns = [];
+    columns.length = 0;
     renderColumns();
     columnMarkEl.value = "";
-    currentColumnNodeKey = null;
+    geodesyNodeState.currentNodeKeys.column = null;
   }
   if (behavior.elementSheetMode !== "walls") {
-    walls = [];
+    walls.length = 0;
     renderWalls();
-    currentWallNodeKey = null;
+    geodesyNodeState.currentNodeKeys.wall = null;
   }
   if (!isBeam) {
-    beams = [];
+    beams.length = 0;
     renderBeams();
-    currentBeamNodeKey = null;
+    geodesyNodeState.currentNodeKeys.beam = null;
   }
   if (!behavior.showOpeningPoints) {
-    plateOpeningPoints = [];
+    plateOpeningPoints.length = 0;
     renderGeoPlateOpeningPoints();
   }
   if (!behavior.showStairName && geoStairNameEl) {
@@ -2455,7 +2411,7 @@ function addColumn() {
 
 // Функция удаления колонны
 function removeColumn(id) {
-  columns = columns.filter(c => c.id !== id);
+  replaceGeodesyItems(columns, columns.filter(c => c.id !== id));
   renderColumns();
 }
 
@@ -2530,10 +2486,9 @@ if (btnAddGeoPlateOpeningPoint) {
 }
 
 // Кнопка проверки колонн
-const btnGeoColumns = document.getElementById("btnGeoColumns");
 if (btnGeoColumns) {
   btnGeoColumns.addEventListener("click", () => {
-    document.getElementById("btnGeo").click();
+    btnGeo?.click();
   });
 }
 
@@ -2602,7 +2557,7 @@ function addWall() {
 }
 
 function removeWall(id) {
-  walls = walls.filter(w => w.id !== id);
+  replaceGeodesyItems(walls, walls.filter(w => w.id !== id));
   renderWalls();
 }
 
@@ -2944,8 +2899,8 @@ function renderWalls() {
 btnAddWall.addEventListener("click", addWall);
 
 // Кнопка проверки стен
-document.getElementById("btnGeoWalls").addEventListener("click", () => {
-  document.getElementById("btnGeo").click();
+btnGeoWalls?.addEventListener("click", () => {
+  btnGeo?.click();
 });
 
 // Функции для работы с балками (аналогично стенам)
@@ -3012,7 +2967,7 @@ function addBeam() {
 }
 
 function removeBeam(id) {
-  beams = beams.filter(b => b.id !== id);
+  replaceGeodesyItems(beams, beams.filter(b => b.id !== id));
   renderBeams();
 }
 
@@ -3353,8 +3308,8 @@ function renderBeams() {
 btnAddBeam.addEventListener("click", addBeam);
 
 // Кнопка проверки балок
-document.getElementById("btnGeoBeams").addEventListener("click", () => {
-  document.getElementById("btnGeo").click();
+btnGeoBeams?.addEventListener("click", () => {
+  btnGeo?.click();
 });
 
 function updateNodeId() {
@@ -3404,13 +3359,10 @@ geoStripAxisModeEl?.addEventListener("change", () => {
 syncGeoPlateAxisPrevValues();
 updateNodeId();
 
-let skipGeoJournalOnce = false;
-
 function setUpdateNodeVisibility(isVisible) {
-  const btn = document.getElementById("btnUpdateNode");
-  if (!btn) return;
-  btn.style.display = "none";
-  btn.disabled = true;
+  if (!btnUpdateNode) return;
+  btnUpdateNode.style.display = "none";
+  btnUpdateNode.disabled = true;
 }
 
 // ============================
@@ -3424,35 +3376,21 @@ initDatepickerStyles();
 // ============================
 //  Узлы
 // ============================
-const nodes = new Map();
-geoNodesRegistry = nodes;
-
-function saveNodes() {
-  saveGeoNodesToStorage({
-    nodes,
-    storage: localStorage,
-    storageKey: LS.nodes
-  });
-}
+const geodesyNodeActions = createGeodesyNodeActions({
+  state: geodesyNodeState,
+  service: geodesyService,
+  storage: localStorage,
+  storageKey: LS.nodes,
+  renderNodes
+});
+const saveNodes = geodesyNodeActions.saveNodes;
 
 async function saveGeoNodeForCurrentProject(nodeId, data) {
-  return saveGeoNodeToProject({
-    projectId: currentProjectId,
-    nodeId,
-    data,
-    setProjectCollectionDoc,
-    upsertGeoInspectionDualWrite
-  });
+  return geodesyNodeActions.saveProjectNode(currentProjectId, nodeId, data);
 }
 
 async function deleteGeoNodeForCurrentProject(nodeId) {
-  if (!currentProjectId) return;
-  return deleteGeoNodeFromProject({
-    projectId: currentProjectId,
-    nodeId,
-    setProjectCollectionDoc,
-    deleteGeoInspectionDualWrite
-  });
+  return geodesyNodeActions.deleteProjectNode(currentProjectId, nodeId);
 }
 
 async function deleteGeoNodeWithSync(nodeId, nodeData, anchorElement?: HTMLElement | null) {
@@ -3478,10 +3416,9 @@ async function deleteGeoNodeWithSync(nodeId, nodeData, anchorElement?: HTMLEleme
 }
 
 function renderNodes() {
-  const list = document.getElementById("nodesList");
   renderGeoNodesList({
     nodes,
-    listElement: list,
+    listElement: nodesList,
     safeValue,
     evaluateGeoColumnNode,
     evaluateGeoNode,
@@ -3638,6 +3575,32 @@ function updateStrengthFieldsVisibility() {
 }
 
 const appModuleBridge = createAppModuleBridge({
+  journalGeodesy: {
+    nodes,
+    saveNodes,
+    renderNodes,
+    loadNode,
+    resetCurrentNodeKeys: () => {
+      geodesyNodeState.currentNodeKeys.column = null;
+      geodesyNodeState.currentNodeKeys.wall = null;
+      geodesyNodeState.currentNodeKeys.beam = null;
+    },
+    clearCurrentNodeKey: (nodeId) => {
+      if (geodesyNodeState.currentNodeKeys.column === nodeId) {
+        geodesyNodeState.currentNodeKeys.column = null;
+      }
+      if (geodesyNodeState.currentNodeKeys.wall === nodeId) {
+        geodesyNodeState.currentNodeKeys.wall = null;
+      }
+      if (geodesyNodeState.currentNodeKeys.beam === nodeId) {
+        geodesyNodeState.currentNodeKeys.beam = null;
+      }
+    },
+    resetInspectionStatus: () => {
+      state.geo = false;
+      checked.geo = false;
+    }
+  },
   onJournalTabActivated: () => {
     journalFilterModule = null;
     journalFilterConstruction = null;
@@ -3700,7 +3663,7 @@ function loadNode(key) {
   
   // Специальная обработка для колонн
   if (n.type === "columns") {
-    plateOpeningPoints = [];
+    plateOpeningPoints.length = 0;
     renderGeoPlateOpeningPoints();
     loadColumnNode(key);
     return;
@@ -3708,7 +3671,7 @@ function loadNode(key) {
   
   // Специальная обработка для стен
   if (n.type === "walls") {
-    plateOpeningPoints = [];
+    plateOpeningPoints.length = 0;
     renderGeoPlateOpeningPoints();
     loadWallNode(key);
     return;
@@ -3716,7 +3679,7 @@ function loadNode(key) {
   
   // Специальная обработка для балок
   if (n.type === "beams") {
-    plateOpeningPoints = [];
+    plateOpeningPoints.length = 0;
     renderGeoPlateOpeningPoints();
     loadBeamNode(key);
     return;
@@ -3774,9 +3737,12 @@ function loadNode(key) {
     geoPlateFlatnessToleranceEl.value = n.plateFlatnessTolerance ?? "";
   }
   updateGeoPlateFlatnessCalculatedFields();
-  plateOpeningPoints = nodeGeoBehavior.showOpeningPoints && Array.isArray(n.openingPoints)
-    ? n.openingPoints.map((point) => createGeoPlateOpeningPoint(point))
-    : [];
+  replaceGeodesyItems(
+    plateOpeningPoints,
+    nodeGeoBehavior.showOpeningPoints && Array.isArray(n.openingPoints)
+      ? n.openingPoints.map((point) => createGeoPlateOpeningPoint(point))
+      : []
+  );
   renderGeoPlateOpeningPoints();
   
   // Показываем статус загрузки
@@ -3828,7 +3794,7 @@ function loadWallNode(key) {
   const n = nodes.get(key);
   if (!n || n.type !== "walls") return;
   
-  currentWallNodeKey = key;
+  geodesyNodeState.currentNodeKeys.wall = key;
   const wallBehavior = getConstructionModuleBehavior(
     n.construction || n.constructionType || "",
     "geo",
@@ -3841,7 +3807,10 @@ function loadWallNode(key) {
   
   floorEl.value = n.floor || "";
   if (wallBehavior.showOpeningPoints && Array.isArray(n.openingPoints)) {
-    plateOpeningPoints = n.openingPoints.map((point) => createGeoPlateOpeningPoint(point));
+    replaceGeodesyItems(
+      plateOpeningPoints,
+      n.openingPoints.map((point) => createGeoPlateOpeningPoint(point))
+    );
     renderGeoPlateOpeningPoints();
   }
   if (wallBehavior.locationMode === "plate_range" || wallBehavior.locationMode === "strip_foundation") {
@@ -3853,7 +3822,7 @@ function loadWallNode(key) {
     updateNodeId();
   }
   
-  walls = (n.walls || []).map((wall, idx) => ({
+  replaceGeodesyItems(walls, (n.walls || []).map((wall, idx) => ({
     id: Date.now() + idx,
     bindingType: wall.bindingType || "number_letters",
     numberAxis: wall.numberAxis?.toString() || "",
@@ -3878,7 +3847,7 @@ function loadWallNode(key) {
     factX_let_num2: wall.factX_let_num2?.toString() || "",
     projY_let_num2: wall.projY_let_num2?.toString() || "",
     factY_let_num2: wall.factY_let_num2?.toString() || ""
-  }));
+  })));
   
   renderWalls();
   applyGeoProjectFallbackToForm(n, {
@@ -3906,7 +3875,7 @@ function loadBeamNode(key) {
   const n = nodes.get(key);
   if (!n || n.type !== "beams") return;
   
-  currentBeamNodeKey = key;
+  geodesyNodeState.currentNodeKeys.beam = key;
   // Конструкция уже переключена в loadNode, но на всякий случай убеждаемся
   if (!isConstructionProfile(getCurrentConstructionKey(), "geo", "beam")) {
     setConstructionAndTrigger("beam");
@@ -3914,7 +3883,7 @@ function loadBeamNode(key) {
   
   floorEl.value = n.floor || "";
   
-  beams = (n.beams || []).map((beam, idx) => ({
+  replaceGeodesyItems(beams, (n.beams || []).map((beam, idx) => ({
     id: Date.now() + idx,
     bindingType: beam.bindingType || "number_letters",
     numberAxis: beam.numberAxis?.toString() || "",
@@ -3939,7 +3908,7 @@ function loadBeamNode(key) {
     factX_let_num2: beam.factX_let_num2?.toString() || "",
     projY_let_num2: beam.projY_let_num2?.toString() || "",
     factY_let_num2: beam.factY_let_num2?.toString() || ""
-  }));
+  })));
   
   renderBeams();
   applyGeoProjectFallbackToForm(n, {
@@ -3968,7 +3937,7 @@ function loadColumnNode(key) {
   if (!n || n.type !== "columns") return;
   
   // Сохраняем ключ для возможности обновления
-  currentColumnNodeKey = key;
+  geodesyNodeState.currentNodeKeys.column = key;
   
   // Конструкция уже переключена в loadNode, но на всякий случай убеждаемся
   if (!isConstructionProfile(getCurrentConstructionKey(), "geo", "column")) {
@@ -3979,14 +3948,14 @@ function loadColumnNode(key) {
   floorEl.value = n.floor || "";
   
   // Загружаем колонны
-  columns = (n.columns || []).map((col, idx) => ({
+  replaceGeodesyItems(columns, (n.columns || []).map((col, idx) => ({
     id: Date.now() + idx,
     mark: col.mark || "",
     projX: col.projX?.toString() || "",
     factX: col.factX?.toString() || "",
     projY: col.projY?.toString() || "",
     factY: col.factY?.toString() || ""
-  }));
+  })));
   
   renderColumns();
   applyGeoProjectFallbackToForm(n, {
@@ -4013,13 +3982,7 @@ function loadColumnNode(key) {
 // Не загружаем узлы при инициализации, чтобы не загружать данные для неправильного проекта
 
 async function loadGeoNodesForProject(projectId) {
-  return loadGeoNodesForProjectData({
-    projectId,
-    nodes,
-    renderNodes,
-    saveNodes,
-    getProjectCollectionSnapshot
-  });
+  return geodesyNodeActions.loadProjectNodes(projectId);
 }
 
 // ============================
@@ -4136,7 +4099,7 @@ function resetFormForNewProject() {
 
   floorEl.value = "";
   [projX, factX, projY, factY, projH, factH].forEach(el => (el.value = ""));
-  bimElements = [];
+  bimElements.length = 0;
   bimElementsById.clear();
   if (geoBimMarkEl) geoBimMarkEl.value = "";
   if (geoBimAxesEl) geoBimAxesEl.value = "";
@@ -4240,7 +4203,7 @@ initAuthBootstrap({
 });
 
 const applyGeoBimFiltersDebounced = debounce(() => {
-  renderGeoBimElementOptions(selectedGeoBimElementId);
+  renderGeoBimElementOptions(geodesyNodeState.selectedBimElementId);
   updateGeoBimControlsState();
 }, 160);
 
@@ -4265,13 +4228,13 @@ initGeoBimBindings({
   geoBimTypeFilter: geoBimTypeFilter as HTMLSelectElement | null,
   onGeoBimTypeFilterChange: () => {
     geoBimFilters.type = normalizeGeoBimFilterValue(geoBimTypeFilter.value, "all");
-    renderGeoBimElementOptions(selectedGeoBimElementId);
+    renderGeoBimElementOptions(geodesyNodeState.selectedBimElementId);
     updateGeoBimControlsState();
   },
   geoBimAxesFilter: geoBimAxesFilter as HTMLSelectElement | null,
   onGeoBimAxesFilterChange: () => {
     geoBimFilters.axes = normalizeGeoBimFilterValue(geoBimAxesFilter.value, "all");
-    renderGeoBimElementOptions(selectedGeoBimElementId);
+    renderGeoBimElementOptions(geodesyNodeState.selectedBimElementId);
     updateGeoBimControlsState();
   },
   btnClearGeoBimSelection: btnClearGeoBimSelection as HTMLButtonElement | null,
@@ -4341,14 +4304,13 @@ initStaticBootstrap({
 //  Геодезия
 // ============================
 
-document.getElementById("btnGeo").addEventListener("click", () => {
+btnGeo?.addEventListener("click", () => {
   if (!validateProject(currentProjectId)) return;
 
   let shouldAutoSave = true;
   const scheduleAutoSave = () => {
     if (!shouldAutoSave) return;
-    const saveBtn = document.getElementById("btnSaveNode");
-    if (saveBtn) saveBtn.click();
+    btnSaveNode?.click();
   };
   setTimeout(scheduleAutoSave, 0);
 
@@ -4960,7 +4922,7 @@ document.getElementById("btnGeo").addEventListener("click", () => {
 
 });
 
-document.getElementById("btnSaveNode").addEventListener("click", async () => {
+btnSaveNode?.addEventListener("click", async () => {
   if (!validateProject(currentProjectId)) return;
   const geoFlags = getGeoConstructionFlags();
   const geoBehavior = getConstructionModuleBehavior(
@@ -4987,7 +4949,7 @@ document.getElementById("btnSaveNode").addEventListener("click", async () => {
     const floor = floorEl.value.trim();
     
     // Используем существующий ключ для обновления или создаем новый
-    let key = currentColumnNodeKey;
+    let key = geodesyNodeState.currentNodeKeys.column;
     if (!key || !nodes.has(key)) {
       // Создаем новый ключ на основе маркировки и этажа
       const markPart = columnMark ? toDocIdPart(columnMark.replace(/\s+/g, "_")) : "no_mark";
@@ -5036,12 +4998,14 @@ document.getElementById("btnSaveNode").addEventListener("click", async () => {
     };
 
     nodes.set(key, data);
-    currentColumnNodeKey = key; // Сохраняем ключ для возможного следующего обновления
+    geodesyNodeState.currentNodeKeys.column = key; // Сохраняем ключ для возможного следующего обновления
     renderNodes();
     saveNodes();
     
-    const skipJournal = skipGeoJournalOnce;
-    if (skipGeoJournalOnce) skipGeoJournalOnce = false;
+    const skipJournal = geodesyNodeState.skipJournalOnce;
+    if (geodesyNodeState.skipJournalOnce) {
+      geodesyNodeState.skipJournalOnce = false;
+    }
     // Добавляем запись в журнал, если узел был проверен (не pending)
     if (!skipJournal && evaluation.status !== "empty" && evaluation.hasAllData) {
       const allOk = evaluation.status === "ok";
@@ -5117,7 +5081,7 @@ document.getElementById("btnSaveNode").addEventListener("click", async () => {
     }
     
     // Используем существующий ключ для обновления или создаем новый
-    let key = currentWallNodeKey;
+    let key = geodesyNodeState.currentNodeKeys.wall;
     if (!key || !nodes.has(key)) {
       const floorPart = floor ? toDocIdPart(floor.replace(/\s+/g, "_")) : "no_floor";
       key = `walls_${floorPart}_${Date.now()}`;
@@ -5214,12 +5178,14 @@ document.getElementById("btnSaveNode").addEventListener("click", async () => {
     };
 
     nodes.set(key, data);
-    currentWallNodeKey = key;
+    geodesyNodeState.currentNodeKeys.wall = key;
     renderNodes();
     saveNodes();
     
-    const skipJournal = skipGeoJournalOnce;
-    if (skipGeoJournalOnce) skipGeoJournalOnce = false;
+    const skipJournal = geodesyNodeState.skipJournalOnce;
+    if (geodesyNodeState.skipJournalOnce) {
+      geodesyNodeState.skipJournalOnce = false;
+    }
     // Добавляем запись в журнал, если узел был проверен
     if (!skipJournal && evaluation.status !== "empty" && evaluation.hasAllData) {
       const allOk = evaluation.status === "ok";
@@ -5314,7 +5280,7 @@ document.getElementById("btnSaveNode").addEventListener("click", async () => {
     const floor = floorEl.value.trim();
     
     // Используем существующий ключ для обновления или создаем новый
-    let key = currentBeamNodeKey;
+    let key = geodesyNodeState.currentNodeKeys.beam;
     if (!key || !nodes.has(key)) {
       const floorPart = floor ? toDocIdPart(floor.replace(/\s+/g, "_")) : "no_floor";
       key = `beams_${floorPart}_${Date.now()}`;
@@ -5396,12 +5362,14 @@ document.getElementById("btnSaveNode").addEventListener("click", async () => {
     };
 
     nodes.set(key, data);
-    currentBeamNodeKey = key;
+    geodesyNodeState.currentNodeKeys.beam = key;
     renderNodes();
     saveNodes();
     
-    const skipJournal = skipGeoJournalOnce;
-    if (skipGeoJournalOnce) skipGeoJournalOnce = false;
+    const skipJournal = geodesyNodeState.skipJournalOnce;
+    if (geodesyNodeState.skipJournalOnce) {
+      geodesyNodeState.skipJournalOnce = false;
+    }
     // Добавляем запись в журнал, если узел был проверен
     if (!skipJournal && evaluation.status !== "empty" && evaluation.hasAllData) {
       const allOk = evaluation.status === "ok";
@@ -5605,8 +5573,10 @@ document.getElementById("btnSaveNode").addEventListener("click", async () => {
   renderNodes();
   saveNodes();
   
-  const skipJournal = skipGeoJournalOnce;
-  if (skipGeoJournalOnce) skipGeoJournalOnce = false;
+  const skipJournal = geodesyNodeState.skipJournalOnce;
+  if (geodesyNodeState.skipJournalOnce) {
+    geodesyNodeState.skipJournalOnce = false;
+  }
   // Добавляем запись в журнал, если узел был проверен (не pending)
   if (!skipJournal && finalEvaluationStatus !== "empty" && evaluation.hasAllData && (!plateFlatnessData || plateFlatnessComplete)) {
     const allOk = finalEvaluationStatus === "ok";
@@ -5653,7 +5623,7 @@ document.getElementById("btnSaveNode").addEventListener("click", async () => {
   }
 });
 
-document.getElementById("btnUpdateNode").addEventListener("click", () => {
+btnUpdateNode?.addEventListener("click", () => {
   const geoFlags = getGeoConstructionFlags();
   if (geoFlags.isUnsupported) {
     setGeoUnsupportedState({ notify: true });
@@ -5662,11 +5632,14 @@ document.getElementById("btnUpdateNode").addEventListener("click", () => {
 
   // Специальная обработка для колонн
   if (geoFlags.isColumn) {
-    if (!currentColumnNodeKey || !nodes.has(currentColumnNodeKey)) {
+    if (
+      !geodesyNodeState.currentNodeKeys.column ||
+      !nodes.has(geodesyNodeState.currentNodeKeys.column)
+    ) {
       showNotification("Сначала сохраните узел колонн.", "warning");
       return;
     }
-    document.getElementById("btnSaveNode").click();
+    btnSaveNode?.click();
     return;
   }
   
@@ -5690,10 +5663,10 @@ document.getElementById("btnUpdateNode").addEventListener("click", () => {
     showNotification("Сначала сохраните узел.", "warning");
     return;
   }
-  document.getElementById("btnSaveNode").click();
+  btnSaveNode?.click();
 });
 
-document.getElementById("btnClearForm").addEventListener("click", async () => {
+btnClearForm?.addEventListener("click", async () => {
   const geoFlags = getGeoConstructionFlags();
   floorEl.value = "";
   columnMarkEl.value = "";
@@ -5708,24 +5681,24 @@ document.getElementById("btnClearForm").addEventListener("click", async () => {
   if (geoPlateFlatnessClassEl) geoPlateFlatnessClassEl.value = "project";
   if (geoPlateFlatnessToleranceEl) geoPlateFlatnessToleranceEl.value = "";
   updateGeoPlateFlatnessCalculatedFields();
-  currentColumnNodeKey = null;
-  currentWallNodeKey = null;
-  currentBeamNodeKey = null;
+  geodesyNodeState.currentNodeKeys.column = null;
+  geodesyNodeState.currentNodeKeys.wall = null;
+  geodesyNodeState.currentNodeKeys.beam = null;
   clearGeoBimSelection({ keepManualFields: false });
   axisLetterEl.value = APP_CONFIG.DEFAULT_LETTER_AXIS;
   axisNumberEl.value = APP_CONFIG.DEFAULT_NUMBER_AXIS;
   resetGeoPlateAxisFields();
   [projX, factX, projY, factY, projH, factH].forEach(el => (el.value = ""));
-  plateOpeningPoints = [];
+  plateOpeningPoints.length = 0;
   renderGeoPlateOpeningPoints();
   if (geoFlags.isColumn) {
-    columns = [];
+    columns.length = 0;
     renderColumns();
   } else if (geoFlags.isWall) {
-    walls = [];
+    walls.length = 0;
     renderWalls();
   } else if (geoFlags.isBeam) {
-    beams = [];
+    beams.length = 0;
     renderBeams();
   }
   geoResult.className = "result";
@@ -5744,19 +5717,7 @@ document.getElementById("btnClearForm").addEventListener("click", async () => {
 });
 
 async function clearGeoNodesForCurrentProject() {
-  const result = await clearGeoNodesForProjectData({
-    projectId: currentProjectId,
-    clearProjectCollection,
-    clearGeoInspectionDualWrite,
-    nodes,
-    saveNodes,
-    renderNodes,
-    resetCurrentNodeKeys: () => {
-      currentColumnNodeKey = null;
-      currentWallNodeKey = null;
-      currentBeamNodeKey = null;
-    }
-  });
+  const result = await geodesyNodeActions.clearProjectNodes(currentProjectId);
 
   updateSummaryTab();
   return result;
@@ -5820,15 +5781,6 @@ exposeSummaryBinding("journalFilterModule", () => journalFilterModule, (value) =
 exposeSummaryBinding("journalFilterConstruction", () => journalFilterConstruction, (value) => {
   journalFilterConstruction = value;
 });
-exposeSummaryBinding("currentColumnNodeKey", () => currentColumnNodeKey, (value) => {
-  currentColumnNodeKey = value;
-});
-exposeSummaryBinding("currentWallNodeKey", () => currentWallNodeKey, (value) => {
-  currentWallNodeKey = value;
-});
-exposeSummaryBinding("currentBeamNodeKey", () => currentBeamNodeKey, (value) => {
-  currentBeamNodeKey = value;
-});
 exposeSummaryBinding("currentReinfCheckId", () => currentReinfCheckId, (value) => {
   currentReinfCheckId = value;
 });
@@ -5848,8 +5800,6 @@ globalThis.notifyFirestoreSyncStatus = notifyFirestoreSyncStatus;
 globalThis.updateSummaryTab = updateSummaryTab;
 globalThis.state = state;
 globalThis.checked = checked;
-globalThis.saveNodes = saveNodes;
-globalThis.renderNodes = renderNodes;
 globalThis.saveReinfChecks = saveReinfChecks;
 globalThis.renderReinfChecks = renderReinfChecks;
 globalThis.saveGeomChecks = saveGeomChecks;
@@ -5859,7 +5809,6 @@ globalThis.renderStrengthChecks = renderStrengthChecks;
 globalThis.loadReinfCheck = loadReinfCheck;
 globalThis.loadGeomCheck = loadGeomCheck;
 globalThis.loadStrengthCheck = loadStrengthCheck;
-globalThis.loadNode = loadNode;
 globalThis.setConstructionAndTrigger = setConstructionAndTrigger;
 globalThis.projectSelector = projectSelector as HTMLSelectElement | null;
 globalThis.engineer = null;
@@ -5869,7 +5818,6 @@ globalThis.nodes = nodes;
 globalThis.reinfChecks = reinfChecks;
 globalThis.geomChecks = geomChecks;
 globalThis.strengthChecks = strengthChecks;
-globalThis.evaluateGeoNode = evaluateGeoNode;
 
 // ============================
 //  Нормализация ввода дробных чисел (запятая -> точка)
