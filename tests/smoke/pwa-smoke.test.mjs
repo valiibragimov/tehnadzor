@@ -416,10 +416,25 @@ test("app entrypoint delegates inspection evaluation to feature modules", async 
     ),
     "utf8"
   );
-  const bimUtilsSource = await readFile(resolve(projectRoot, "src/client/app/geo-bim-utils.ts"), "utf8");
+  const bimSelectionSource = await readFile(
+    resolve(
+      projectRoot,
+      "src/client/features/inspections/geodesy/bim-selection.ts"
+    ),
+    "utf8"
+  );
+  const bimSelectionRuntimeSource = await readFile(
+    resolve(
+      projectRoot,
+      "src/client/features/inspections/geodesy/bim-selection-runtime.ts"
+    ),
+    "utf8"
+  );
 
   assert.match(appSource, /from "\.\/app\/inspection-evaluation\.js"/u);
-  assert.match(appSource, /from "\.\/app\/geo-bim-utils\.js"/u);
+  assert.doesNotMatch(appSource, /geo-bim-utils/u);
+  assert.doesNotMatch(appSource, /function applyGeoBimElementSelection/u);
+  assert.doesNotMatch(appSource, /function renderGeoBimBindingSnapshot/u);
   assert.doesNotMatch(appSource, /function evaluateGeoNode/u);
   assert.doesNotMatch(appSource, /function evaluateReinfCheck/u);
   assert.doesNotMatch(appSource, /function normalizeGeoBimSnapshotValue/u);
@@ -427,8 +442,18 @@ test("app entrypoint delegates inspection evaluation to feature modules", async 
   assert.match(geodesyEvaluationSource, /export function evaluateGeoNode/u);
   assert.doesNotMatch(evaluationSource, /export function evaluateGeoNode/u);
   assert.match(evaluationSource, /export function evaluateReinfCheck/u);
-  assert.match(bimUtilsSource, /export function normalizeGeoBimSnapshotValue/u);
-  assert.match(bimUtilsSource, /export function formatResolvedLinearAxes/u);
+  assert.match(
+    bimSelectionSource,
+    /export function normalizeGeoBimSnapshotValue/u
+  );
+  assert.match(
+    bimSelectionSource,
+    /export function collectGeodesyBimNodeData/u
+  );
+  assert.match(
+    bimSelectionRuntimeSource,
+    /export function createGeodesyBimSelectionRuntime/u
+  );
 });
 
 test("app entrypoint delegates construction selection to the projects feature", async () => {

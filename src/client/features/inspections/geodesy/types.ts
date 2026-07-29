@@ -1,3 +1,5 @@
+import type { BimElement, GeoPrefill } from "../../../types/domain.js";
+
 export type GeodesyStatus = "empty" | "pending" | "ok" | "bad" | "not-ok";
 export type GeodesyDataStatus =
   | "empty"
@@ -75,10 +77,80 @@ export interface GeodesyCoordinateDraft {
   factH: number | null;
 }
 
-export interface GeodesyNodeRecord extends Record<string, unknown> {
-  type?: "columns" | "walls" | "beams" | string | null;
+export interface GeodesyBimNodeData extends Partial<GeoPrefill> {
+  bimElementId?: string | null;
+  bimSourceModelId?: string | null;
+  bimIfcGuid?: string | null;
+  bimType?: string | null;
+  bimFloor?: string | null;
+  bimMark?: string | null;
+  bimAxes?: string | null;
+  bimProjectX?: number | null;
+  bimProjectY?: number | null;
+  bimProjectH?: number | null;
+  bimLineStartX?: number | null;
+  bimLineStartY?: number | null;
+  bimLineEndX?: number | null;
+  bimLineEndY?: number | null;
   construction?: string | null;
+  constructionCategory?: string | null;
+  constructionLabel?: string | null;
   constructionType?: string | null;
+  constructionSubtype?: string | null;
+  constructionSubtypeLabel?: string | null;
+  stairName?: string | null;
+  plateFlatnessChecked?: boolean | null;
+  summaryText?: string | null;
+  status?: string | null;
+  createdAt?: number | null;
+}
+
+export interface GeodesySingleAxisHint {
+  letter?: string | null;
+  number?: string | number | null;
+}
+
+export interface GeodesyLinearBindingHint {
+  bindingType?: GeodesyBindingType | string | null;
+  numberAxis?: string | number | null;
+  letterAxis1?: string | null;
+  letterAxis2?: string | null;
+  letterAxis?: string | null;
+  numberAxis1?: string | number | null;
+  numberAxis2?: string | number | null;
+}
+
+export interface GeodesyBimElement
+  extends BimElement, Record<string, unknown> {
+  geoBindingHint?: GeodesyLinearBindingHint | null;
+  geoSingleAxisHint?: GeodesySingleAxisHint | null;
+}
+
+export interface GeodesyBimBindingSnapshot {
+  resolved: boolean;
+  title: string;
+  elementId: string;
+  sourceModelId: string;
+  ifcGuid: string;
+  rawType: string;
+  typeLabel: string;
+  projectX: number | null;
+  projectY: number | null;
+  projectH: number | null;
+  mark: string;
+  axes: string;
+}
+
+export interface GeodesyBimApi {
+  clear(options?: { keepManualFields?: boolean }): void;
+  collectNodeData(): GeodesyBimNodeData;
+  syncFromNode(node: GeodesyNodeRecord): void;
+  updateControls(): void;
+}
+
+export interface GeodesyNodeRecord
+  extends GeodesyBimNodeData, Record<string, unknown> {
+  type?: "columns" | "walls" | "beams" | string | null;
   constructionSubtype?: string | null;
   constructionPileElement?: string | null;
   floor?: string | null;
@@ -97,9 +169,6 @@ export interface GeodesyNodeRecord extends Record<string, unknown> {
   factY?: number | null;
   projH?: number | null;
   factH?: number | null;
-  bimProjectX?: number | null;
-  bimProjectY?: number | null;
-  bimProjectH?: number | null;
   stairName?: string | null;
   plateFlatnessChecked?: boolean | null;
   plateFlatnessActual?: string | number | null;

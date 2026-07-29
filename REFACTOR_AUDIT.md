@@ -750,3 +750,53 @@ Smoke-регрессия:
 - `npm run lint` — успешно;
 - `npm run build` — успешно;
 - `npm test` — `51/51` тест успешно.
+
+## Geodesy BIM selection runtime — 2026-07-29
+
+Выполнен отдельный этап только для выбора и привязки BIM-элемента к
+геодезической проверке:
+
+- `bim-selection.ts` содержит чистые преобразования: фильтрацию, разрешение
+  выбранного/ручного/недоступного состояния, восстановление snapshot,
+  нормализацию загруженных записей и BIM payload геодезического узла;
+- `bim-selection-runtime.ts` владеет geodesy-specific BIM state, axis hints,
+  rendering фильтров, списка и snapshot, применением элемента к форме,
+  восстановлением сохранённой привязки и DOM listeners;
+- `runtime.ts` создаёт BIM runtime с явными зависимостями; form и handlers
+  используют один небольшой BIM API;
+- из `app.ts` удалены geodesy-specific BIM filters, selection, rendering,
+  snapshot и handlers; entrypoint только передаёт DOM, project/IFC context и
+  общие callbacks; готовый `GeodesyDomBindings` передаётся одним объектом;
+- общий IFC import runtime, `bim-elements`, BIM visual panel и That Open
+  pipeline не переносились и не изменялись;
+- удалены ставшие неиспользуемыми `app/geo-bim-types.ts`,
+  `app/geo-bim-utils.ts` и общий `initGeoBimBindings`;
+- публичный `features/inspections/geodesy/index.ts` содержит только четыре
+  production entrypoints, используемые bootstrap-кодом;
+- Firestore-формат BIM-полей сохранён; feature UI и преобразования не
+  импортируют Firebase SDK или централизованный repository;
+- `globalThis.nodes` и BIM-поддержка geometry, reinforcement и strength не
+  изменялись.
+
+Добавлены поведенческие regression-тесты:
+
+- выбор доступного BIM-элемента;
+- совместная фильтрация по поиску, типу и осям;
+- переход в ручной режим;
+- восстановление сохранённой BIM-привязки;
+- недоступный и soft-deleted BIM-элемент;
+- формирование BIM-данных для сохранения узла без изменения полей Firestore.
+
+Оставшийся долг:
+
+- удалить read-only `globalThis.nodes` при миграции overview/summary;
+- переносить BIM boundaries geometry, reinforcement и strength отдельными
+  feature-этапами;
+- делить крупный DOM runtime только по самостоятельным поведенческим границам.
+
+Финальная проверка этапа:
+
+- `npm run typecheck` — успешно;
+- `npm run lint` — успешно;
+- `npm run build` — успешно;
+- `npm test` — `58/58` тестов успешно.

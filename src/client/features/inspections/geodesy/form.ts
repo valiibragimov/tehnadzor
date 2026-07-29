@@ -15,9 +15,10 @@ import {
 } from "../../../utils.js";
 import { replaceGeodesyItems, type GeodesyState } from "./state.js";
 import type { createGeodesyDomBindings } from "./dom.js";
-import type { GeodesyNodeRecord } from "./types.js";
+import type { GeodesyBimApi } from "./types.js";
 import type {
   GeodesyBindingType,
+  GeodesyNodeRecord,
   GeodesyOpeningPointDraft
 } from "./types.js";
 
@@ -45,8 +46,9 @@ export interface GeodesyConstructionFlags {
   maxWalls?: number;
 }
 
-interface GeodesyFormDependencies<TBimElement, TBimBinding, TBimPanel> {
-  state: GeodesyState<TBimElement, TBimBinding, TBimPanel>;
+interface GeodesyFormDependencies {
+  state: GeodesyState;
+  bim: Pick<GeodesyBimApi, "syncFromNode" | "updateControls">;
   dom: GeodesyDomBindings;
   construction: HTMLElement;
   inspectionState: Record<string, boolean>;
@@ -63,16 +65,11 @@ interface GeodesyFormDependencies<TBimElement, TBimBinding, TBimPanel> {
     constructionPileElement?: string
   ): boolean;
   saveMeta(): void;
-  updateGeoBimControlsState(): void;
-  syncGeoBimSelectionFromNode(node: GeodesyNodeRecord): void;
 }
 
-export function createGeodesyForm<
-  TBimElement = Record<string, unknown>,
-  TBimBinding = unknown,
-  TBimPanel = unknown
->({
+export function createGeodesyForm({
   state: geodesyNodeState,
+  bim,
   dom,
   construction,
   inspectionState: state,
@@ -84,10 +81,8 @@ export function createGeodesyForm<
   getCurrentConstructionSubtype,
   getCurrentPileElement,
   setConstructionAndTrigger,
-  saveMeta,
-  updateGeoBimControlsState,
-  syncGeoBimSelectionFromNode
-}: GeodesyFormDependencies<TBimElement, TBimBinding, TBimPanel>) {
+  saveMeta
+}: GeodesyFormDependencies) {
   const { nodes, columns, walls, beams, plateOpeningPoints } = geodesyNodeState;
   const {
     btnGeo, btnUpdateNode, btnAddColumn, btnGeoColumns, btnAddWall,
@@ -319,7 +314,7 @@ export function createGeodesyForm<
     updateGeoPlateFlatnessCalculatedFields();
 
     updateNodeId();
-    updateGeoBimControlsState();
+    bim.updateControls();
   }
 
   const GEO_PLATE_FLATNESS_LIMITS = {
@@ -1958,7 +1953,7 @@ export function createGeodesyForm<
       geoResult.innerHTML = "Данные узла загружены.";
     }
 
-    syncGeoBimSelectionFromNode(n);
+    bim.syncFromNode(n);
     setUpdateNodeVisibility(true);
   }
 
@@ -2068,7 +2063,7 @@ export function createGeodesyForm<
       geoResult.innerHTML = "Данные стен загружены.";
     }
 
-    syncGeoBimSelectionFromNode(n);
+    bim.syncFromNode(n);
     setUpdateNodeVisibility(true);
   }
 
@@ -2129,7 +2124,7 @@ export function createGeodesyForm<
       geoResult.innerHTML = "Данные балок загружены.";
     }
 
-    syncGeoBimSelectionFromNode(n);
+    bim.syncFromNode(n);
     setUpdateNodeVisibility(true);
   }
 
@@ -2175,7 +2170,7 @@ export function createGeodesyForm<
       geoResult.innerHTML = "Данные колонн загружены.";
     }
 
-    syncGeoBimSelectionFromNode(n);
+    bim.syncFromNode(n);
     setUpdateNodeVisibility(true);
   }
 

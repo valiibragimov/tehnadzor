@@ -6,19 +6,6 @@ interface ProjectSelectorBindingOptions {
   selectProject: (projectId: string) => Promise<unknown> | unknown;
 }
 
-interface GeoBimBindingsOptions {
-  geoBimElementSelect: HTMLSelectElement | null;
-  onGeoBimElementSelect: (elementId: string) => void;
-  geoBimSearchInput: HTMLInputElement | null;
-  onGeoBimSearchInput: () => void;
-  geoBimTypeFilter: HTMLSelectElement | null;
-  onGeoBimTypeFilterChange: () => void;
-  geoBimAxesFilter: HTMLSelectElement | null;
-  onGeoBimAxesFilterChange: () => void;
-  btnClearGeoBimSelection: HTMLButtonElement | null;
-  onGeoBimSelectionClear: () => void;
-}
-
 interface IfcBindingsOptions {
   ifcFileInput: HTMLInputElement | null;
   btnImportIfc: HTMLButtonElement | null;
@@ -58,41 +45,6 @@ export function initProjectSelectorBinding({
 
     await selectProject(projectId);
   });
-}
-
-export function initGeoBimBindings({
-  geoBimElementSelect,
-  onGeoBimElementSelect,
-  geoBimSearchInput,
-  onGeoBimSearchInput,
-  geoBimTypeFilter,
-  onGeoBimTypeFilterChange,
-  geoBimAxesFilter,
-  onGeoBimAxesFilterChange,
-  btnClearGeoBimSelection,
-  onGeoBimSelectionClear
-}: GeoBimBindingsOptions) {
-  if (geoBimElementSelect) {
-    geoBimElementSelect.addEventListener("change", () => {
-      onGeoBimElementSelect(geoBimElementSelect.value);
-    });
-  }
-
-  if (geoBimSearchInput) {
-    geoBimSearchInput.addEventListener("input", onGeoBimSearchInput);
-  }
-
-  if (geoBimTypeFilter) {
-    geoBimTypeFilter.addEventListener("change", onGeoBimTypeFilterChange);
-  }
-
-  if (geoBimAxesFilter) {
-    geoBimAxesFilter.addEventListener("change", onGeoBimAxesFilterChange);
-  }
-
-  if (btnClearGeoBimSelection) {
-    btnClearGeoBimSelection.addEventListener("click", onGeoBimSelectionClear);
-  }
 }
 
 export function initIfcBindings({

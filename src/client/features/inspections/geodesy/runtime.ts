@@ -4,6 +4,7 @@ import {
   evaluateGeoNode,
   evaluateGeoWallNode
 } from "./evaluation.js";
+import { createGeodesyBimSelectionRuntime } from "./bim-selection-runtime.js";
 import {
   createGeodesyForm,
   type GeodesyConstructionFlags,
@@ -22,17 +23,19 @@ import type {
 
 type GeodesyDomBindings = ReturnType<typeof createGeodesyDomBindings>;
 
-interface GeodesyRuntimeDependencies<TBimElement, TBimBinding, TBimPanel> {
-  state: GeodesyState<TBimElement, TBimBinding, TBimPanel>;
+interface GeodesyRuntimeDependencies {
+  state: GeodesyState;
   service: GeodesyService;
   dom: GeodesyDomBindings;
   construction: HTMLElement;
+  constructionFieldShell: HTMLElement | null;
   storage: Storage;
   storageKey: string;
   inspectionState: Record<string, boolean>;
   inspectionChecked: Record<string, boolean>;
   getCurrentProjectId(): string | null;
   getCurrentConstructionKey(): string;
+  getCurrentConstructionLabel(): string;
   getCurrentConstructionSubtype(): string;
   getCurrentPileElement(): string;
   getGeoConstructionFlags(value?: string): GeodesyConstructionFlags;
@@ -42,11 +45,10 @@ interface GeodesyRuntimeDependencies<TBimElement, TBimBinding, TBimPanel> {
     constructionPileElement?: string
   ): boolean;
   buildCurrentConstructionPayload(): Record<string, unknown>;
-  collectGeoBimNodeData(): Record<string, unknown>;
-  syncGeoBimSelectionFromNode(node: GeodesyNodeRecord): void;
-  clearGeoBimSelection(options?: { keepManualFields?: boolean }): void;
+  getCurrentIfcFile(): File | null;
+  resetImportedModelState(): void;
+  syncIfcImportControls(): void;
   saveMeta(): void;
-  updateGeoBimControlsState(): void;
   cancelProjectDesignAutosave(): void;
   saveProjectDesign(): Promise<unknown>;
   updateSummaryTab(): void;
@@ -60,16 +62,8 @@ interface GeodesyRuntimeDependencies<TBimElement, TBimBinding, TBimPanel> {
   onLoadError?(error: unknown): void;
 }
 
-export function createGeodesyRuntime<
-  TBimElement = Record<string, unknown>,
-  TBimBinding = unknown,
-  TBimPanel = unknown
->(
-  dependencies: GeodesyRuntimeDependencies<
-    TBimElement,
-    TBimBinding,
-    TBimPanel
-  >
+export function createGeodesyRuntime(
+  dependencies: GeodesyRuntimeDependencies
 ) {
   const {
     state,
@@ -95,6 +89,10 @@ export function createGeodesyRuntime<
     if (!nodeActions) throw new Error("GEODESY_RUNTIME_NOT_STARTED");
     return nodeActions;
   };
+  const bim = createGeodesyBimSelectionRuntime({
+    ...dependencies,
+    getForm
+  });
 
   const saveNodes = () => getNodeActions().saveNodes();
 
@@ -149,7 +147,10 @@ export function createGeodesyRuntime<
   const start = () => {
     if (started) return api;
 
-    form = createGeodesyForm(dependencies);
+    form = createGeodesyForm({
+      ...dependencies,
+      bim
+    });
     nodeActions = createGeodesyNodeActions({
       state,
       service,
@@ -160,17 +161,20 @@ export function createGeodesyRuntime<
     });
     bindGeodesyHandlers({
       ...dependencies,
+      bim,
       form,
       nodeActions,
       renderNodes,
       saveNodes
     });
+    bim.start();
     started = true;
     return api;
   };
 
   const api = {
     start,
+    bim,
     get nodes() {
       return state.nodes;
     },

@@ -1,4 +1,6 @@
 import type {
+  GeodesyBimBindingSnapshot,
+  GeodesyBimElement,
   GeodesyColumnDraft,
   GeodesyCurrentNodeKeys,
   GeodesyLinearDraft,
@@ -13,16 +15,12 @@ export interface GeodesyNodeState {
 
 export type GeodesyFormCollection = "column" | "wall" | "beam" | "node";
 
-export interface GeodesyState<
-  TBimElement = Record<string, unknown>,
-  TBimBinding = unknown,
-  TBimPanel = unknown
-> extends GeodesyNodeState {
-  bimElements: TBimElement[];
+export interface GeodesyState extends GeodesyNodeState {
+  bimElements: GeodesyBimElement[];
   selectedBimElementId: string;
-  bimBindingSnapshot: TBimBinding | null;
-  bimVisualPanel: TBimPanel | null;
-  bimElementsById: Map<string, TBimElement>;
+  bimBindingSnapshot: GeodesyBimBindingSnapshot | null;
+  bimVisualPanel: { render(): void } | null;
+  bimElementsById: Map<string, GeodesyBimElement>;
   bimFilters: {
     search: string;
     type: string;
@@ -35,11 +33,7 @@ export interface GeodesyState<
   skipJournalOnce: boolean;
 }
 
-export function createGeodesyState<
-  TBimElement = Record<string, unknown>,
-  TBimBinding = unknown,
-  TBimPanel = unknown
->(): GeodesyState<TBimElement, TBimBinding, TBimPanel> {
+export function createGeodesyState(): GeodesyState {
   return {
     nodes: new Map<string, GeodesyNodeRecord>(),
     currentNodeKeys: {
@@ -51,7 +45,7 @@ export function createGeodesyState<
     selectedBimElementId: "",
     bimBindingSnapshot: null,
     bimVisualPanel: null,
-    bimElementsById: new Map<string, TBimElement>(),
+    bimElementsById: new Map<string, GeodesyBimElement>(),
     bimFilters: {
       search: "",
       type: "all",
@@ -79,12 +73,8 @@ export function resetGeodesyCurrentNodeKeys(state: GeodesyNodeState) {
   state.currentNodeKeys.beam = null;
 }
 
-export function resetGeodesyFormState<
-  TBimElement,
-  TBimBinding,
-  TBimPanel
->(
-  state: GeodesyState<TBimElement, TBimBinding, TBimPanel>,
+export function resetGeodesyFormState(
+  state: GeodesyState,
   collection: GeodesyFormCollection
 ) {
   resetGeodesyCurrentNodeKeys(state);

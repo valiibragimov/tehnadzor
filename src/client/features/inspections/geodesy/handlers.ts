@@ -33,6 +33,7 @@ import {
   type GeodesyState
 } from "./state.js";
 import type {
+  GeodesyBimApi,
   GeodesyJournalPayload,
   GeodesyNodeRecord
 } from "./types.js";
@@ -40,8 +41,9 @@ import type {
 type GeodesyDomBindings = ReturnType<typeof createGeodesyDomBindings>;
 type GeodesyNodeActions = ReturnType<typeof createGeodesyNodeActions>;
 
-interface GeodesyHandlersDependencies<TBimElement, TBimBinding, TBimPanel> {
-  state: GeodesyState<TBimElement, TBimBinding, TBimPanel>;
+interface GeodesyHandlersDependencies {
+  state: GeodesyState;
+  bim: Pick<GeodesyBimApi, "clear" | "collectNodeData">;
   form: GeodesyFormRuntime;
   dom: GeodesyDomBindings;
   nodeActions: GeodesyNodeActions;
@@ -53,8 +55,6 @@ interface GeodesyHandlersDependencies<TBimElement, TBimBinding, TBimPanel> {
   getCurrentConstructionSubtype(): string;
   getGeoConstructionFlags(value?: string): GeodesyConstructionFlags;
   buildCurrentConstructionPayload(): Record<string, unknown>;
-  collectGeoBimNodeData(): Record<string, unknown>;
-  clearGeoBimSelection(options?: { keepManualFields?: boolean }): void;
   renderNodes(): void;
   saveNodes(): void;
   saveMeta(): void;
@@ -65,12 +65,9 @@ interface GeodesyHandlersDependencies<TBimElement, TBimBinding, TBimPanel> {
   safeValue(value: unknown): string;
 }
 
-export function bindGeodesyHandlers<
-  TBimElement = Record<string, unknown>,
-  TBimBinding = unknown,
-  TBimPanel = unknown
->({
+export function bindGeodesyHandlers({
   state: geodesyNodeState,
+  bim,
   form,
   dom,
   nodeActions: geodesyNodeActions,
@@ -82,8 +79,6 @@ export function bindGeodesyHandlers<
   getCurrentConstructionSubtype,
   getGeoConstructionFlags,
   buildCurrentConstructionPayload,
-  collectGeoBimNodeData,
-  clearGeoBimSelection,
   renderNodes,
   saveNodes,
   saveMeta,
@@ -92,7 +87,7 @@ export function bindGeodesyHandlers<
   updateSummaryTab,
   upsertJournalEntry,
   safeValue
-}: GeodesyHandlersDependencies<TBimElement, TBimBinding, TBimPanel>) {
+}: GeodesyHandlersDependencies) {
   const { nodes, columns, walls, beams, plateOpeningPoints } = geodesyNodeState;
   const {
     btnClearNodes,
@@ -824,7 +819,7 @@ export function bindGeodesyHandlers<
         ...buildCurrentConstructionPayload(),
         columnMark: columnMark || null,
         floor: floor || null,
-        ...collectGeoBimNodeData(),
+        ...bim.collectNodeData(),
         columns: columns.map(col => {
           const pX = parseDecimal(col.projX);
           const pY = parseDecimal(col.projY);
@@ -959,7 +954,7 @@ export function bindGeodesyHandlers<
               }))
               .filter((point) => point.projX != null || point.projY != null || point.factX != null || point.factY != null)
           : null,
-        ...collectGeoBimNodeData(),
+        ...bim.collectNodeData(),
         walls: walls.map(wall => {
           if (wall.bindingType === "number_letters") {
             const pX1 = parseFloat(wall.projX_num_let1);
@@ -1129,7 +1124,7 @@ export function bindGeodesyHandlers<
         type: "beams",
         ...buildCurrentConstructionPayload(),
         floor: floor || null,
-        ...collectGeoBimNodeData(),
+        ...bim.collectNodeData(),
         beams: beams.map(beam => {
           if (beam.bindingType === "number_letters") {
             const pX1 = parseFloat(beam.projX_num_let1);
@@ -1338,7 +1333,7 @@ export function bindGeodesyHandlers<
                        (evaluation.hasFactXY ? "fact_only" : "empty"));
     const data: GeodesyNodeRecord = {
       ...buildCurrentConstructionPayload(),
-      ...collectGeoBimNodeData(),
+      ...bim.collectNodeData(),
       floor: geoBehavior.floorVisible === false ? null : (floor || null),
       location: axisState.isPlate ? (axisState.location || null) : null,
       stairName: stairNameValue || null,
@@ -1501,7 +1496,7 @@ export function bindGeodesyHandlers<
             ? "beam"
             : "node"
     );
-    clearGeoBimSelection({ keepManualFields: false });
+    bim.clear({ keepManualFields: false });
     axisLetterEl.value = APP_CONFIG.DEFAULT_LETTER_AXIS;
     axisNumberEl.value = APP_CONFIG.DEFAULT_NUMBER_AXIS;
     resetGeoPlateAxisFields();

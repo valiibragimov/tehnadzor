@@ -24,6 +24,15 @@ const {
 } = await import(
   "../../dist/features/inspections/geodesy/evaluation.js"
 );
+const {
+  collectGeodesyBimNodeData,
+  filterGeodesyBimElements,
+  normalizeGeodesyBimRecords,
+  resolveGeodesyBimSelection,
+  restoreGeodesyBimSelection
+} = await import(
+  "../../dist/features/inspections/geodesy/bim-selection.js"
+);
 function createRepository(overrides = {}) {
   const calls = [];
   const repository = {
@@ -445,4 +454,176 @@ test("clearing a geodesy form resets edit keys and only its active collection", 
   assert.equal(state.walls.length, 1);
   assert.equal(state.beams.length, 1);
   assert.equal(state.plateOpeningPoints.length, 0);
+});
+
+test("geodesy BIM selection resolves an available element", () => {
+  const element = {
+    id: "wall-1",
+    elementId: "wall-1",
+    type: "wall",
+    mark: "С-1"
+  };
+  const resolution = resolveGeodesyBimSelection(
+    new Map([["wall-1", element]]),
+    "wall-1"
+  );
+
+  assert.equal(resolution.mode, "selected");
+  assert.equal(resolution.selectedId, "wall-1");
+  assert.equal(resolution.element, element);
+});
+
+test("geodesy BIM filters combine search, type and resolved axes", () => {
+  const elements = [
+    {
+      id: "wall-1",
+      elementId: "wall-1",
+      type: "wall",
+      mark: "С-1",
+      axes: "А-1"
+    },
+    {
+      id: "column-1",
+      elementId: "column-1",
+      type: "column",
+      mark: "К-7",
+      resolvedAxes: "Б-2"
+    },
+    {
+      id: "column-2",
+      elementId: "column-2",
+      type: "column",
+      mark: "К-8",
+      resolvedAxes: "А-1"
+    }
+  ];
+
+  const filtered = filterGeodesyBimElements(elements, {
+    search: "к-7",
+    type: "column",
+    axes: "Б-2"
+  });
+
+  assert.deepEqual(filtered.map((element) => element.elementId), ["column-1"]);
+});
+
+test("geodesy BIM selection uses manual mode when no element is selected", () => {
+  const resolution = resolveGeodesyBimSelection(new Map(), "");
+
+  assert.deepEqual(resolution, {
+    mode: "manual",
+    selectedId: "",
+    element: null
+  });
+});
+
+test("geodesy BIM binding is restored from a saved node", () => {
+  const element = {
+    id: "beam-1",
+    elementId: "beam-1",
+    sourceModelId: "model-1",
+    ifcGuid: "guid-1",
+    type: "beam",
+    mark: "Б-1",
+    axes: "А-Б, 1",
+    projectX: 120,
+    projectY: 240,
+    projectH: 360
+  };
+  const restored = restoreGeodesyBimSelection(
+    new Map([["beam-1", element]]),
+    {
+      bimElementId: "beam-1",
+      bimMark: "Старая марка",
+      bimAxes: "Старые оси"
+    },
+    "beam"
+  );
+
+  assert.equal(restored.mode, "selected");
+  assert.equal(restored.snapshot.resolved, true);
+  assert.equal(restored.snapshot.mark, "Б-1");
+  assert.equal(restored.snapshot.axes, "А-Б, 1");
+  assert.equal(restored.snapshot.projectH, 360);
+});
+
+test("geodesy BIM binding preserves a snapshot for an unavailable element", () => {
+  const restored = restoreGeodesyBimSelection(
+    new Map(),
+    {
+      bimElementId: "removed-1",
+      bimSourceModelId: "model-old",
+      bimIfcGuid: "guid-old",
+      bimType: "wall",
+      bimMark: "С-9",
+      bimAxes: "Г-4",
+      bimProjectX: 15
+    },
+    "wall"
+  );
+
+  assert.equal(restored.mode, "unavailable");
+  assert.equal(restored.snapshot.resolved, false);
+  assert.equal(restored.snapshot.elementId, "removed-1");
+  assert.equal(restored.snapshot.mark, "С-9");
+  assert.equal(restored.snapshot.projectX, 15);
+});
+
+test("geodesy BIM records exclude deleted and malformed elements", () => {
+  const elements = normalizeGeodesyBimRecords([
+    {
+      id: "active-wall",
+      data: { type: "wall", mark: "С-1" }
+    },
+    {
+      id: "deleted-column",
+      data: { type: "column", mark: "К-1", deleted: true }
+    },
+    {
+      id: "malformed",
+      data: { mark: "Без типа" }
+    }
+  ]);
+
+  assert.deepEqual(elements.map((element) => element.elementId), [
+    "active-wall"
+  ]);
+});
+
+test("geodesy BIM node payload keeps the existing Firestore field format", () => {
+  const payload = collectGeodesyBimNodeData({
+    selectedId: "column-1",
+    selectedElement: {
+      id: "column-1",
+      elementId: "column-1",
+      sourceModelId: "model-1",
+      ifcGuid: "guid-1",
+      type: "column",
+      projectX: 10,
+      projectY: 20,
+      projectH: 30,
+      lineStartX: 1,
+      lineStartY: 2,
+      lineEndX: 3,
+      lineEndY: 4
+    },
+    mark: " К-1 ",
+    axes: " А-1 "
+  });
+
+  assert.deepEqual(payload, {
+    bimElementId: "column-1",
+    bimSourceModelId: "model-1",
+    bimIfcGuid: "guid-1",
+    bimType: "column",
+    bimMark: "К-1",
+    bimAxes: "А-1",
+    bimProjectX: 10,
+    bimProjectY: 20,
+    bimProjectH: 30,
+    bimLineStartX: 1,
+    bimLineStartY: 2,
+    bimLineEndX: 3,
+    bimLineEndY: 4
+  });
 });

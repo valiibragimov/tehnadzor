@@ -217,38 +217,42 @@ hosting surface и отсутствие новых `globalThis` assignments.
   восстанавливает и отображает форму, `evaluation.ts` содержит чистые расчёты
   и journal payload, `handlers.ts` — пользовательские действия, `types.ts` —
   известные структуры данных геодезии;
-- `app.ts` сократился до 2 280 строк и для геодезической формы только создаёт
-  runtime, передаёт внешние зависимости и запускает его;
+- `app.ts` сократился до 1 069 строк и для геодезии только создаёт runtime,
+  передаёт внешние зависимости и запускает его;
 - geodesy UI вызывает service, а Firestore и dual-write доступны только через
   локальный adapter над централизованным repository;
 - journal получает geodesy API явно через bootstrap вместо глобальных
   `saveNodes`, `renderNodes`, `loadNode` и current-node bridges;
-- добавлены поведенческие тесты service и node actions.
+- BIM/geodesy selection перенесён в `bim-selection.ts` и
+  `bim-selection-runtime.ts`: состояние, фильтры, axis hints, DOM rendering,
+  восстановление snapshot и ручной режим больше не находятся в entrypoint;
+- form и handlers получают один небольшой BIM API вместо набора callback;
+- общий IFC import runtime, BIM visual panel и That Open pipeline остались в
+  общих app services и передаются feature явно;
+- публичный `geodesy/index.ts` сокращён до четырёх production entrypoints;
+- добавлены поведенческие тесты service, node actions и BIM selection.
 
 Повторный аудит после миграции:
 
 - 92 исполняемых клиентских TypeScript-файла;
 - 0 статических циклов импортов;
 - 0 обращений к `globalThis.LS`;
-- 51 smoke/regression-тест;
+- 58 smoke/regression-тестов;
 - все этапы отдельно прошли typecheck, lint, build и test.
 
 Оставшиеся наиболее важные зависимости:
 
-1. `app.ts` всё ещё содержит BIM/geodesy selection runtime. Его перенос
-   намеренно оставлен отдельным этапом, чтобы не смешивать форму с BIM
-   pipeline; расчётов и обработчиков самой геодезической формы в entrypoint
-   больше нет.
-2. Geometry, reinforcement и strength UI всё ещё напрямую используют
+1. Geometry, reinforcement и strength UI всё ещё напрямую используют
    repository/Firebase runtime; geodesy уже обращается к данным через локальный
    service boundary.
-3. `globalThis` всё ещё используется как legacy runtime context; новых bridges
+2. `globalThis` всё ещё используется как legacy runtime context; новых bridges
    в текущей фазе не добавлено.
-4. Inline modules остаются в about, profile и edit-profile; их перенос требует
+3. Inline modules остаются в about, profile и edit-profile; их перенос требует
    отдельных page-level regression-тестов.
-5. Journal public API пока является compatibility boundary над старым
+4. Journal public API пока является compatibility boundary над старым
    `app/modules/journal/data.ts`; реализацию следует переносить вместе со всей
    feature, а не дублировать.
-6. `form.ts` и `handlers.ts` пока крупные из-за объёма существующей DOM-формы.
+5. `form.ts`, `handlers.ts` и `bim-selection-runtime.ts` пока крупные из-за
+   объёма существующей DOM-формы и BIM binding UI.
    Дальнейшее деление допустимо только по подтверждённым поведенческим границам,
    а не ради уменьшения размера файлов.
