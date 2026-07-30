@@ -1,6 +1,6 @@
 # Архитектура Tehnadzor
 
-Дата актуализации: 2026-07-29.
+Дата актуализации: 2026-07-30.
 
 ## Контекст и ограничения
 
@@ -231,6 +231,16 @@ hosting surface и отсутствие новых `globalThis` assignments.
   общих app services и передаются feature явно;
 - публичный `geodesy/index.ts` сокращён до четырёх production entrypoints;
 - добавлены поведенческие тесты service, node actions и BIM selection.
+- создан первый vertical slice `features/inspections/strength`: типы,
+  `StrengthState`, чистые нормативные расчёты, service/use-case boundary и
+  Firestore adapter находятся рядом с feature;
+- legacy strength UI сохраняет DOM rendering, Chart.js и BIM selection, но
+  получает состояние и хранение явно через `configureStrengthModule`;
+- `strengthChecks` и `currentStrengthCheckId` больше не публикуются и не
+  читаются через `globalThis`; journal, overview и summary получают strength
+  state через небольшие callback API;
+- source collection `strengthChecks`, формат документов и dual-write в
+  `inspections` сохранены.
 
 Повторный аудит после миграции:
 
@@ -242,9 +252,9 @@ hosting surface и отсутствие новых `globalThis` assignments.
 
 Оставшиеся наиболее важные зависимости:
 
-1. Geometry, reinforcement и strength UI всё ещё напрямую используют
-   repository/Firebase runtime; geodesy уже обращается к данным через локальный
-   service boundary.
+1. Geometry и reinforcement UI всё ещё напрямую используют
+   repository/Firebase runtime; geodesy и storage-операции strength уже
+   обращаются к данным через локальные service boundaries.
 2. `globalThis` всё ещё используется как legacy runtime context; новых bridges
    в текущей фазе не добавлено.
 3. Inline modules остаются в about, profile и edit-profile; их перенос требует
@@ -256,3 +266,6 @@ hosting surface и отсутствие новых `globalThis` assignments.
    объёма существующей DOM-формы и BIM binding UI.
    Дальнейшее деление допустимо только по подтверждённым поведенческим границам,
    а не ради уменьшения размера файлов.
+6. Strength DOM rendering, Chart.js и BIM selection намеренно остаются в
+   `app/modules/strength.ts`; их следует переносить отдельными этапами, не
+   смешивая архитектуру хранения с пользовательским поведением.

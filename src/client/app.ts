@@ -17,10 +17,7 @@ import {
   isConstructionSupportedInModule,
   normalizeConstructionKey
 } from "./app/construction.js";
-import {
-  evaluateReinfCheck,
-  evaluateStrengthCheck
-} from "./app/inspection-evaluation.js";
+import { evaluateReinfCheck } from "./app/inspection-evaluation.js";
 import { hasInspectionField } from "./app/inspection-registry.js";
 import { applyLaunchParamsFromUrl } from "./app/launch-params.js";
 import { createAppModuleBridge } from "./app/module-bridge.js";
@@ -39,6 +36,11 @@ import {
   createGeodesyState,
   createFirestoreGeodesyService
 } from "./features/inspections/geodesy/index.js";
+import {
+  createFirestoreStrengthService,
+  createStrengthState,
+  setCurrentStrengthCheckId
+} from "./features/inspections/strength/index.js";
 import { getCurrentIfcFileFromInput } from "./app/services/bim-runtime-context.js";
 import { initDatepickerStyles } from "./app/ui/datepicker.js";
 import {
@@ -284,8 +286,8 @@ const reinfChecks = globalThis.reinfChecks instanceof Map ? globalThis.reinfChec
 let currentReinfCheckId = null;
 const geomChecks = globalThis.geomChecks instanceof Map ? globalThis.geomChecks : new Map();
 let currentGeomCheckId = null;
-const strengthChecks = globalThis.strengthChecks instanceof Map ? globalThis.strengthChecks : new Map();
-let currentStrengthCheckId = null;
+const strengthState = createStrengthState();
+const strengthChecks = strengthState.checks;
 
 const constructionSelectionRuntime = createConstructionSelectionRuntime({
   construction,
@@ -315,6 +317,9 @@ const geodesyService = createFirestoreGeodesyService({
   getCurrentConstructionCategoryKey,
   getCurrentConstructionLabel,
   getCurrentConstructionType: () => construction?.value || ""
+});
+const strengthService = createFirestoreStrengthService({
+  getCurrentUserId: () => currentUserId
 });
 const geodesyNodeState = createGeodesyState();
 const nodes = geodesyNodeState.nodes;
@@ -466,7 +471,7 @@ construction.addEventListener("change", () => {
   // Смена конструкции должна начинать новую проверку в каждом модуле
   currentReinfCheckId = null;
   currentGeomCheckId = null;
-  currentStrengthCheckId = null;
+  setCurrentStrengthCheckId(strengthState, null);
   updateReinfLocationFieldsVisibility(true); // Передаём true для сброса при изменении
   geodesyRuntime.updateGeoFieldsVisibility();
   updateGeomFieldsVisibility();
@@ -644,6 +649,14 @@ function updateStrengthFieldsVisibility() {
 }
 
 const appModuleBridge = createAppModuleBridge({
+  strength: {
+    state: strengthState,
+    service: strengthService,
+    inspectionState: state,
+    inspectionChecked: checked,
+    getCurrentProjectId: () => currentProjectId,
+    showNotification
+  },
   journalGeodesy: {
     nodes,
     saveNodes: geodesyRuntime.saveNodes,
@@ -845,6 +858,7 @@ function resetFormForNewProject() {
   reinfChecks.clear();
   geomChecks.clear();
   strengthChecks.clear();
+  setCurrentStrengthCheckId(strengthState, null);
   renderReinfChecks();
   renderGeomChecks();
   renderStrengthChecks();
@@ -1021,9 +1035,6 @@ exposeSummaryBinding("currentReinfCheckId", () => currentReinfCheckId, (value) =
 exposeSummaryBinding("currentGeomCheckId", () => currentGeomCheckId, (value) => {
   currentGeomCheckId = value;
 });
-exposeSummaryBinding("currentStrengthCheckId", () => currentStrengthCheckId, (value) => {
-  currentStrengthCheckId = value;
-});
 
 globalThis.applyJournalFilter = applyJournalFilter;
 globalThis.loadJournalFromFirestore = loadJournalFromFirestore;
@@ -1051,7 +1062,6 @@ globalThis.construction = construction as HTMLSelectElement | null;
 globalThis.nodes = nodes;
 globalThis.reinfChecks = reinfChecks;
 globalThis.geomChecks = geomChecks;
-globalThis.strengthChecks = strengthChecks;
 
 // ============================
 //  Нормализация ввода дробных чисел (запятая -> точка)

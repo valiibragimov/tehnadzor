@@ -25,6 +25,13 @@ const MODULE_ALIASES: Record<string, string> = {
 
 let overviewInitialized = false;
 let renderSequence = 0;
+let getStrengthChecksCount = () => 0;
+
+export function configureOverviewStrength(
+  getCount: () => number
+) {
+  getStrengthChecksCount = getCount;
+}
 
 function setText(id: string, value: string | number) {
   const element = document.getElementById(id);
@@ -142,7 +149,7 @@ export async function renderOverview() {
     geo: getCollectionSize(globalThis.nodes),
     reinforcement: getCollectionSize(globalThis.reinfChecks),
     geometry: getCollectionSize(globalThis.geomChecks),
-    strength: getCollectionSize(globalThis.strengthChecks)
+    strength: getStrengthChecksCount()
   };
   const totalChecks = Object.values(moduleCounts).reduce((sum, count) => sum + count, 0);
   const completedModules = Object.values(moduleCounts).filter((count) => count > 0).length;

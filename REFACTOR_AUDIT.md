@@ -800,3 +800,46 @@ Smoke-регрессия:
 - `npm run lint` — успешно;
 - `npm run build` — успешно;
 - `npm test` — `58/58` тестов успешно.
+
+## Strength state, evaluation and storage boundary — 2026-07-30
+
+Выполнен первый отдельный этап рефакторинга прочности бетона:
+
+- создан `src/client/features/inspections/strength` с файлами `types.ts`,
+  `state.ts`, `evaluation.ts`, `service.ts`, `firestore-service.ts` и
+  небольшим production API в `index.ts`;
+- `StrengthState` владеет стабильной коллекцией `checks` и текущим
+  `currentCheckId`; заменены глобальные `strengthChecks` и
+  `currentStrengthCheckId`;
+- нормативная прочность, итоговый статус и данные графика вычисляются чистыми
+  функциями без DOM, Firebase SDK и `globalThis`;
+- сохранена действующая формула: 20% проектной прочности при возрасте менее
+  суток, логарифмический рост до 28 суток и полная проектная прочность начиная
+  с 28 суток;
+- source-записи `strengthChecks` и аналитическая проекция `inspections`
+  загружаются и изменяются через service port; Firestore adapter остаётся над
+  централизованным repository;
+- сохранены текущий Firestore-формат, hard delete/clear и best-effort
+  dual-write при сохранении;
+- legacy DOM rendering, Chart.js и BIM selection не переносились, но
+  `app/modules/strength.ts` больше не импортирует Firebase SDK или Firestore
+  repository и получает state/service/callbacks явно;
+- journal, overview и summary получают strength state через небольшие API;
+  callbacks journal, notifications и summary передаются runtime-кодом;
+- дублирующийся `StrengthCheckRecord` удалён из общего `module-records.ts`;
+- добавлены поведенческие тесты граничных возрастов, неполных данных,
+  соответствия/недобора, фильтрации soft-deleted записей, create/update
+  dual-write, отказа dual-write, удаления, очистки и current check state.
+
+Осознанно не входит в этап:
+
+- перенос strength DOM rendering, Chart.js и BIM selection;
+- изменения geometry, reinforcement, geodesy, CSS, bundler, Service Worker и
+  формата Firestore.
+
+Финальная проверка этапа:
+
+- `npm run typecheck` — успешно;
+- `npm run lint` — успешно;
+- `npm run build` — успешно;
+- `npm test` — `68/68` тестов успешно.

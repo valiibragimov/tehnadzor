@@ -22,6 +22,7 @@ import {
 } from "../../features/control-plan/index.js";
 import { loadDocumentRequisites } from "../services/document-requisites.js";
 import type { IssueRecord, SummaryPdfTextOptions, SummaryRecord } from "../../types/module-records.js";
+import type { StrengthCheckRecord } from "../../features/inspections/strength/index.js";
 
 const safeValue = (value) => escapeHtml(value == null ? "" : String(value));
 let summaryInitialized = false;
@@ -33,6 +34,13 @@ let summaryWorkspacePage = 0;
 const SUMMARY_WORKSPACE_MAX_HEIGHT = 440;
 const analyticsTemplateUrl = new URL("./summary/analytics-block.html", import.meta.url);
 const projectSelector = globalThis.projectSelector;
+let getStrengthChecks = () => new Map<string, StrengthCheckRecord>();
+
+export function configureSummaryStrength(
+  getChecks: () => Map<string, StrengthCheckRecord>
+) {
+  getStrengthChecks = getChecks;
+}
 
 interface SummaryServerHealth {
   ok?: boolean;
@@ -100,10 +108,15 @@ async function ensureAnalyticsTemplate() {
 
 async function ensureAnalyticsModule() {
   if (!analyticsModulePromise) {
-    analyticsModulePromise = import("./summary/analytics-block.js").catch((error) => {
-      analyticsModulePromise = null;
-      throw error;
-    });
+    analyticsModulePromise = import("./summary/analytics-block.js")
+      .then((module) => {
+        module.configureAnalyticsStrength(getStrengthChecks);
+        return module;
+      })
+      .catch((error) => {
+        analyticsModulePromise = null;
+        throw error;
+      });
   }
 
   return analyticsModulePromise;

@@ -115,7 +115,6 @@ declare global {
     nodes?: unknown[];
     reinfChecks?: unknown[];
     geomChecks?: unknown[];
-    strengthChecks?: unknown[];
     journalEntries?: Array<Record<string, unknown>>;
     state?: Record<string, unknown>;
     construction?: HTMLSelectElement | null;
@@ -153,7 +152,6 @@ declare global {
     upsertJournalEntry?: (entry: Inspection | Record<string, unknown>) => unknown;
     currentReinfCheckId?: string | null;
     currentGeomCheckId?: string | null;
-    currentStrengthCheckId?: string | null;
   }
   
   var currentProjectId: string | null;
@@ -173,7 +171,6 @@ declare global {
   var nodes: Map<string, Record<string, unknown>>;
   var reinfChecks: Map<string, Record<string, unknown>>;
   var geomChecks: Map<string, Record<string, unknown>>;
-  var strengthChecks: Map<string, Record<string, unknown>>;
   var state: Record<string, unknown>;
   var checked: Record<string, unknown>;
   var saveGeomChecks: (...args: unknown[]) => unknown;
@@ -183,7 +180,6 @@ declare global {
   var setConstructionAndTrigger: (...args: unknown[]) => unknown;
   var currentReinfCheckId: string | null;
   var currentGeomCheckId: string | null;
-  var currentStrengthCheckId: string | null;
   var loadReinfChecks: (...args: unknown[]) => unknown;
   var saveReinfChecks: (...args: unknown[]) => unknown;
   var renderReinfChecks: (...args: unknown[]) => unknown;

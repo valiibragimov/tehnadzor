@@ -14,14 +14,12 @@ import {
 } from "../construction.js";
 import { getInspectionStatus } from "../inspection-registry.js";
 import {
-  showNotification,
   validateProject,
   showConfirm,
   defaultRusLetters,
   defaultNumbers,
   normalizeMarking,
   parseDecimal,
-  parseConcreteStrength,
   escapeHtml,
   sanitizeHtml,
   formatNodeValue,
@@ -29,20 +27,16 @@ import {
 } from "../../utils.js";
 import { ensureChartJsLoaded } from "../ui/lazy-libs.js";
 import {
-  clearProjectCollection,
-  createProjectCollectionDoc,
-  deleteProjectCollectionDoc,
-  getProjectDocSnapshot,
-  getProjectCollectionSnapshot,
-  updateProjectCollectionDoc
-} from "../repositories/firestore-repository.js";
-import {
-  clearInspectionsByModuleAndRefreshAnalytics,
-  deleteInspectionAndRefreshAnalytics,
-  saveInspectionAndRefreshAnalytics
-} from "../services/inspection-sync.js";
+  buildStrengthResultSeries,
+  evaluateStrengthCheck,
+  getNormativeStrength,
+  parseConcreteStrengthValue,
+  setCurrentStrengthCheckId as setStrengthStateCurrentCheckId,
+  type StrengthCheckRecord,
+  type StrengthService,
+  type StrengthState
+} from "../../features/inspections/strength/index.js";
 import { renderRegulatoryBasisHtml } from "../services/regulatory-basis.js";
-import type { InspectionPayload, StrengthCheckRecord } from "../../types/module-records.js";
 import {
   buildBimElementFilterOptions,
   buildBimElementOptionLabel,
@@ -54,118 +48,64 @@ import {
 } from "../services/bim-elements.js";
 import { ensureBimVisualPanel } from "../services/bim-visual-panel.js";
 import {
-  getCurrentIfcFileFromInput,
-  getCurrentProjectIdFromGlobal
+  getCurrentIfcFileFromInput
 } from "../services/bim-runtime-context.js";
 import { onAppTabActivated } from "../services/module-activation.js";
 import { buildNodeDeleteIconButton } from "../ui/node-card-interactions.js";
 import { APP_STORAGE_KEYS } from "../storage.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+export interface StrengthModuleDependencies {
+  state: StrengthState;
+  service: StrengthService;
+  inspectionState: Record<string, boolean>;
+  inspectionChecked: Record<string, boolean>;
+  getCurrentProjectId(): string | null;
+  updateSummary(): unknown;
+  addJournalEntry(params: Record<string, unknown>): unknown;
+  upsertJournalEntry(params: Record<string, unknown>): unknown;
+  notifyFirestoreSyncStatus(docRef: unknown): unknown;
+  showNotification(message: string, tone?: string): void;
+}
+
+let dependencies: StrengthModuleDependencies | null = null;
+let strengthChecks: Map<string, StrengthCheckRecord>;
+
+export function configureStrengthModule(
+  nextDependencies: StrengthModuleDependencies
+) {
+  dependencies = nextDependencies;
+  strengthChecks = nextDependencies.state.checks;
+}
+
+function getDependencies() {
+  if (!dependencies) {
+    throw new Error("Strength module dependencies are not configured.");
+  }
+  return dependencies;
+}
 
 const safeValue = (value) => escapeHtml(value == null ? "" : String(value));
 const BIM_MANUAL_MODE_MESSAGE = "";
 const BIM_LOAD_ERROR_MESSAGE = "Не удалось загрузить BIM-элементы. Можно продолжить ручной ввод.";
 
-const getCurrentProjectId = getCurrentProjectIdFromGlobal;
+const getCurrentProjectId = () => getDependencies().getCurrentProjectId();
 const getCurrentIfcFile = getCurrentIfcFileFromInput;
-const getStrengthChecksMap = () => {
-  if (!(globalThis.strengthChecks instanceof Map)) {
-    globalThis.strengthChecks = new Map<string, StrengthCheckRecord>();
-  }
-  return globalThis.strengthChecks as Map<string, StrengthCheckRecord>;
-};
-const setCurrentStrengthCheckId = (value) => {
-  globalThis.currentStrengthCheckId = value;
-};
-const getCurrentStrengthCheckId = () => globalThis.currentStrengthCheckId || null;
+const setCurrentStrengthCheckId = (value) =>
+  setStrengthStateCurrentCheckId(getDependencies().state, value);
+const getCurrentStrengthCheckId = () =>
+  getDependencies().state.currentCheckId;
+const getState = () => getDependencies().inspectionState;
+const getChecked = () => getDependencies().inspectionChecked;
+const updateSummary = () => getDependencies().updateSummary();
+const addJournalEntrySafe = (params) =>
+  getDependencies().addJournalEntry(params);
+const upsertJournalEntrySafe = (params) =>
+  getDependencies().upsertJournalEntry(params);
+const notifyFirestoreSyncStatusSafe = (docRef) =>
+  getDependencies().notifyFirestoreSyncStatus(docRef);
+const showNotification = (message, tone = "info") =>
+  getDependencies().showNotification(message, tone);
 
-const getState = () => {
-  if (!globalThis.state) {
-    globalThis.state = {};
-  }
-  return globalThis.state;
-};
-
-const getChecked = () => {
-  if (!globalThis.checked) {
-    globalThis.checked = {};
-  }
-  return globalThis.checked;
-};
-
-const updateSummary = () => {
-  if (typeof globalThis.updateSummaryTab === "function") {
-    return globalThis.updateSummaryTab();
-  }
-  return undefined;
-};
-
-const addJournalEntrySafe = (params) => {
-  if (typeof globalThis.addJournalEntry === "function") {
-    return globalThis.addJournalEntry(params);
-  }
-  return null;
-};
-
-const upsertJournalEntrySafe = (params) => {
-  if (typeof globalThis.upsertJournalEntry === "function") {
-    return globalThis.upsertJournalEntry(params);
-  }
-  return null;
-};
-
-const notifyFirestoreSyncStatusSafe = (docRef) => {
-  if (typeof globalThis.notifyFirestoreSyncStatus === "function") {
-    return globalThis.notifyFirestoreSyncStatus(docRef);
-  }
-  return undefined;
-};
-
-const auth = getAuth();
-
-async function upsertStrengthInspectionDualWrite(projectId, inspectionId, checkData) {
-  const projectSnap = await getProjectDocSnapshot(projectId);
-  const projectData = projectSnap.exists() ? projectSnap.data() || {} : {};
-  const authUid = String(auth.currentUser?.uid || "").trim();
-  const ownerUid = String(projectData.ownerUid || projectData.createdBy || authUid || "").trim();
-  const createdBy = String(projectData.createdBy || projectData.ownerUid || authUid || "").trim();
-  const contractorName = String(projectData.contractorName || "").trim();
-
-  const inspectionPayload: InspectionPayload = {
-    projectId,
-    module: "Прочность",
-    moduleKey: "strength",
-    sourceCollection: "strengthChecks",
-    sourceId: inspectionId,
-    sourceDocId: inspectionId,
-    construction: checkData?.construction || "",
-    constructionSubtype: checkData?.constructionSubtype || "",
-    constructionSubtypeLabel: checkData?.constructionSubtypeLabel || "",
-    checkStatus: checkData?.status || null,
-    summaryText: checkData?.summaryText || "",
-    createdAt: checkData?.createdAt || Date.now(),
-    updatedAt: Date.now(),
-    contractorName
-  };
-  if (ownerUid) inspectionPayload.ownerUid = ownerUid;
-  if (createdBy) inspectionPayload.createdBy = createdBy;
-
-  await saveInspectionAndRefreshAnalytics(
-    projectId,
-    inspectionId,
-    inspectionPayload,
-    { merge: true }
-  );
-}
-
-async function clearStrengthInspectionDualWrite(projectId) {
-  return clearInspectionsByModuleAndRefreshAnalytics(projectId, {
-    sourceCollection: "strengthChecks",
-    moduleKey: "strength"
-  });
-}
-
-const strengthChecks = getStrengthChecksMap();
 let strengthInitialized = false;
 let strengthAxesInitialized = false;
 let skipStrengthJournalOnce = false;
@@ -1126,10 +1066,10 @@ async function loadStrengthBimElements(projectId = getCurrentProjectId()) {
   }
 
   try {
-    const snap = await getProjectCollectionSnapshot(projectId, "elements");
     const loadedElements = [];
-    snap.forEach((docSnap) => {
-      const normalized = normalizeProjectBimElement(docSnap.id, docSnap.data());
+    const storedElements = await getDependencies().service.loadBimElements(projectId);
+    storedElements.forEach((storedElement) => {
+      const normalized = normalizeProjectBimElement(storedElement.id, storedElement);
       if (!normalized.elementId || !normalized.type) return;
       loadedElements.push(normalized);
     });
@@ -1348,33 +1288,6 @@ function validateStrengthMarking() {
   return true;
 }
 
-/**
- * Чистая функция для вычисления статуса проверки прочности бетона
- * @param {Object} checkData - Данные проверки прочности
- * @returns {Object} - { status: "ok"|"exceeded"|"empty", summaryText: string }
- */
-function evaluateStrengthCheck(checkData: StrengthCheckRecord) {
-  const markVal = parseConcreteStrength(checkData.mark || checkData.markValue);
-  const daysVal = parseDecimal(checkData.days);
-  const actualVal = parseDecimal(checkData.actual);
-
-  if (!markVal || markVal <= 0 || !daysVal || daysVal <= 0) {
-    return { status: "empty", summaryText: "Не заполнено" };
-  }
-
-  if (actualVal == null) {
-    return { status: "empty", summaryText: "Не заполнено" };
-  }
-
-  const norm = markVal * Math.log10(daysVal) / Math.log10(28);
-  const ok = actualVal >= norm;
-
-  return {
-    status: ok ? "ok" : "exceeded",
-    summaryText: ok ? "в норме" : "превышено"
-  };
-}
-
 function saveStrengthChecks() {
   const payload = Array.from(strengthChecks.entries());
   const key = moduleStorageKey(getStorageKey());
@@ -1396,15 +1309,10 @@ async function loadStrengthChecks() {
   }
 
   try {
-    const snap = await getProjectCollectionSnapshot(projectId, "strengthChecks");
-    console.log("[loadStrengthChecks] Загружено из Firestore проверок:", snap.size);
-    snap.forEach((docSnap) => {
-      const data = docSnap.data();
-      const id = docSnap.id;
-      if (data.createdAt && data.createdAt.toMillis) {
-        data.createdAt = data.createdAt.toMillis();
-      }
-      strengthChecks.set(id, { ...data, id });
+    const loadedChecks = await getDependencies().service.loadChecks(projectId);
+    console.log("[loadStrengthChecks] Загружено из Firestore проверок:", loadedChecks.size);
+    loadedChecks.forEach((data, id) => {
+      strengthChecks.set(id, data);
     });
 
     saveStrengthChecks();
@@ -1456,8 +1364,7 @@ function renderStrengthChecks() {
           const projectId = getCurrentProjectId();
           if (projectId) {
             try {
-              await deleteProjectCollectionDoc(projectId, "strengthChecks", id);
-              await deleteInspectionAndRefreshAnalytics(projectId, id);
+              await getDependencies().service.deleteCheck(projectId, id);
             } catch (error) {
               console.error("[Strength] Ошибка удаления проверки из Firestore:", error);
             }
@@ -1631,14 +1538,6 @@ function loadStrengthCheck(id) {
   runStrengthCheck();
 }
 
-function getNormativeStrength(markValue, daysValue) {
-  const daysVal = parseDecimal(daysValue);
-  if (!markValue || markValue <= 0 || !daysVal || daysVal <= 0) return null;
-  if (daysVal < 1) return markValue * 0.2;
-  if (daysVal >= 28) return markValue;
-  return markValue * Math.log10(daysVal) / Math.log10(28);
-}
-
 async function saveStrengthCheck({ skipJournalOnce = false } = {}) {
   const projectId = getCurrentProjectId();
   if (!validateProject(projectId)) return;
@@ -1737,7 +1636,7 @@ async function saveStrengthCheck({ skipJournalOnce = false } = {}) {
     wallLetterAxis1,
     wallLetterAxis2,
     mark: mark?.value === "" ? null : mark.value.trim(),
-    markValue: mark?.value === "" ? null : parseConcreteStrength(mark.value),
+    markValue: mark?.value === "" ? null : parseConcreteStrengthValue(mark.value),
     days: days?.value === "" ? null : +days.value,
     actual: actual?.value === "" ? null : +actual.value
   };
@@ -1762,11 +1661,11 @@ async function saveStrengthCheck({ skipJournalOnce = false } = {}) {
   try {
     let finalId = id;
     if (existing) {
-      const { ref: docRef } = await updateProjectCollectionDoc(projectId, "strengthChecks", id, data);
+      const { ref: docRef } = await getDependencies().service.updateCheck(projectId, id, data);
       notifyFirestoreSyncStatusSafe(docRef);
       console.log("[btnSaveStrengthCheck] Проверка обновлена в Firestore, docId:", finalId);
     } else {
-      const created = await createProjectCollectionDoc(projectId, "strengthChecks", data);
+      const created = await getDependencies().service.createCheck(projectId, data);
       const docRef = created.ref;
       notifyFirestoreSyncStatusSafe(docRef);
       finalId = created.id;
@@ -1781,12 +1680,6 @@ async function saveStrengthCheck({ skipJournalOnce = false } = {}) {
     }
 
     setCurrentStrengthCheckId(finalId);
-
-    try {
-      await upsertStrengthInspectionDualWrite(projectId, finalId, data);
-    } catch (dualWriteError) {
-      console.warn("[DualWrite][strength] inspections upsert failed:", dualWriteError);
-    }
 
     if (!skipJournal && data.status !== "empty") {
       const contextParts = [];
@@ -1853,8 +1746,8 @@ async function clearStrengthChecks() {
   console.log("[btnClearStrengthChecks] Путь Firestore: projects/" + projectId + "/strengthChecks");
 
   try {
-    const deletedCount = await clearProjectCollection(projectId, "strengthChecks");
-    const deletedDualWriteCount = await clearStrengthInspectionDualWrite(projectId);
+    const { deletedCount, deletedDualWriteCount } =
+      await getDependencies().service.clearChecks(projectId);
     console.log("[btnClearStrengthChecks] Найдено документов в Firestore:", deletedCount);
     console.log("[btnClearStrengthChecks] Удалено документов из Firestore:", deletedCount);
     console.log("[btnClearStrengthChecks] Удалено документов dual-write из inspections:", deletedDualWriteCount);
@@ -1912,7 +1805,7 @@ async function runStrengthCheck() {
     return;
   }
 
-  const markVal = parseConcreteStrength(mark?.value);
+  const markVal = parseConcreteStrengthValue(mark?.value);
   const daysVal = parseDecimal(days?.value);
   const actualVal = parseDecimal(actual?.value);
   const res = strengthResult;
@@ -1959,15 +1852,11 @@ async function runStrengthCheck() {
     }
   }
 
-  const calculateNormStrength = (age, R28) => {
-    if (age < 1) return R28 * 0.2;
-    if (age >= 28) return R28;
-    const lg28 = Math.log10(28);
-    const lgAge = Math.log10(age);
-    return R28 * (lgAge / lg28);
-  };
-
-  const norm = calculateNormStrength(daysVal, markVal);
+  const norm = getNormativeStrength(markVal, daysVal);
+  if (norm == null) {
+    shouldAutoSave = false;
+    return;
+  }
 
   console.log("Расчет прочности:", {
     класс: classInfo || markVal + " МПа",
@@ -1978,11 +1867,10 @@ async function runStrengthCheck() {
     результат: norm.toFixed(1) + " МПа"
   });
 
-  const labels = Array.from({ length: Math.max(7, daysVal) }, (_, i) => i + 1);
-  const normData = labels.map((d) => calculateNormStrength(d, markVal));
-  const factData = labels.map((d) =>
-    hasActual && d === daysVal ? actualVal : null
-  );
+  const series = buildStrengthResultSeries(markVal, daysVal, actualVal);
+  const labels = series.labels;
+  const normData = series.normative;
+  const factData = series.actual;
 
   if (renderStrengthChart(labels, normData, factData, hasActual)) {
     // график уже отрисован

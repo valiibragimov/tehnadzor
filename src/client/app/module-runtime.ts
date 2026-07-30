@@ -1,5 +1,10 @@
 import { dispatchAppTabActivated } from "./services/module-activation.js";
 import type { JournalGeodesyApi } from "./modules/journal.js";
+import type {
+  StrengthService,
+  StrengthState
+} from "../features/inspections/strength/index.js";
+import { setCurrentStrengthCheckId } from "../features/inspections/strength/index.js";
 
 type JournalModule = typeof import("./modules/journal.js");
 type GeometryModule = typeof import("./modules/geometry.js");
@@ -11,16 +16,27 @@ type OverviewModule = typeof import("./modules/overview.js");
 
 const INSPECTION_TARGETS = new Set(["geo", "reinforcement", "geometry", "strength"]);
 
+export interface StrengthRuntimeDependencies {
+  state: StrengthState;
+  service: StrengthService;
+  inspectionState: Record<string, boolean>;
+  inspectionChecked: Record<string, boolean>;
+  getCurrentProjectId(): string | null;
+  showNotification(message: string, tone?: string): void;
+}
+
 interface ModuleRuntimeOptions {
   onJournalTabActivated?: () => void;
   journalGeodesy: JournalGeodesyApi;
+  strength: StrengthRuntimeDependencies;
 }
 
 type ModuleAction<TModule, TResult> = (module: TModule) => TResult | Promise<TResult>;
 
 export function createModuleRuntime({
   onJournalTabActivated,
-  journalGeodesy
+  journalGeodesy,
+  strength
 }: ModuleRuntimeOptions) {
   let journalModulePromise: Promise<JournalModule> | null = null;
   let geometryModulePromise: Promise<GeometryModule> | null = null;
@@ -49,6 +65,38 @@ export function createModuleRuntime({
       journalModulePromise = import("./modules/journal.js")
         .then((module) => {
           module.configureJournalGeodesy(journalGeodesy);
+          module.configureJournalStrength({
+            checks: strength.state.checks,
+            clearChecks: async (projectId) => {
+              await strength.service.clearChecks(projectId);
+            },
+            deleteCheck: (projectId, checkId) =>
+              strength.service.deleteCheck(projectId, checkId),
+            saveChecks: () =>
+              withModule(
+                getStrengthModule,
+                "Strength",
+                (strengthModule) => strengthModule.saveStrengthChecks()
+              ),
+            renderChecks: () =>
+              withModule(
+                getStrengthModule,
+                "Strength",
+                (strengthModule) => strengthModule.renderStrengthChecks()
+              ),
+            loadCheck: (checkId) =>
+              withModule(
+                getStrengthModule,
+                "Strength",
+                (strengthModule) => strengthModule.loadStrengthCheck(checkId)
+              ),
+            setCurrentCheckId: (checkId) =>
+              setCurrentStrengthCheckId(strength.state, checkId),
+            resetInspectionStatus: () => {
+              strength.inspectionState.strength = false;
+              strength.inspectionChecked.strength = false;
+            }
+          });
           module.initJournalModule();
           return module;
         })
@@ -94,6 +142,34 @@ export function createModuleRuntime({
     if (!strengthModulePromise) {
       strengthModulePromise = import("./modules/strength.js")
         .then((module) => {
+          module.configureStrengthModule({
+            ...strength,
+            updateSummary: () =>
+              withModule(
+                getSummaryModule,
+                "Summary",
+                (summaryModule) => summaryModule.updateSummaryTab()
+              ),
+            addJournalEntry: (params) =>
+              withModule(
+                getJournalModule,
+                "Journal",
+                (journalModule) => journalModule.addJournalEntry(params as any)
+              ),
+            upsertJournalEntry: (params) =>
+              withModule(
+                getJournalModule,
+                "Journal",
+                (journalModule) => journalModule.upsertJournalEntry(params as any)
+              ),
+            notifyFirestoreSyncStatus: (docRef) =>
+              withModule(
+                getJournalModule,
+                "Journal",
+                (journalModule) =>
+                  journalModule.notifyFirestoreSyncStatus(docRef as any)
+              )
+          });
           module.initStrengthModule();
           return module;
         })
@@ -109,6 +185,7 @@ export function createModuleRuntime({
     if (!summaryModulePromise) {
       summaryModulePromise = import("./modules/summary.js")
         .then((module) => {
+          module.configureSummaryStrength(() => strength.state.checks);
           module.initSummaryModule();
           return module;
         })
@@ -139,6 +216,7 @@ export function createModuleRuntime({
     if (!overviewModulePromise) {
       overviewModulePromise = import("./modules/overview.js")
         .then((module) => {
+          module.configureOverviewStrength(() => strength.state.checks.size);
           module.initOverviewModule();
           return module;
         })

@@ -1,5 +1,5 @@
 import { TOLERANCES } from "../config.js";
-import { parseConcreteStrength, parseDecimal } from "../utils.js";
+import { parseDecimal } from "../utils.js";
 
 
 export function evaluateReinfCheck(checkData) {
@@ -107,33 +107,5 @@ export function evaluateReinfCheck(checkData) {
   return {
     status: allOk ? "ok" : "exceeded",
     summaryText: allOk ? "в норме" : "превышено"
-  };
-}
-
-export function evaluateStrengthCheck(checkData) {
-  const markVal = parseConcreteStrength(checkData.mark || checkData.markValue);
-  const daysVal = parseDecimal(checkData.days);
-  const actualVal = parseDecimal(checkData.actual);
-
-  if (!markVal || markVal <= 0 || !daysVal || daysVal <= 0) {
-    return {
-      status: "empty",
-      summaryText: "Не заполнено"
-    };
-  }
-
-  if (actualVal == null) {
-    return {
-      status: "empty",
-      summaryText: "Не заполнено"
-    };
-  }
-
-  const norm = markVal * Math.log10(daysVal) / Math.log10(28);
-  const ok = actualVal >= norm;
-
-  return {
-    status: ok ? "ok" : "exceeded",
-    summaryText: ok ? "в норме" : "превышено"
   };
 }

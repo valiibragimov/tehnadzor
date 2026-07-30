@@ -38,6 +38,7 @@ import {
   resolveInspectionSourceCollection,
   resolveInspectionSourceId
 } from "./analytics-data.js";
+import type { StrengthCheckRecord } from "../../../features/inspections/strength/index.js";
 
 interface SaveProjectContractorOptions {
   showWarning?: boolean;
@@ -68,6 +69,13 @@ let carouselResizeTimer = null;
 const contractorSaveInProgress = new Set();
 const analyticsProjectsCache = new Map();
 const analyticsProjectSourcesCache = new Map();
+let getStrengthChecks = () => new Map<string, StrengthCheckRecord>();
+
+export function configureAnalyticsStrength(
+  getChecks: () => Map<string, StrengthCheckRecord>
+) {
+  getStrengthChecks = getChecks;
+}
 const analyticsState = {
   ui: null,
   fullList: [],
@@ -1975,8 +1983,9 @@ async function getProjectSources(projectId) {
           _docId: id
         }));
       }
-      if (!strengthChecks.length && globalThis.strengthChecks instanceof Map) {
-        strengthChecks = Array.from(globalThis.strengthChecks.entries()).map(([id, data]) => ({
+      const localStrengthChecks = getStrengthChecks();
+      if (!strengthChecks.length && localStrengthChecks instanceof Map) {
+        strengthChecks = Array.from(localStrengthChecks.entries()).map(([id, data]) => ({
           ...(data || {}),
           _docId: id
         }));
@@ -2115,7 +2124,7 @@ function getLocalLegacyMapByCollection(collectionName) {
   if (collectionName === "geoNodes" && globalThis.nodes instanceof Map) return globalThis.nodes;
   if (collectionName === "reinfChecks" && globalThis.reinfChecks instanceof Map) return globalThis.reinfChecks;
   if (collectionName === "geomChecks" && globalThis.geomChecks instanceof Map) return globalThis.geomChecks;
-  if (collectionName === "strengthChecks" && globalThis.strengthChecks instanceof Map) return globalThis.strengthChecks;
+  if (collectionName === "strengthChecks") return getStrengthChecks();
   return null;
 }
 

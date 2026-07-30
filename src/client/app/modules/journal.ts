@@ -41,6 +41,7 @@ import {
   deleteJournalEntry
 } from "./journal/data.js";
 import type { IssueRecord, JournalEntryRecord } from "../../types/module-records.js";
+import type { StrengthCheckRecord } from "../../features/inspections/strength/index.js";
 
 // ============================
 //  Журнал проверок
@@ -70,10 +71,26 @@ export interface JournalGeodesyApi {
   resetInspectionStatus(): void;
 }
 
+export interface JournalStrengthApi {
+  checks: Map<string, StrengthCheckRecord>;
+  clearChecks(projectId: string): Promise<void>;
+  deleteCheck(projectId: string, checkId: string): Promise<void>;
+  saveChecks(): unknown;
+  renderChecks(): unknown;
+  loadCheck(checkId: string): unknown;
+  setCurrentCheckId(checkId: string | null): void;
+  resetInspectionStatus(): void;
+}
+
 let geodesyApi: JournalGeodesyApi | null = null;
+let strengthApi: JournalStrengthApi | null = null;
 
 export function configureJournalGeodesy(api: JournalGeodesyApi) {
   geodesyApi = api;
+}
+
+export function configureJournalStrength(api: JournalStrengthApi) {
+  strengthApi = api;
 }
 
 function getGeodesyApi() {
@@ -81,6 +98,13 @@ function getGeodesyApi() {
     throw new Error("Journal geodesy dependency is not configured.");
   }
   return geodesyApi;
+}
+
+function getStrengthApi() {
+  if (!strengthApi) {
+    throw new Error("Journal strength dependency is not configured.");
+  }
+  return strengthApi;
 }
 
 function getEntryConstructionKey(value) {
@@ -1116,17 +1140,19 @@ async function clearAllModuleChecksForProject() {
       checked.geometry = false;
     }
   );
-  await clearModuleCollection(
-    "strengthChecks",
-    strengthChecks,
-    saveStrengthChecks,
-    renderStrengthChecks,
-    () => {
-      currentStrengthCheckId = null;
-      state.strength = false;
-      checked.strength = false;
+  const strength = getStrengthApi();
+  if (currentProjectId) {
+    try {
+      await strength.clearChecks(currentProjectId);
+    } catch (error) {
+      console.error("[Journal] Ошибка очистки коллекции strengthChecks:", error);
     }
-  );
+  }
+  strength.checks.clear();
+  strength.setCurrentCheckId(null);
+  strength.resetInspectionStatus();
+  strength.saveChecks();
+  strength.renderChecks();
 }
 
 async function deleteModuleCheckFromEntry(entry) {
@@ -1246,10 +1272,11 @@ async function deleteModuleCheckFromEntry(entry) {
     }
 
     if (moduleKey.includes("проч")) {
+      const strength = getStrengthApi();
       if (!sourceId) {
         let bestMatch = null;
         let bestTimeDiff = Infinity;
-        for (const [id, check] of strengthChecks.entries()) {
+        for (const [id, check] of strength.checks.entries()) {
           if (!check) continue;
           if (entry.construction && check.construction && !matchesConstructionValue(check.construction, entry.construction)) continue;
 
@@ -1264,16 +1291,14 @@ async function deleteModuleCheckFromEntry(entry) {
       }
 
       if (!sourceId) return;
-      await deleteProjectCollectionDoc(currentProjectId, "strengthChecks", sourceId);
-      await deleteInspectionAndRefreshAnalytics(currentProjectId, sourceId);
-      if (strengthChecks.has(sourceId)) {
-        strengthChecks.delete(sourceId);
-        saveStrengthChecks();
-        renderStrengthChecks();
+      await strength.deleteCheck(currentProjectId, sourceId);
+      if (strength.checks.has(sourceId)) {
+        strength.checks.delete(sourceId);
+        strength.saveChecks();
+        strength.renderChecks();
       }
-      if (currentStrengthCheckId === sourceId) currentStrengthCheckId = null;
-      state.strength = false;
-      checked.strength = false;
+      strength.setCurrentCheckId(null);
+      strength.resetInspectionStatus();
     }
   } catch (error) {
     console.error("[Journal] Ошибка удаления проверки модуля:", error);
@@ -1535,10 +1560,11 @@ async function onJournalRowClick(entry) {
       }
 
     } else if (entry.module === "Прочность") {
+      const strength = getStrengthApi();
       // Ищем проверку прочности
       let targetCheckId = null;
 
-      if (entry.sourceId && strengthChecks.has(entry.sourceId)) {
+      if (entry.sourceId && strength.checks.has(entry.sourceId)) {
         targetCheckId = entry.sourceId;
         found = true;
       } else {
@@ -1546,7 +1572,7 @@ async function onJournalRowClick(entry) {
         let bestMatch = null;
         let bestTimeDiff = Infinity;
 
-        for (const [id, check] of strengthChecks.entries()) {
+        for (const [id, check] of strength.checks.entries()) {
           if (!check || !matchesConstructionValue(check.construction, entry.construction)) continue;
 
           const checkTime = Number(check.createdAt || 0);
@@ -1562,9 +1588,9 @@ async function onJournalRowClick(entry) {
         targetCheckId = bestMatch;
       }
 
-      if (targetCheckId && strengthChecks.has(targetCheckId)) {
+      if (targetCheckId && strength.checks.has(targetCheckId)) {
         console.log("[Journal] Открываем проверку прочности:", targetCheckId);
-        loadStrengthCheck(targetCheckId);
+        strength.loadCheck(targetCheckId);
 
         const strengthSection = document.getElementById("strength");
         if (strengthSection) {

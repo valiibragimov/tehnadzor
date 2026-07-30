@@ -198,35 +198,6 @@ export interface ReinforcementCheckRecord extends BimBindingCheckData {
   id?: string | null;
 }
 
-export interface StrengthCheckRecord extends BimBindingCheckData {
-  floor?: string | null;
-  location?: string | null;
-  marking?: string | null;
-  stairName?: string | null;
-  axisLetterFrom?: string | null;
-  axisLetterTo?: string | null;
-  axisNumberFrom?: string | number | null;
-  axisNumberTo?: string | number | null;
-  wallBindingType?: string | null;
-  wallLetterAxis?: string | null;
-  wallNumberAxis1?: string | number | null;
-  wallNumberAxis2?: string | number | null;
-  wallNumberAxis?: string | number | null;
-  wallLetterAxis1?: string | null;
-  wallLetterAxis2?: string | null;
-  mark?: string | null;
-  markValue?: number | null;
-  days?: number | string | null;
-  actual?: number | string | null;
-  status?: CheckStatus | null;
-  summaryText?: string | null;
-  lastMsg?: string | null;
-  projectId?: string | null;
-  module?: string | null;
-  createdAt?: number | null;
-  id?: string | null;
-}
-
 export interface JournalViewEntry extends Record<string, unknown> {
   id?: string | null;
   ts?: number | null;
