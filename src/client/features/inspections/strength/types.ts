@@ -94,3 +94,12 @@ export interface StrengthWriteResult {
 export interface StrengthBimElementRecord extends Record<string, unknown> {
   id: string;
 }
+
+export interface StrengthJournalPayload extends Record<string, unknown> {
+  module: "Прочность";
+  status: string;
+  context: string;
+  details: string;
+  construction: string;
+  sourceId?: string;
+}

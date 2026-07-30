@@ -1,6 +1,7 @@
 import type {
   StrengthCheckRecord,
   StrengthEvaluation,
+  StrengthJournalPayload,
   StrengthResultSeries
 } from "./types.js";
 
@@ -116,4 +117,43 @@ export function buildStrengthResultSeries(
       actual != null && day === days ? actual : null
     )
   };
+}
+
+export function buildStrengthJournalPayload(
+  check: StrengthCheckRecord,
+  options: {
+    sourceId?: string | null;
+    runtimeStatus?: boolean;
+  } = {}
+): StrengthJournalPayload | null {
+  const evaluation = evaluateStrengthCheck(check);
+  if (
+    !evaluation.hasRequiredData ||
+    !evaluation.hasActual ||
+    evaluation.normativeStrength == null ||
+    evaluation.actual == null
+  ) {
+    return null;
+  }
+
+  const contextParts: string[] = [];
+  if (check.floor) contextParts.push(`Этаж ${check.floor}`);
+  if (check.days) contextParts.push(`день=${check.days}`);
+  const payload: StrengthJournalPayload = {
+    module: "Прочность",
+    status: options.runtimeStatus
+      ? evaluation.isCompliant
+        ? "соответствует"
+        : "недобор"
+      : evaluation.isCompliant
+        ? "ok"
+        : "exceeded",
+    context: contextParts.join(", ") || "Прочность бетона",
+    details:
+      `норма=${evaluation.normativeStrength.toFixed(1)} МПа; ` +
+      `факт=${evaluation.actual.toFixed(1)} МПа`,
+    construction: String(check.construction || "")
+  };
+  if (options.sourceId) payload.sourceId = options.sourceId;
+  return payload;
 }

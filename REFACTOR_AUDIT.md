@@ -843,3 +843,46 @@ Smoke-регрессия:
 - `npm run lint` — успешно;
 - `npm run build` — успешно;
 - `npm test` — `68/68` тестов успешно.
+
+## Strength form and actions runtime — 2026-07-30
+
+Выполнен второй отдельный этап рефакторинга прочности бетона:
+
+- `dom.ts` централизует получение и типизацию DOM-элементов формы;
+- `form.ts` отвечает за инициализацию, чтение, восстановление, валидацию и
+  очистку формы, не обращаясь к Firebase или repository;
+- `handlers.ts` содержит check/save/update/load/delete/clear actions,
+  локальное rendering проверок, управление `currentCheckId`, состояниями
+  `inspectionState`/`inspectionChecked` и journal integration;
+- `chart.ts` владеет жизненным циклом графика и получает конструктор Chart.js
+  явной зависимостью;
+- `runtime.ts` связывает существующие `StrengthState`, `StrengthService`,
+  форму, handlers, график и переданные приложением внешние эффекты;
+- `app/modules/strength.ts` сокращён до compatibility entrypoint и оставленного
+  на следующий этап BIM selection runtime;
+- UI feature не импортирует Firebase SDK или Firestore repository; доступ к
+  данным по-прежнему проходит через `StrengthService`;
+- сохранены формула, Firestore-формат, dual-write, журнал, внешний вид и
+  пользовательское поведение, включая сенсорный выбор класса бетона.
+
+Добавлены поведенческие regression-тесты:
+
+- проверка с полными данными и без фактической прочности;
+- создание и обновление проверки;
+- восстановление записи в форму;
+- удаление и очистка всех проверок;
+- уничтожение и повторное создание графика;
+- формирование journal payload.
+
+Осознанно не входит в этап:
+
+- strength BIM selection и общий IFC/BIM pipeline;
+- изменения geodesy, reinforcement, geometry, CSS, bundler, Service Worker и
+  формата Firestore.
+
+Финальная проверка этапа:
+
+- `npm run typecheck` — успешно;
+- `npm run lint` — успешно;
+- `npm run build` — успешно;
+- `npm test` — `77/77` тестов успешно.

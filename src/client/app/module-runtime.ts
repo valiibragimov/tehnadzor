@@ -23,6 +23,11 @@ export interface StrengthRuntimeDependencies {
   inspectionChecked: Record<string, boolean>;
   getCurrentProjectId(): string | null;
   showNotification(message: string, tone?: string): void;
+  setConstruction(
+    construction: string,
+    subtype?: string,
+    pileElement?: string
+  ): unknown;
 }
 
 interface ModuleRuntimeOptions {

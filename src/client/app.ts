@@ -655,7 +655,8 @@ const appModuleBridge = createAppModuleBridge({
     inspectionState: state,
     inspectionChecked: checked,
     getCurrentProjectId: () => currentProjectId,
-    showNotification
+    showNotification,
+    setConstruction: setConstructionAndTrigger
   },
   journalGeodesy: {
     nodes,

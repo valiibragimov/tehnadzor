@@ -234,8 +234,12 @@ hosting surface и отсутствие новых `globalThis` assignments.
 - создан первый vertical slice `features/inspections/strength`: типы,
   `StrengthState`, чистые нормативные расчёты, service/use-case boundary и
   Firestore adapter находятся рядом с feature;
-- legacy strength UI сохраняет DOM rendering, Chart.js и BIM selection, но
-  получает состояние и хранение явно через `configureStrengthModule`;
+- форма прочности, её DOM bindings, пользовательские действия, journal payload
+  и управление Chart.js перенесены в `dom.ts`, `form.ts`, `handlers.ts`,
+  `chart.ts` и связываются в `runtime.ts`;
+- legacy `app/modules/strength.ts` оставлен compatibility entrypoint для
+  strength-specific BIM selection; feature runtime получает этот API и все
+  внешние эффекты явными параметрами;
 - `strengthChecks` и `currentStrengthCheckId` больше не публикуются и не
   читаются через `globalThis`; journal, overview и summary получают strength
   state через небольшие callback API;
@@ -244,10 +248,10 @@ hosting surface и отсутствие новых `globalThis` assignments.
 
 Повторный аудит после миграции:
 
-- 92 исполняемых клиентских TypeScript-файла;
+- 103 клиентских TypeScript-файла;
 - 0 статических циклов импортов;
 - 0 обращений к `globalThis.LS`;
-- 58 smoke/regression-тестов;
+- 77 smoke/regression-тестов;
 - все этапы отдельно прошли typecheck, lint, build и test.
 
 Оставшиеся наиболее важные зависимости:
@@ -266,6 +270,6 @@ hosting surface и отсутствие новых `globalThis` assignments.
    объёма существующей DOM-формы и BIM binding UI.
    Дальнейшее деление допустимо только по подтверждённым поведенческим границам,
    а не ради уменьшения размера файлов.
-6. Strength DOM rendering, Chart.js и BIM selection намеренно остаются в
-   `app/modules/strength.ts`; их следует переносить отдельными этапами, не
-   смешивая архитектуру хранения с пользовательским поведением.
+6. Strength BIM selection намеренно остаётся в
+   `app/modules/strength.ts`; его следует переносить отдельным следующим
+   этапом, не затрагивая общий IFC/BIM pipeline.
