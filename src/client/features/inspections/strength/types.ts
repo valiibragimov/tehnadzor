@@ -1,6 +1,8 @@
+import type { BimElement } from "../../../types/domain.js";
+
 export type StrengthStatus = "empty" | "ok" | "exceeded";
 
-export interface StrengthBimFields {
+export interface StrengthBimFields extends Record<string, unknown> {
   bimElementId?: string | null;
   bimSourceModelId?: string | null;
   bimIfcGuid?: string | null;
@@ -93,6 +95,27 @@ export interface StrengthWriteResult {
 
 export interface StrengthBimElementRecord extends Record<string, unknown> {
   id: string;
+}
+
+export type StrengthBimElement = BimElement & Record<string, unknown>;
+
+export interface StrengthBimFilters {
+  search: string;
+  type: string;
+  axes: string;
+}
+
+export interface StrengthBimBindingSnapshot {
+  resolved: boolean;
+  elementId: string | null;
+  rawType: string | null;
+  typeLabel: string | null;
+  floor: string | null;
+  mark: string | null;
+  axes: string | null;
+  sourceModelId: string | null;
+  ifcGuid: string | null;
+  title: string;
 }
 
 export interface StrengthJournalPayload extends Record<string, unknown> {

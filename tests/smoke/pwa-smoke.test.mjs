@@ -271,7 +271,7 @@ test("bim viewer receives project and IFC context in every BIM module", async ()
   const moduleFiles = [
     "src/client/app/modules/geometry.ts",
     "src/client/app/modules/reinforcement.ts",
-    "src/client/app/modules/strength.ts"
+    "src/client/features/inspections/strength/bim-selection-runtime.ts"
   ];
 
   for (const relativePath of moduleFiles) {

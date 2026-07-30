@@ -886,3 +886,48 @@ Smoke-регрессия:
 - `npm run lint` — успешно;
 - `npm run build` — успешно;
 - `npm test` — `77/77` тестов успешно.
+
+## Strength BIM selection runtime — 2026-07-30
+
+Завершён третий отдельный этап и текущий vertical slice прочности:
+
+- чистые нормализация, фильтрация, выбор, snapshot, восстановление, payload и
+  политика очистки ручных полей перенесены в `bim-selection.ts`;
+- состояние BIM selection, rendering, listeners, подсветка полей, загрузка
+  элементов и visual panel integration перенесены в
+  `bim-selection-runtime.ts`;
+- чистый модуль не импортирует DOM, Firebase SDK или repository;
+- BIM UI runtime получает `StrengthService`, DOM bindings, project/IFC context,
+  construction action и form accessor явными зависимостями;
+- существующий `StrengthRuntime` по-прежнему работает с одним небольшим BIM API;
+- `app/modules/strength.ts` сокращён с 969 до 138 строк и теперь только
+  конфигурирует feature runtime и предоставляет compatibility exports старому
+  module bridge;
+- публичный `strength/index.ts` содержит только production API, фактически
+  используемый bootstrap/module-runtime и compatibility entrypoint;
+- общий IFC import, `bim-elements`, `bim-visual-panel`, module activation и
+  That Open pipeline остались общими app dependencies;
+- Firestore BIM-поля, ручной режим, внешний интерфейс и пользовательское
+  поведение не изменены.
+
+Добавлены поведенческие regression-тесты:
+
+- выбор доступного BIM-элемента;
+- комбинированная фильтрация по поиску, типу и осям;
+- ручной режим;
+- восстановление сохранённой BIM-привязки;
+- недоступный и soft-deleted BIM-элемент;
+- сохранение BIM payload в прежнем формате;
+- сохранение ручных полей при снятии привязки.
+
+Осознанно не входит в этап:
+
+- изменения geodesy, reinforcement, geometry, CSS, bundler, Service Worker,
+  общего IFC pipeline и Firestore-формата.
+
+Финальная проверка этапа:
+
+- `npm run typecheck` — успешно;
+- `npm run lint` — успешно;
+- `npm run build` — успешно;
+- `npm test` — `84/84` теста успешно.

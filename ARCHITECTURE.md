@@ -237,9 +237,12 @@ hosting surface и отсутствие новых `globalThis` assignments.
 - форма прочности, её DOM bindings, пользовательские действия, journal payload
   и управление Chart.js перенесены в `dom.ts`, `form.ts`, `handlers.ts`,
   `chart.ts` и связываются в `runtime.ts`;
-- legacy `app/modules/strength.ts` оставлен compatibility entrypoint для
-  strength-specific BIM selection; feature runtime получает этот API и все
-  внешние эффекты явными параметрами;
+- strength-specific BIM selection разделён на чистый
+  `bim-selection.ts` и DOM/runtime `bim-selection-runtime.ts`; feature runtime
+  получает один небольшой BIM API;
+- legacy `app/modules/strength.ts` оставлен 138-строчным compatibility
+  entrypoint: он только связывает зависимости и сохраняет старые module bridge
+  exports;
 - `strengthChecks` и `currentStrengthCheckId` больше не публикуются и не
   читаются через `globalThis`; journal, overview и summary получают strength
   state через небольшие callback API;
@@ -248,10 +251,10 @@ hosting surface и отсутствие новых `globalThis` assignments.
 
 Повторный аудит после миграции:
 
-- 103 клиентских TypeScript-файла;
+- 105 клиентских TypeScript-файлов;
 - 0 статических циклов импортов;
 - 0 обращений к `globalThis.LS`;
-- 77 smoke/regression-тестов;
+- 84 smoke/regression-теста;
 - все этапы отдельно прошли typecheck, lint, build и test.
 
 Оставшиеся наиболее важные зависимости:
@@ -270,6 +273,6 @@ hosting surface и отсутствие новых `globalThis` assignments.
    объёма существующей DOM-формы и BIM binding UI.
    Дальнейшее деление допустимо только по подтверждённым поведенческим границам,
    а не ради уменьшения размера файлов.
-6. Strength BIM selection намеренно остаётся в
-   `app/modules/strength.ts`; его следует переносить отдельным следующим
-   этапом, не затрагивая общий IFC/BIM pipeline.
+6. Strength vertical slice завершён на текущей границе: общий IFC import,
+   `bim-elements`, visual panel и That Open pipeline остаются shared app
+   services и не дублируются внутри feature.
