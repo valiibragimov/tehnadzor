@@ -42,6 +42,7 @@ import {
 } from "./journal/data.js";
 import type { IssueRecord, JournalEntryRecord } from "../../types/module-records.js";
 import type { StrengthCheckRecord } from "../../features/inspections/strength/index.js";
+import type { ReinforcementCheckRecord } from "../../features/inspections/reinforcement/index.js";
 
 // ============================
 //  Журнал проверок
@@ -82,8 +83,21 @@ export interface JournalStrengthApi {
   resetInspectionStatus(): void;
 }
 
+export interface JournalReinforcementApi {
+  checks: Map<string, ReinforcementCheckRecord>;
+  clearChecks(projectId: string): Promise<void>;
+  deleteCheck(projectId: string, checkId: string): Promise<void>;
+  saveChecks(): unknown;
+  renderChecks(): unknown;
+  loadCheck(checkId: string): unknown;
+  getCurrentCheckId(): string | null;
+  setCurrentCheckId(checkId: string | null): void;
+  resetInspectionStatus(): void;
+}
+
 let geodesyApi: JournalGeodesyApi | null = null;
 let strengthApi: JournalStrengthApi | null = null;
+let reinforcementApi: JournalReinforcementApi | null = null;
 
 export function configureJournalGeodesy(api: JournalGeodesyApi) {
   geodesyApi = api;
@@ -91,6 +105,12 @@ export function configureJournalGeodesy(api: JournalGeodesyApi) {
 
 export function configureJournalStrength(api: JournalStrengthApi) {
   strengthApi = api;
+}
+
+export function configureJournalReinforcement(
+  api: JournalReinforcementApi
+) {
+  reinforcementApi = api;
 }
 
 function getGeodesyApi() {
@@ -105,6 +125,15 @@ function getStrengthApi() {
     throw new Error("Journal strength dependency is not configured.");
   }
   return strengthApi;
+}
+
+function getReinforcementApi() {
+  if (!reinforcementApi) {
+    throw new Error(
+      "Journal reinforcement dependency is not configured."
+    );
+  }
+  return reinforcementApi;
 }
 
 function getEntryConstructionKey(value) {
@@ -1108,6 +1137,7 @@ async function clearModuleCollection(collectionName, map, saveFn, renderFn, rese
 
 async function clearAllModuleChecksForProject() {
   const geodesy = getGeodesyApi();
+  const reinforcement = getReinforcementApi();
   await clearModuleCollection(
     "geoNodes",
     geodesy.nodes,
@@ -1120,13 +1150,12 @@ async function clearAllModuleChecksForProject() {
   );
   await clearModuleCollection(
     "reinfChecks",
-    reinfChecks,
-    saveReinfChecks,
-    renderReinfChecks,
+    reinforcement.checks,
+    reinforcement.saveChecks,
+    reinforcement.renderChecks,
     () => {
-      currentReinfCheckId = null;
-      state.reinforcement = false;
-      checked.reinforcement = false;
+      reinforcement.setCurrentCheckId(null);
+      reinforcement.resetInspectionStatus();
     }
   );
   await clearModuleCollection(
@@ -1184,10 +1213,11 @@ async function deleteModuleCheckFromEntry(entry) {
     }
 
     if (moduleKey.includes("арм")) {
+      const reinforcement = getReinforcementApi();
       if (!sourceId) {
         let bestMatch = null;
         let bestTimeDiff = Infinity;
-        for (const [id, check] of reinfChecks.entries()) {
+        for (const [id, check] of reinforcement.checks.entries()) {
           if (!check) continue;
           if (entry.construction && check.construction && !matchesConstructionValue(check.construction, entry.construction)) continue;
 
@@ -1212,16 +1242,16 @@ async function deleteModuleCheckFromEntry(entry) {
       }
 
       if (!sourceId) return;
-      await deleteProjectCollectionDoc(currentProjectId, "reinfChecks", sourceId);
-      await deleteInspectionAndRefreshAnalytics(currentProjectId, sourceId);
-      if (reinfChecks.has(sourceId)) {
-        reinfChecks.delete(sourceId);
-        saveReinfChecks();
-        renderReinfChecks();
+      await reinforcement.deleteCheck(currentProjectId, sourceId);
+      if (reinforcement.checks.has(sourceId)) {
+        reinforcement.checks.delete(sourceId);
+        reinforcement.saveChecks();
+        reinforcement.renderChecks();
       }
-      if (currentReinfCheckId === sourceId) currentReinfCheckId = null;
-      state.reinforcement = false;
-      checked.reinforcement = false;
+      if (reinforcement.getCurrentCheckId() === sourceId) {
+        reinforcement.setCurrentCheckId(null);
+      }
+      reinforcement.resetInspectionStatus();
       return;
     }
 
@@ -1409,7 +1439,8 @@ async function onJournalRowClick(entry) {
       // Ищем проверку армирования
       let targetCheckId = null;
 
-      if (entry.sourceId && reinfChecks.has(entry.sourceId)) {
+      const reinforcement = getReinforcementApi();
+      if (entry.sourceId && reinforcement.checks.has(entry.sourceId)) {
         targetCheckId = entry.sourceId;
         found = true;
       } else {
@@ -1418,7 +1449,7 @@ async function onJournalRowClick(entry) {
         let bestMatch = null;
         let bestTimeDiff = Infinity;
 
-        for (const [id, check] of reinfChecks.entries()) {
+        for (const [id, check] of reinforcement.checks.entries()) {
           if (!check || !matchesConstructionValue(check.construction, entry.construction)) continue;
 
           const checkTime = Number(check.createdAt || 0);
@@ -1447,9 +1478,9 @@ async function onJournalRowClick(entry) {
         targetCheckId = bestMatch;
       }
 
-      if (targetCheckId && reinfChecks.has(targetCheckId)) {
+      if (targetCheckId && reinforcement.checks.has(targetCheckId)) {
         console.log("[Journal] Открываем проверку армирования:", targetCheckId);
-        loadReinfCheck(targetCheckId);
+        reinforcement.loadCheck(targetCheckId);
         
         // Если это стена, ищем конкретную стену
         if (matchesConstructionValue(entry.construction, "wall") && entry.context) {

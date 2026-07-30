@@ -150,54 +150,6 @@ export interface GeometryCheckRecord extends BimBindingCheckData {
   id?: string | null;
 }
 
-export interface ReinforcementLinearRecord extends Record<string, unknown> {
-  marking?: string | null;
-  bindingType?: string | null;
-  numberAxis?: string | number | null;
-  letterAxis1?: string | null;
-  letterAxis2?: string | null;
-  letterAxis?: string | null;
-  numberAxis1?: string | number | null;
-  numberAxis2?: string | number | null;
-  projDia?: number | string | null;
-  factDia?: number | string | null;
-  projStep?: number | string | null;
-  factStep?: number | string | null;
-  projCover?: number | string | null;
-  factCover?: number | string | null;
-  projHoopsStep?: number | string | null;
-  factHoopsStep?: number | string | null;
-}
-
-export interface ReinforcementCheckRecord extends BimBindingCheckData {
-  stairName?: string | null;
-  floor?: string | null;
-  axisLetterFrom?: string | null;
-  axisLetterTo?: string | null;
-  axisNumberFrom?: string | number | null;
-  axisNumberTo?: string | number | null;
-  axisMode?: string | null;
-  location?: string | null;
-  columns?: ReinforcementLinearRecord[] | null;
-  beams?: ReinforcementLinearRecord[] | null;
-  walls?: ReinforcementLinearRecord[] | null;
-  projDia?: number | string | null;
-  factDia?: number | string | null;
-  projStep?: number | string | null;
-  factStep?: number | string | null;
-  projCover?: number | string | null;
-  factCover?: number | string | null;
-  projHoopsStep?: number | string | null;
-  factHoopsStep?: number | string | null;
-  status?: CheckStatus | null;
-  summaryText?: string | null;
-  lastMsg?: string | null;
-  projectId?: string | null;
-  module?: string | null;
-  createdAt?: number | null;
-  id?: string | null;
-}
-
 export interface JournalViewEntry extends Record<string, unknown> {
   id?: string | null;
   ts?: number | null;

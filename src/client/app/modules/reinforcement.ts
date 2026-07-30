@@ -15,12 +15,10 @@ import {
   hasInspectionField
 } from "../inspection-registry.js";
 import {
-  showNotification,
   validateRequiredField,
   validateProject,
   checkTolerance,
   checkStrictMatch,
-  showConfirm,
   defaultRusLetters,
   defaultNumbers,
   normalizeMarking,
@@ -31,41 +29,32 @@ import {
   formatNodeValue
 } from "../../utils.js";
 import {
-  addReinfColumn as reinfAddColumn,
-  removeReinfColumn as reinfRemoveColumn,
-  getReinfColumns as reinfGetColumns,
-  setReinfColumns as reinfSetColumns,
-  checkReinfColumnDuplicate as reinfCheckColumnDuplicate,
-  addReinfBeam as reinfAddBeam,
-  removeReinfBeam as reinfRemoveBeam,
-  getReinfBeams as reinfGetBeams,
-  setReinfBeams as reinfSetBeams,
-  checkReinfBeamDuplicate as reinfCheckBeamDuplicate,
-  addReinfWall as reinfAddWall,
-  removeReinfWall as reinfRemoveWall,
-  getReinfWalls as reinfGetWalls,
-  setReinfWalls as reinfSetWalls,
-  checkReinfWallDuplicate as reinfCheckWallDuplicate,
-  clearAll as reinfClearAll,
-  clearByType as reinfClearByType
-} from "./reinforcement/data.js";
-import {
-  clearProjectCollection,
-  createProjectCollectionDoc,
-  getProjectDocSnapshot,
-  getProjectCollectionSnapshot,
-  updateProjectCollectionDoc
-} from "../repositories/firestore-repository.js";
-import {
-  clearInspectionsByModuleAndRefreshAnalytics,
-  saveInspectionAndRefreshAnalytics
-} from "../services/inspection-sync.js";
+  addReinforcementBeam,
+  addReinforcementColumn,
+  addReinforcementWall,
+  buildReinforcementJournalPayload,
+  clearReinforcementRows,
+  clearReinforcementRowsByType,
+  evaluateReinforcementCheck,
+  hasDuplicateBeamMarking,
+  hasDuplicateColumnMarking,
+  hasDuplicateWallAxes,
+  removeReinforcementBeam,
+  removeReinforcementColumn,
+  removeReinforcementWall,
+  setCurrentReinforcementCheckId,
+  setReinforcementBeams,
+  setReinforcementColumns,
+  setReinforcementWalls,
+  type ReinforcementBeam,
+  type ReinforcementCheckRecord,
+  type ReinforcementColumn,
+  type ReinforcementLinearRecord,
+  type ReinforcementService,
+  type ReinforcementState,
+  type ReinforcementWall
+} from "../../features/inspections/reinforcement/index.js";
 import { renderRegulatoryBasisHtml } from "../services/regulatory-basis.js";
-import type {
-  InspectionPayload,
-  ReinforcementCheckRecord,
-  ReinforcementLinearRecord
-} from "../../types/module-records.js";
 import {
   buildBimElementFilterOptions,
   buildBimElementOptionLabel,
@@ -78,7 +67,6 @@ import {
 import { ensureBimVisualPanel } from "../services/bim-visual-panel.js";
 import {
   getCurrentIfcFileFromInput,
-  getCurrentProjectIdFromGlobal
 } from "../services/bim-runtime-context.js";
 import { onAppTabActivated } from "../services/module-activation.js";
 import {
@@ -86,69 +74,68 @@ import {
   setupNodeCardInteractions
 } from "../ui/node-card-interactions.js";
 import { APP_STORAGE_KEYS } from "../storage.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+export interface ReinforcementModuleDependencies {
+  state: ReinforcementState;
+  service: ReinforcementService;
+  inspectionState: Record<string, boolean>;
+  inspectionChecked: Record<string, boolean>;
+  getCurrentProjectId(): string | null;
+  updateSummary(): unknown;
+  addJournalEntry(params: Record<string, unknown>): unknown;
+  upsertJournalEntry(params: Record<string, unknown>): unknown;
+  notifyFirestoreSyncStatus(docRef: unknown): unknown;
+  showNotification(message: string, tone?: string): void;
+  confirm(message: string): Promise<boolean>;
+}
+
+let dependencies: ReinforcementModuleDependencies | null = null;
+let reinfChecks = new Map<string, ReinforcementCheckRecord>();
+
+export function configureReinforcementModule(
+  nextDependencies: ReinforcementModuleDependencies
+) {
+  dependencies = nextDependencies;
+  reinfChecks = nextDependencies.state.checks;
+}
+
+function getDependencies() {
+  if (!dependencies) {
+    throw new Error("Reinforcement module dependencies are not configured.");
+  }
+  return dependencies;
+}
 
 const safeValue = (value) => escapeHtml(value == null ? "" : String(value));
 const BIM_MANUAL_MODE_MESSAGE = "";
 const BIM_LOAD_ERROR_MESSAGE = "Не удалось загрузить BIM-элементы. Можно продолжить ручной ввод.";
 
-const getCurrentProjectId = getCurrentProjectIdFromGlobal;
+const getCurrentProjectId = () => getDependencies().getCurrentProjectId();
 const getCurrentIfcFile = getCurrentIfcFileFromInput;
-const getReinfChecksMap = () => {
-  if (!(globalThis.reinfChecks instanceof Map)) {
-    globalThis.reinfChecks = new Map<string, ReinforcementCheckRecord>();
-  }
-  return globalThis.reinfChecks as Map<string, ReinforcementCheckRecord>;
-};
 const setCurrentReinfCheckId = (value) => {
-  globalThis.currentReinfCheckId = value;
+  return setCurrentReinforcementCheckId(getDependencies().state, value);
 };
-const getCurrentReinfCheckId = () => globalThis.currentReinfCheckId || null;
+const getCurrentReinfCheckId = () =>
+  getDependencies().state.currentCheckId;
 
-const getState = () => {
-  if (!globalThis.state) {
-    globalThis.state = {};
-  }
-  return globalThis.state;
-};
+const getState = () => getDependencies().inspectionState;
 
-const getChecked = () => {
-  if (!globalThis.checked) {
-    globalThis.checked = {};
-  }
-  return globalThis.checked;
-};
+const getChecked = () => getDependencies().inspectionChecked;
 
-const updateSummary = () => {
-  if (typeof globalThis.updateSummaryTab === "function") {
-    return globalThis.updateSummaryTab();
-  }
-  return undefined;
-};
+const updateSummary = () => getDependencies().updateSummary();
 
-const addJournalEntrySafe = (params) => {
-  if (typeof globalThis.addJournalEntry === "function") {
-    return globalThis.addJournalEntry(params);
-  }
-  return null;
-};
+const addJournalEntrySafe = (params) =>
+  getDependencies().addJournalEntry(params);
 
-const upsertJournalEntrySafe = (params) => {
-  if (typeof globalThis.upsertJournalEntry === "function") {
-    return globalThis.upsertJournalEntry(params);
-  }
-  return null;
-};
+const upsertJournalEntrySafe = (params) =>
+  getDependencies().upsertJournalEntry(params);
 
-const notifyFirestoreSyncStatusSafe = (docRef) => {
-  if (typeof globalThis.notifyFirestoreSyncStatus === "function") {
-    return globalThis.notifyFirestoreSyncStatus(docRef);
-  }
-  return undefined;
-};
+const notifyFirestoreSyncStatusSafe = (docRef) =>
+  getDependencies().notifyFirestoreSyncStatus(docRef);
+const showNotification = (message, tone = "") =>
+  getDependencies().showNotification(message, tone);
+const showConfirm = (message) => getDependencies().confirm(message);
 
-const auth = getAuth();
-const reinfChecks = getReinfChecksMap();
 let reinforcementInitialized = false;
 let reinfAxesInitialized = false;
 let reinfButtonsInitialized = false;
@@ -162,6 +149,114 @@ const reinfBimFilters = {
   search: "",
   type: "all",
   axes: "all"
+};
+
+const reinfGetColumns = () => getDependencies().state.columns;
+const reinfGetBeams = () => getDependencies().state.beams;
+const reinfGetWalls = () => getDependencies().state.walls;
+const reinfSetColumns = (items: ReinforcementColumn[]) =>
+  setReinforcementColumns(getDependencies().state, items);
+const reinfSetBeams = (items: ReinforcementBeam[]) =>
+  setReinforcementBeams(getDependencies().state, items);
+const reinfSetWalls = (items: ReinforcementWall[]) =>
+  setReinforcementWalls(getDependencies().state, items);
+const reinfClearAll = () =>
+  clearReinforcementRows(getDependencies().state);
+const reinfClearByType = (constructionType: "Колонна" | "Балка" | "Стена") =>
+  clearReinforcementRowsByType(
+    getDependencies().state,
+    constructionType
+  );
+const reinfCheckColumnDuplicate = (
+  marking: string,
+  excludeId: number | null = null
+) => hasDuplicateColumnMarking(
+  getDependencies().state,
+  marking,
+  excludeId
+);
+const reinfCheckBeamDuplicate = (
+  marking: string,
+  excludeId: number | null = null
+) => hasDuplicateBeamMarking(
+  getDependencies().state,
+  marking,
+  excludeId
+);
+const reinfCheckWallDuplicate = (
+  bindingType,
+  numberAxis,
+  letterAxis1,
+  letterAxis2,
+  letterAxis,
+  numberAxis1,
+  numberAxis2,
+  excludeId: number | null = null
+) => hasDuplicateWallAxes(getDependencies().state, {
+  bindingType,
+  numberAxis,
+  letterAxis1,
+  letterAxis2,
+  letterAxis,
+  numberAxis1,
+  numberAxis2
+}, excludeId);
+const reinfAddColumn = (renderCallback?: () => void) => {
+  const result = addReinforcementColumn(
+    getDependencies().state,
+    APP_CONFIG.MAX_ELEMENTS
+  );
+  if (!result.added) {
+    showNotification(
+      `Максимальное количество колонн - ${APP_CONFIG.MAX_ELEMENTS}`,
+      "warning"
+    );
+    return;
+  }
+  renderCallback?.();
+};
+const reinfAddBeam = (renderCallback?: () => void) => {
+  const result = addReinforcementBeam(
+    getDependencies().state,
+    APP_CONFIG.MAX_ELEMENTS
+  );
+  if (!result.added) {
+    showNotification(
+      `Максимальное количество балок - ${APP_CONFIG.MAX_ELEMENTS}`,
+      "warning"
+    );
+    return;
+  }
+  renderCallback?.();
+};
+const reinfAddWall = (
+  renderCallback?: () => void,
+  maxWalls = APP_CONFIG.MAX_ELEMENTS
+) => {
+  const result = addReinforcementWall(
+    getDependencies().state,
+    maxWalls
+  );
+  if (!result.added) {
+    showNotification(
+      `Максимальное количество стен - ${maxWalls}`,
+      "warning"
+    );
+    return;
+  }
+  renderCallback?.();
+};
+const reinfRemoveColumn = (id: number, renderCallback?: () => void) => {
+  removeReinforcementColumn(getDependencies().state, id);
+  renderCallback?.();
+};
+const reinfRemoveBeam = (id: number, renderCallback?: () => void) => {
+  removeReinforcementBeam(getDependencies().state, id);
+  renderCallback?.();
+};
+const reinfRemoveWall = (id: number, renderCallback?: () => void) => {
+  removeReinforcementWall(getDependencies().state, id);
+  renderCallback?.();
 };
 
 // ============================
@@ -1856,7 +1951,10 @@ function renderReinfWalls() {
       const wallItem = reinfWalls.find((w) => w.id === wall.id);
       if (wallItem) {
         const oldBindingType = wallItem.bindingType;
-        wallItem.bindingType = e.target.value;
+        wallItem.bindingType =
+          e.target.value === "letter_numbers"
+            ? "letter_numbers"
+            : "number_letters";
 
         if (wallItem.bindingType === "number_letters") {
           if (wallItem.letterAxis1 && wallItem.letterAxis2 && wallItem.letterAxis1 === wallItem.letterAxis2) {
@@ -2080,7 +2178,8 @@ async function loadReinfBimElements(projectId = getCurrentProjectId()) {
   }
 
   try {
-    const snap = await getProjectCollectionSnapshot(projectId, "elements");
+  const snap =
+    await getDependencies().service.loadBimElements(projectId);
     const loadedElements = [];
     snap.forEach((docSnap) => {
       const normalized = normalizeProjectBimElement(docSnap.id, docSnap.data());
@@ -2133,16 +2232,13 @@ async function loadReinfChecks() {
   }
 
   try {
-    const snap = await getProjectCollectionSnapshot(projectId, "reinfChecks");
-    console.log("[loadReinfChecks] Загружено из Firestore проверок:", snap.size);
-    snap.forEach((docSnap) => {
-      const data = docSnap.data();
-      const id = docSnap.id;
-      if (data.createdAt && data.createdAt.toMillis) {
-        data.createdAt = data.createdAt.toMillis();
-      }
-      reinfChecks.set(id, { ...data, id });
-    });
+    const loadedChecks =
+      await getDependencies().service.loadChecks(projectId);
+    loadedChecks.forEach((data, id) => reinfChecks.set(id, data));
+    console.log(
+      "[loadReinfChecks] Загружено из Firestore проверок:",
+      loadedChecks.size
+    );
 
     saveReinfChecks();
   } catch (e) {
@@ -2185,11 +2281,11 @@ function renderReinfChecks() {
 
     let evaluation;
     if (d.status && d.status !== "empty" && d.status !== "ok" && d.status !== "exceeded") {
-      evaluation = evaluateReinfCheck(d);
+      evaluation = evaluateReinforcementCheck(d);
     } else if (d.status) {
       evaluation = { status: d.status, summaryText: d.summaryText || "" };
     } else {
-      evaluation = evaluateReinfCheck(d);
+      evaluation = evaluateReinforcementCheck(d);
     }
 
     if (!evaluation) {
@@ -2327,6 +2423,10 @@ function renderReinfChecks() {
       onOpen: () => loadReinfCheck(id),
       onDelete: async () => {
         if (await showConfirm("Удалить эту проверку?")) {
+          const projectId = getCurrentProjectId();
+          if (projectId) {
+            await getDependencies().service.deleteCheck(projectId, id);
+          }
           if (getCurrentReinfCheckId() === id) setCurrentReinfCheckId(null);
           reinfChecks.delete(id);
           saveReinfChecks();
@@ -2369,7 +2469,9 @@ function loadReinfCheck(id) {
     if (reinfWallFloorEl) reinfWallFloorEl.value = d.floor || "";
     reinfSetWalls((d.walls || []).map((wall: ReinforcementLinearRecord, idx) => ({
       id: Date.now() + idx,
-      bindingType: wall.bindingType || "number_letters",
+      bindingType: wall.bindingType === "letter_numbers"
+        ? "letter_numbers"
+        : "number_letters",
       numberAxis: wall.numberAxis?.toString() || "",
       letterAxis1: wall.letterAxis1?.toString() || "",
       letterAxis2: wall.letterAxis2?.toString() || "",
@@ -2562,7 +2664,9 @@ async function saveReinfCheck({ skipJournalOnce = false } = {}) {
       factCover: b.factCover === "" ? null : +b.factCover
     })) : null,
     walls: isWall ? reinfGetWalls().map((w) => ({
-      bindingType: w.bindingType || "number_letters",
+        bindingType: w.bindingType === "letter_numbers"
+          ? "letter_numbers"
+          : "number_letters",
       numberAxis: w.numberAxis || "",
       letterAxis1: w.letterAxis1 || "",
       letterAxis2: w.letterAxis2 || "",
@@ -2586,7 +2690,7 @@ async function saveReinfCheck({ skipJournalOnce = false } = {}) {
     factHoopsStep: behavior.showReinforcementHoopsStep ? (reinfFactHoopsStepEl?.value === "" ? null : +(reinfFactHoopsStepEl?.value || 0)) : null
   };
 
-  const evaluation = evaluateReinfCheck(data);
+  const evaluation = evaluateReinforcementCheck(data);
   data.status = evaluation.status === "empty" ? "empty" : (evaluation.status === "ok" ? "ok" : "exceeded");
   data.summaryText = evaluation.summaryText;
   data.lastMsg = reinfResult?.innerHTML || "";
@@ -2620,13 +2724,14 @@ async function saveReinfCheck({ skipJournalOnce = false } = {}) {
   try {
     let finalId = id;
     if (existing) {
-      const { ref: docRef } = await updateProjectCollectionDoc(projectId, "reinfChecks", id, data);
-      notifyFirestoreSyncStatusSafe(docRef);
+      const result =
+        await getDependencies().service.updateCheck(projectId, id, data);
+      notifyFirestoreSyncStatusSafe(result.ref);
       console.log("[btnSaveReinfCheck] Проверка обновлена в Firestore, docId:", finalId);
     } else {
-      const created = await createProjectCollectionDoc(projectId, "reinfChecks", data);
-      const docRef = created.ref;
-      notifyFirestoreSyncStatusSafe(docRef);
+      const created =
+        await getDependencies().service.createCheck(projectId, data);
+      notifyFirestoreSyncStatusSafe(created.ref);
       finalId = created.id;
       console.log("[btnSaveReinfCheck] Проверка сохранена в Firestore, docId:", finalId, "localId:", id);
 
@@ -2640,72 +2745,10 @@ async function saveReinfCheck({ skipJournalOnce = false } = {}) {
 
     setCurrentReinfCheckId(finalId);
 
-    try {
-      const projectSnap = await getProjectDocSnapshot(projectId);
-      const projectData = projectSnap.exists() ? projectSnap.data() || {} : {};
-      const authUid = String(auth.currentUser?.uid || "").trim();
-      const ownerUid = String(projectData.ownerUid || projectData.createdBy || authUid || "").trim();
-      const createdBy = String(projectData.createdBy || projectData.ownerUid || authUid || "").trim();
-      const contractorName = String(projectData.contractorName || "").trim();
-
-      const inspectionPayload: InspectionPayload = {
-        projectId,
-        module: "Армирование",
-        moduleKey: "reinforcement",
-        sourceCollection: "reinfChecks",
-        sourceId: finalId,
-        sourceDocId: finalId,
-        construction: data.construction || getSelectedConstructionKey(),
-        constructionCategory: data.constructionCategory || getSelectedConstructionCategory(),
-        constructionLabel: data.constructionLabel || getSelectedConstructionLabel(),
-        constructionType: data.constructionType || construction?.value || "",
-        constructionSubtype: data.constructionSubtype || construction?.dataset?.subtypeKey || "",
-        constructionSubtypeLabel: data.constructionSubtypeLabel || construction?.dataset?.subtypeLabel || "",
-        checkStatus: data.status || null,
-        summaryText: data.summaryText || "",
-        createdAt: data.createdAt || Date.now(),
-        updatedAt: Date.now(),
-        contractorName
-      };
-      if (ownerUid) inspectionPayload.ownerUid = ownerUid;
-      if (createdBy) inspectionPayload.createdBy = createdBy;
-
-      await saveInspectionAndRefreshAnalytics(
-        projectId,
-        finalId,
-        inspectionPayload,
-        { merge: true }
-      );
-    } catch (dualWriteError) {
-      console.warn("[DualWrite][reinforcement] inspections upsert failed:", dualWriteError);
-    }
-
     if (!skipJournal && data.status !== "empty") {
-      const contextParts = [];
-      if (floor) contextParts.push(`Этаж ${floor}`);
-      if (data.stairName) contextParts.push(data.stairName);
-      if (data.location) contextParts.push(data.location);
-      const context = contextParts.join(", ") || "Армирование";
-
-      const detailsParts = [];
-      if (data.columns) {
-        data.columns.forEach((c) => {
-          if (c.projDia != null && c.factDia != null && Math.abs(Number(c.factDia) - Number(c.projDia)) > 0) detailsParts.push(`Диаметр: ${c.projDia}→${c.factDia}`);
-          if (c.projStep != null && c.factStep != null && Math.abs(Number(c.factStep) - Number(c.projStep)) > 5) detailsParts.push(`Шаг: ${c.projStep}→${c.factStep}`);
-        });
-      } else {
-        if (data.projDia && data.factDia) detailsParts.push(`Диаметр: ${data.projDia}→${data.factDia}`);
-        if (data.projStep && data.factStep) detailsParts.push(`Шаг: ${data.projStep}→${data.factStep}`);
-      }
-
-      await upsertJournalEntrySafe({
-        module: "Армирование",
-        status: data.status === "ok" ? "ok" : "exceeded",
-        context: context,
-        details: detailsParts.join("; ") || evaluation.summaryText || "Проверка армирования",
-        sourceId: finalId,
-        construction: data.construction || getSelectedConstructionKey()
-      });
+      await upsertJournalEntrySafe(
+        buildReinforcementJournalPayload(data, finalId)
+      );
     }
   } catch (err) {
     console.error("[btnSaveReinfCheck] Ошибка сохранения в Firestore:", err);
@@ -2752,13 +2795,6 @@ function clearReinfForm() {
   updateReinfLocation();
 }
 
-async function clearReinfInspectionDualWrite(projectId) {
-  return clearInspectionsByModuleAndRefreshAnalytics(projectId, {
-    sourceCollection: "reinfChecks",
-    moduleKey: "reinforcement"
-  });
-}
-
 async function clearReinfChecks() {
   if (!(await showConfirm("Удалить все сохранённые проверки армирования для текущего проекта?"))) return;
   const projectId = getCurrentProjectId();
@@ -2772,8 +2808,8 @@ async function clearReinfChecks() {
   console.log("[btnClearReinfChecks] Путь Firestore: projects/" + projectId + "/reinfChecks");
 
   try {
-    const deletedCount = await clearProjectCollection(projectId, "reinfChecks");
-    const deletedDualWriteCount = await clearReinfInspectionDualWrite(projectId);
+    const { deletedCount, deletedDualWriteCount } =
+      await getDependencies().service.clearChecks(projectId);
     console.log("[btnClearReinfChecks] Найдено документов в Firestore:", deletedCount);
     console.log("[btnClearReinfChecks] Удалено документов из Firestore:", deletedCount);
     console.log("[btnClearReinfChecks] Удалено документов dual-write из inspections:", deletedDualWriteCount);
@@ -2804,153 +2840,6 @@ async function clearReinfChecks() {
  * @param {Object} checkData - Данные проверки армирования
  * @returns {Object} - { status: "ok"|"exceeded"|"empty", summaryText: string }
  */
-function evaluateReinfCheck(checkData: ReinforcementCheckRecord) {
-  const registryConstruction = checkData.construction || checkData.constructionType || checkData.checkKind || "";
-  const registrySubtype = checkData.constructionSubtype || "";
-  const TOL_STEP = getInspectionToleranceValue(
-    registryConstruction,
-    "reinforcement",
-    "rebarStep",
-    TOLERANCES.STEP,
-    registrySubtype
-  );
-  const TOL_COVER = getInspectionToleranceValue(
-    registryConstruction,
-    "reinforcement",
-    "rebarCover",
-    TOLERANCES.COVER,
-    registrySubtype
-  );
-
-  let hasAnyData = false;
-  let allOk = true;
-  let hasRequiredData = false;
-
-  if (checkData.columns || checkData.beams || checkData.walls) {
-    const items = checkData.columns || checkData.beams || checkData.walls;
-
-    for (const item of items) {
-      const projDiaV = parseDecimal(item.projDia);
-      const factDiaV = parseDecimal(item.factDia);
-      if (projDiaV != null && factDiaV != null) {
-        hasAnyData = true;
-        hasRequiredData = true;
-        const dev = Math.abs(factDiaV - projDiaV);
-        if (dev !== 0) allOk = false;
-      } else if (projDiaV != null || factDiaV != null) {
-        hasAnyData = true;
-      }
-
-      const projStepV = parseDecimal(item.projStep);
-      const factStepV = parseDecimal(item.factStep);
-      if (projStepV != null && factStepV != null) {
-        hasAnyData = true;
-        hasRequiredData = true;
-        const dev = Math.abs(factStepV - projStepV);
-        if (dev > TOL_STEP) allOk = false;
-      } else if (projStepV != null || factStepV != null) {
-        hasAnyData = true;
-      }
-
-      const projCoverV = parseDecimal(item.projCover);
-      const factCoverV = parseDecimal(item.factCover);
-      if (projCoverV != null && factCoverV != null) {
-        hasAnyData = true;
-        hasRequiredData = true;
-        const dev = Math.abs(factCoverV - projCoverV);
-        if (dev > TOL_COVER) allOk = false;
-      } else if (projCoverV != null || factCoverV != null) {
-        hasAnyData = true;
-      }
-
-      if (checkData.columns && item.projHoopsStep != null && item.factHoopsStep != null) {
-        const TOL_HOOPS_STEP = getInspectionToleranceValue(
-          registryConstruction,
-          "reinforcement",
-          "hoopsStep",
-          TOLERANCES.HOOPS_STEP,
-          registrySubtype
-        );
-        const projHoopsStepV = parseDecimal(item.projHoopsStep);
-        const factHoopsStepV = parseDecimal(item.factHoopsStep);
-        if (projHoopsStepV != null && factHoopsStepV != null) {
-          hasAnyData = true;
-          hasRequiredData = true;
-          const dev = Math.abs(factHoopsStepV - projHoopsStepV);
-          if (dev > TOL_HOOPS_STEP) allOk = false;
-        } else if (projHoopsStepV != null || factHoopsStepV != null) {
-          hasAnyData = true;
-        }
-      }
-    }
-  } else {
-    const projDiaV = parseDecimal(checkData.projDia);
-    const factDiaV = parseDecimal(checkData.factDia);
-    const projStepV = parseDecimal(checkData.projStep);
-    const factStepV = parseDecimal(checkData.factStep);
-    const projCoverV = parseDecimal(checkData.projCover);
-    const factCoverV = parseDecimal(checkData.factCover);
-    const projHoopsStepV = parseDecimal(checkData.projHoopsStep);
-    const factHoopsStepV = parseDecimal(checkData.factHoopsStep);
-
-    if (projDiaV != null && factDiaV != null) {
-      hasAnyData = true;
-      hasRequiredData = true;
-      const dev = Math.abs(factDiaV - projDiaV);
-      if (dev !== 0) allOk = false;
-    } else if (projDiaV != null || factDiaV != null) {
-      hasAnyData = true;
-    }
-
-    if (projStepV != null && factStepV != null) {
-      hasAnyData = true;
-      hasRequiredData = true;
-      const dev = Math.abs(factStepV - projStepV);
-      if (dev > TOL_STEP) allOk = false;
-    } else if (projStepV != null || factStepV != null) {
-      hasAnyData = true;
-    }
-
-    if (projCoverV != null && factCoverV != null) {
-      hasAnyData = true;
-      hasRequiredData = true;
-      const dev = Math.abs(factCoverV - projCoverV);
-      if (dev > TOL_COVER) allOk = false;
-    } else if (projCoverV != null || factCoverV != null) {
-      hasAnyData = true;
-    }
-
-    if (projHoopsStepV != null && factHoopsStepV != null) {
-      const TOL_HOOPS_STEP = getInspectionToleranceValue(
-        registryConstruction,
-        "reinforcement",
-        "hoopsStep",
-        TOLERANCES.HOOPS_STEP,
-        registrySubtype
-      );
-      hasAnyData = true;
-      hasRequiredData = true;
-      const dev = Math.abs(factHoopsStepV - projHoopsStepV);
-      if (dev > TOL_HOOPS_STEP) allOk = false;
-    } else if (projHoopsStepV != null || factHoopsStepV != null) {
-      hasAnyData = true;
-    }
-  }
-
-  if (!hasAnyData) {
-    return { status: "empty", summaryText: "Не заполнено" };
-  }
-
-  if (!hasRequiredData) {
-    return { status: "empty", summaryText: "Не заполнено" };
-  }
-
-  return {
-    status: allOk ? "ok" : "exceeded",
-    summaryText: allOk ? "в норме" : "превышено"
-  };
-}
-
 function runReinfCheck() {
   const projectId = getCurrentProjectId();
   if (!validateProject(projectId)) return;
@@ -3069,8 +2958,8 @@ function runReinfCheck() {
         }));
       }
 
-      const projHoopsStepV = parseFloat(column.projHoopsStep);
-      const factHoopsStepV = parseFloat(column.factHoopsStep);
+      const projHoopsStepV = parseFloat(String(column.projHoopsStep));
+      const factHoopsStepV = parseFloat(String(column.factHoopsStep));
       if (!isNaN(projHoopsStepV) && !isNaN(factHoopsStepV)) {
         const { ok } = checkTolerance(factHoopsStepV, projHoopsStepV, TOL_HOOPS_STEP);
         anyCheck = true;

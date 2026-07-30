@@ -1,11 +1,15 @@
 import { createModuleRuntime } from "./module-runtime.js";
-import type { StrengthRuntimeDependencies } from "./module-runtime.js";
+import type {
+  ReinforcementRuntimeDependencies,
+  StrengthRuntimeDependencies
+} from "./module-runtime.js";
 import { APP_STORAGE_KEYS } from "./storage.js";
 import type { JournalGeodesyApi } from "./modules/journal.js";
 
 interface AppModuleBridgeOptions {
   onJournalTabActivated?: () => void;
   journalGeodesy: JournalGeodesyApi;
+  reinforcement: ReinforcementRuntimeDependencies;
   strength: StrengthRuntimeDependencies;
 }
 
@@ -19,6 +23,7 @@ type ModuleAction<TModule, TResult> = (module: TModule) => TResult | Promise<TRe
 export function createAppModuleBridge({
   onJournalTabActivated,
   journalGeodesy,
+  reinforcement,
   strength
 }: AppModuleBridgeOptions) {
   let moduleRuntime: ReturnType<typeof createModuleRuntime> | null = null;
@@ -28,6 +33,7 @@ export function createAppModuleBridge({
       moduleRuntime = createModuleRuntime({
         onJournalTabActivated,
         journalGeodesy,
+        reinforcement,
         strength
       });
     }

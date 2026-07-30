@@ -26,11 +26,18 @@ const MODULE_ALIASES: Record<string, string> = {
 let overviewInitialized = false;
 let renderSequence = 0;
 let getStrengthChecksCount = () => 0;
+let getReinforcementChecksCount = () => 0;
 
 export function configureOverviewStrength(
   getCount: () => number
 ) {
   getStrengthChecksCount = getCount;
+}
+
+export function configureOverviewReinforcement(
+  getCount: () => number
+) {
+  getReinforcementChecksCount = getCount;
 }
 
 function setText(id: string, value: string | number) {
@@ -147,7 +154,7 @@ export async function renderOverview() {
   const hasProject = Boolean(projectId);
   const moduleCounts = {
     geo: getCollectionSize(globalThis.nodes),
-    reinforcement: getCollectionSize(globalThis.reinfChecks),
+    reinforcement: getReinforcementChecksCount(),
     geometry: getCollectionSize(globalThis.geomChecks),
     strength: getStrengthChecksCount()
   };

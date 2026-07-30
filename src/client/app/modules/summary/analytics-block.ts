@@ -39,6 +39,7 @@ import {
   resolveInspectionSourceId
 } from "./analytics-data.js";
 import type { StrengthCheckRecord } from "../../../features/inspections/strength/index.js";
+import type { ReinforcementCheckRecord } from "../../../features/inspections/reinforcement/index.js";
 
 interface SaveProjectContractorOptions {
   showWarning?: boolean;
@@ -70,11 +71,19 @@ const contractorSaveInProgress = new Set();
 const analyticsProjectsCache = new Map();
 const analyticsProjectSourcesCache = new Map();
 let getStrengthChecks = () => new Map<string, StrengthCheckRecord>();
+let getReinforcementChecks =
+  () => new Map<string, ReinforcementCheckRecord>();
 
 export function configureAnalyticsStrength(
   getChecks: () => Map<string, StrengthCheckRecord>
 ) {
   getStrengthChecks = getChecks;
+}
+
+export function configureAnalyticsReinforcement(
+  getChecks: () => Map<string, ReinforcementCheckRecord>
+) {
+  getReinforcementChecks = getChecks;
 }
 const analyticsState = {
   ui: null,
@@ -1971,8 +1980,9 @@ async function getProjectSources(projectId) {
           _docId: id
         }));
       }
-      if (!reinfChecks.length && globalThis.reinfChecks instanceof Map) {
-        reinfChecks = Array.from(globalThis.reinfChecks.entries()).map(([id, data]) => ({
+      const localReinforcementChecks = getReinforcementChecks();
+      if (!reinfChecks.length && localReinforcementChecks.size) {
+        reinfChecks = Array.from(localReinforcementChecks.entries()).map(([id, data]) => ({
           ...(data || {}),
           _docId: id
         }));
@@ -2122,7 +2132,7 @@ async function getCollectionDocsByIds(projectId, collectionName, docIds) {
 
 function getLocalLegacyMapByCollection(collectionName) {
   if (collectionName === "geoNodes" && globalThis.nodes instanceof Map) return globalThis.nodes;
-  if (collectionName === "reinfChecks" && globalThis.reinfChecks instanceof Map) return globalThis.reinfChecks;
+  if (collectionName === "reinfChecks") return getReinforcementChecks();
   if (collectionName === "geomChecks" && globalThis.geomChecks instanceof Map) return globalThis.geomChecks;
   if (collectionName === "strengthChecks") return getStrengthChecks();
   return null;

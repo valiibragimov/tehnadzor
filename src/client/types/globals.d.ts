@@ -113,7 +113,6 @@ declare global {
     skipWaiting?: () => Promise<void> | void;
     checked?: unknown[];
     nodes?: unknown[];
-    reinfChecks?: unknown[];
     geomChecks?: unknown[];
     journalEntries?: Array<Record<string, unknown>>;
     state?: Record<string, unknown>;
@@ -150,7 +149,6 @@ declare global {
     ) => unknown;
     loadJournalFromFirestore?: (...args: unknown[]) => unknown;
     upsertJournalEntry?: (entry: Inspection | Record<string, unknown>) => unknown;
-    currentReinfCheckId?: string | null;
     currentGeomCheckId?: string | null;
   }
   
@@ -169,7 +167,6 @@ declare global {
   var setJournalFilters: (...args: unknown[]) => unknown;
   var suppressStrengthAutoSaveOnce: boolean;
   var nodes: Map<string, Record<string, unknown>>;
-  var reinfChecks: Map<string, Record<string, unknown>>;
   var geomChecks: Map<string, Record<string, unknown>>;
   var state: Record<string, unknown>;
   var checked: Record<string, unknown>;
@@ -178,7 +175,6 @@ declare global {
   var loadGeomCheck: (...args: unknown[]) => unknown;
   var selectProject: (...args: unknown[]) => unknown;
   var setConstructionAndTrigger: (...args: unknown[]) => unknown;
-  var currentReinfCheckId: string | null;
   var currentGeomCheckId: string | null;
   var loadReinfChecks: (...args: unknown[]) => unknown;
   var saveReinfChecks: (...args: unknown[]) => unknown;

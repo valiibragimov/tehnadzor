@@ -5,6 +5,10 @@ import type {
   StrengthState
 } from "../features/inspections/strength/index.js";
 import { setCurrentStrengthCheckId } from "../features/inspections/strength/index.js";
+import type {
+  ReinforcementService,
+  ReinforcementState
+} from "../features/inspections/reinforcement/index.js";
 
 type JournalModule = typeof import("./modules/journal.js");
 type GeometryModule = typeof import("./modules/geometry.js");
@@ -30,9 +34,20 @@ export interface StrengthRuntimeDependencies {
   ): unknown;
 }
 
+export interface ReinforcementRuntimeDependencies {
+  state: ReinforcementState;
+  service: ReinforcementService;
+  inspectionState: Record<string, boolean>;
+  inspectionChecked: Record<string, boolean>;
+  getCurrentProjectId(): string | null;
+  showNotification(message: string, tone?: string): void;
+  confirm(message: string): Promise<boolean>;
+}
+
 interface ModuleRuntimeOptions {
   onJournalTabActivated?: () => void;
   journalGeodesy: JournalGeodesyApi;
+  reinforcement: ReinforcementRuntimeDependencies;
   strength: StrengthRuntimeDependencies;
 }
 
@@ -41,6 +56,7 @@ type ModuleAction<TModule, TResult> = (module: TModule) => TResult | Promise<TRe
 export function createModuleRuntime({
   onJournalTabActivated,
   journalGeodesy,
+  reinforcement,
   strength
 }: ModuleRuntimeOptions) {
   let journalModulePromise: Promise<JournalModule> | null = null;
@@ -70,6 +86,44 @@ export function createModuleRuntime({
       journalModulePromise = import("./modules/journal.js")
         .then((module) => {
           module.configureJournalGeodesy(journalGeodesy);
+          module.configureJournalReinforcement({
+            checks: reinforcement.state.checks,
+            clearChecks: async (projectId) => {
+              await reinforcement.service.clearChecks(projectId);
+            },
+            deleteCheck: (projectId, checkId) =>
+              reinforcement.service.deleteCheck(projectId, checkId),
+            saveChecks: () =>
+              withModule(
+                getReinforcementModule,
+                "Reinforcement",
+                (reinforcementModule) =>
+                  reinforcementModule.saveReinfChecks()
+              ),
+            renderChecks: () =>
+              withModule(
+                getReinforcementModule,
+                "Reinforcement",
+                (reinforcementModule) =>
+                  reinforcementModule.renderReinfChecks()
+              ),
+            loadCheck: (checkId) =>
+              withModule(
+                getReinforcementModule,
+                "Reinforcement",
+                (reinforcementModule) =>
+                  reinforcementModule.loadReinfCheck(checkId)
+              ),
+            getCurrentCheckId: () =>
+              reinforcement.state.currentCheckId,
+            setCurrentCheckId: (checkId) => {
+              reinforcement.state.currentCheckId = checkId;
+            },
+            resetInspectionStatus: () => {
+              reinforcement.inspectionState.reinforcement = false;
+              reinforcement.inspectionChecked.reinforcement = false;
+            }
+          });
           module.configureJournalStrength({
             checks: strength.state.checks,
             clearChecks: async (projectId) => {
@@ -132,6 +186,35 @@ export function createModuleRuntime({
     if (!reinforcementModulePromise) {
       reinforcementModulePromise = import("./modules/reinforcement.js")
         .then((module) => {
+          module.configureReinforcementModule({
+            ...reinforcement,
+            updateSummary: () =>
+              withModule(
+                getSummaryModule,
+                "Summary",
+                (summaryModule) => summaryModule.updateSummaryTab()
+              ),
+            addJournalEntry: (params) =>
+              withModule(
+                getJournalModule,
+                "Journal",
+                (journalModule) => journalModule.addJournalEntry(params as any)
+              ),
+            upsertJournalEntry: (params) =>
+              withModule(
+                getJournalModule,
+                "Journal",
+                (journalModule) =>
+                  journalModule.upsertJournalEntry(params as any)
+              ),
+            notifyFirestoreSyncStatus: (docRef) =>
+              withModule(
+                getJournalModule,
+                "Journal",
+                (journalModule) =>
+                  journalModule.notifyFirestoreSyncStatus(docRef as any)
+              )
+          });
           module.initReinforcementModule();
           return module;
         })
@@ -191,6 +274,9 @@ export function createModuleRuntime({
       summaryModulePromise = import("./modules/summary.js")
         .then((module) => {
           module.configureSummaryStrength(() => strength.state.checks);
+          module.configureSummaryReinforcement(
+            () => reinforcement.state.checks
+          );
           module.initSummaryModule();
           return module;
         })
@@ -222,6 +308,9 @@ export function createModuleRuntime({
       overviewModulePromise = import("./modules/overview.js")
         .then((module) => {
           module.configureOverviewStrength(() => strength.state.checks.size);
+          module.configureOverviewReinforcement(
+            () => reinforcement.state.checks.size
+          );
           module.initOverviewModule();
           return module;
         })

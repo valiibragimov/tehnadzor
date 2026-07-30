@@ -248,6 +248,20 @@ hosting surface и отсутствие новых `globalThis` assignments.
   state через небольшие callback API;
 - source collection `strengthChecks`, формат документов и dual-write в
   `inspections` сохранены.
+- создан первый vertical slice `features/inspections/reinforcement`: feature
+  владеет типами, `ReinforcementState`, чистыми расчётами и service/repository
+  boundary;
+- коллекция `reinfChecks`, текущий ID и строки колонн, балок и стен теперь
+  принадлежат одному явно переданному state; старый `reinforcement/data.ts`
+  оставлен только как stateless build-path compatibility adapter;
+- сохранение `reinfChecks`, soft-delete filtering и dual-write в `inspections`
+  выполняются через локальный Firestore adapter над централизованным
+  repository;
+- `globalThis.reinfChecks` и `globalThis.currentReinfCheckId` удалены;
+  journal, overview и summary получают reinforcement state через небольшие
+  публичные API;
+- legacy reinforcement DOM rendering, handlers и BIM selection пока остаются
+  в `app/modules/reinforcement.ts` и будут переноситься отдельными этапами.
 
 Повторный аудит после миграции:
 
@@ -259,9 +273,9 @@ hosting surface и отсутствие новых `globalThis` assignments.
 
 Оставшиеся наиболее важные зависимости:
 
-1. Geometry и reinforcement UI всё ещё напрямую используют
-   repository/Firebase runtime; geodesy и storage-операции strength уже
-   обращаются к данным через локальные service boundaries.
+1. Geometry UI всё ещё напрямую использует repository/Firebase runtime;
+   geodesy, strength и storage-операции reinforcement уже обращаются к данным
+   через локальные service boundaries.
 2. `globalThis` всё ещё используется как legacy runtime context; новых bridges
    в текущей фазе не добавлено.
 3. Inline modules остаются в about, profile и edit-profile; их перенос требует
@@ -276,3 +290,6 @@ hosting surface и отсутствие новых `globalThis` assignments.
 6. Strength vertical slice завершён на текущей границе: общий IFC import,
    `bim-elements`, visual panel и That Open pipeline остаются shared app
    services и не дублируются внутри feature.
+7. Reinforcement vertical slice пока завершён только на границе state,
+   evaluation и storage: DOM actions/rendering и BIM selection остаются
+   осознанным долгом следующих небольших этапов.

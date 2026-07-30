@@ -931,3 +931,54 @@ Smoke-регрессия:
 - `npm run lint` — успешно;
 - `npm run build` — успешно;
 - `npm test` — `84/84` теста успешно.
+
+## Reinforcement state, evaluation and storage boundary — 2026-07-30
+
+Выполнен первый отдельный этап рефакторинга армирования:
+
+- создан `src/client/features/inspections/reinforcement` с `types.ts`,
+  `state.ts`, `evaluation.ts`, `service.ts`, `firestore-service.ts` и
+  небольшим production API в `index.ts`;
+- `ReinforcementState` владеет `checks`, `currentCheckId`, `columns`, `beams`
+  и `walls`; модуль больше не создаёт параллельное mutable state;
+- добавление, удаление, лимиты, нормализация маркировок, поиск дубликатов и
+  очистка строк реализованы state actions без DOM, Firebase и `globalThis`;
+- дубликаты стен сравниваются по нормализованной паре крайних осей независимо
+  от порядка;
+- strict diameter match, допуски шага, защитного слоя и хомутов, итоговый
+  status/summary и journal payload вынесены в чистый `evaluation.ts`;
+- загрузка active-записей, create/update/delete/clear и best-effort
+  dual-write вынесены в `ReinforcementService`;
+- Firebase SDK и централизованный repository импортируются только
+  `firestore-service.ts`; legacy UI получает service и внешние callbacks через
+  module runtime;
+- `globalThis.reinfChecks` и `globalThis.currentReinfCheckId` удалены, а
+  journal, overview и summary получают state явными зависимостями;
+- `app/modules/reinforcement/data.ts` оставлен как stateless compatibility
+  adapter для сохранения существующего build/Service Worker пути;
+- Firestore collection `reinfChecks`, формат source-документов и проекции
+  `inspections` сохранены.
+
+Добавлены поведенческие regression-тесты:
+
+- добавление, удаление, лимиты и очистка колонн, балок и стен;
+- дубликаты маркировок и стен с переставленными крайними осями;
+- расчёты в допуске, превышение и strict match;
+- загрузка без soft-deleted записей;
+- create/update/delete/clear, dual-write и отказ dual-write;
+- явное изменение `currentCheckId`;
+- формирование status, summary и journal payload.
+
+Осознанно не входит в этап:
+
+- перенос reinforcement DOM rendering и handlers;
+- перенос reinforcement BIM selection и visual panel integration;
+- изменения geodesy, strength, geometry, CSS, bundler, Service Worker,
+  общего IFC pipeline и Firestore-формата.
+
+Финальная проверка этапа:
+
+- `npm run typecheck` — успешно;
+- `npm run lint` — успешно;
+- `npm run build` — успешно;
+- `npm test` — `96/96` тестов успешно.

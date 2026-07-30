@@ -23,6 +23,7 @@ import {
 import { loadDocumentRequisites } from "../services/document-requisites.js";
 import type { IssueRecord, SummaryPdfTextOptions, SummaryRecord } from "../../types/module-records.js";
 import type { StrengthCheckRecord } from "../../features/inspections/strength/index.js";
+import type { ReinforcementCheckRecord } from "../../features/inspections/reinforcement/index.js";
 
 const safeValue = (value) => escapeHtml(value == null ? "" : String(value));
 let summaryInitialized = false;
@@ -35,11 +36,19 @@ const SUMMARY_WORKSPACE_MAX_HEIGHT = 440;
 const analyticsTemplateUrl = new URL("./summary/analytics-block.html", import.meta.url);
 const projectSelector = globalThis.projectSelector;
 let getStrengthChecks = () => new Map<string, StrengthCheckRecord>();
+let getReinforcementChecks =
+  () => new Map<string, ReinforcementCheckRecord>();
 
 export function configureSummaryStrength(
   getChecks: () => Map<string, StrengthCheckRecord>
 ) {
   getStrengthChecks = getChecks;
+}
+
+export function configureSummaryReinforcement(
+  getChecks: () => Map<string, ReinforcementCheckRecord>
+) {
+  getReinforcementChecks = getChecks;
 }
 
 interface SummaryServerHealth {
@@ -111,6 +120,7 @@ async function ensureAnalyticsModule() {
     analyticsModulePromise = import("./summary/analytics-block.js")
       .then((module) => {
         module.configureAnalyticsStrength(getStrengthChecks);
+        module.configureAnalyticsReinforcement(getReinforcementChecks);
         return module;
       })
       .catch((error) => {

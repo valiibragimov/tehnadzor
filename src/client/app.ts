@@ -41,6 +41,11 @@ import {
   createStrengthState,
   setCurrentStrengthCheckId
 } from "./features/inspections/strength/index.js";
+import {
+  createFirestoreReinforcementService,
+  createReinforcementState,
+  setCurrentReinforcementCheckId
+} from "./features/inspections/reinforcement/index.js";
 import { getCurrentIfcFileFromInput } from "./app/services/bim-runtime-context.js";
 import { initDatepickerStyles } from "./app/ui/datepicker.js";
 import {
@@ -282,8 +287,8 @@ const checked = {
 // ============================
 //  Сохранённые проверки модулей
 // ============================
-const reinfChecks = globalThis.reinfChecks instanceof Map ? globalThis.reinfChecks : new Map();
-let currentReinfCheckId = null;
+const reinforcementState = createReinforcementState();
+const reinfChecks = reinforcementState.checks;
 const geomChecks = globalThis.geomChecks instanceof Map ? globalThis.geomChecks : new Map();
 let currentGeomCheckId = null;
 const strengthState = createStrengthState();
@@ -319,6 +324,9 @@ const geodesyService = createFirestoreGeodesyService({
   getCurrentConstructionType: () => construction?.value || ""
 });
 const strengthService = createFirestoreStrengthService({
+  getCurrentUserId: () => currentUserId
+});
+const reinforcementService = createFirestoreReinforcementService({
   getCurrentUserId: () => currentUserId
 });
 const geodesyNodeState = createGeodesyState();
@@ -469,7 +477,7 @@ construction.addEventListener("change", () => {
     localStorage.setItem("selected_construction", getCurrentConstructionKey());
   }
   // Смена конструкции должна начинать новую проверку в каждом модуле
-  currentReinfCheckId = null;
+  setCurrentReinforcementCheckId(reinforcementState, null);
   currentGeomCheckId = null;
   setCurrentStrengthCheckId(strengthState, null);
   updateReinfLocationFieldsVisibility(true); // Передаём true для сброса при изменении
@@ -649,6 +657,15 @@ function updateStrengthFieldsVisibility() {
 }
 
 const appModuleBridge = createAppModuleBridge({
+  reinforcement: {
+    state: reinforcementState,
+    service: reinforcementService,
+    inspectionState: state,
+    inspectionChecked: checked,
+    getCurrentProjectId: () => currentProjectId,
+    showNotification,
+    confirm: showConfirm
+  },
   strength: {
     state: strengthState,
     service: strengthService,
@@ -1030,9 +1047,6 @@ exposeSummaryBinding("journalFilterModule", () => journalFilterModule, (value) =
 exposeSummaryBinding("journalFilterConstruction", () => journalFilterConstruction, (value) => {
   journalFilterConstruction = value;
 });
-exposeSummaryBinding("currentReinfCheckId", () => currentReinfCheckId, (value) => {
-  currentReinfCheckId = value;
-});
 exposeSummaryBinding("currentGeomCheckId", () => currentGeomCheckId, (value) => {
   currentGeomCheckId = value;
 });
@@ -1061,7 +1075,6 @@ globalThis.engineer = null;
 globalThis.dateInput = dateInput as HTMLInputElement | null;
 globalThis.construction = construction as HTMLSelectElement | null;
 globalThis.nodes = nodes;
-globalThis.reinfChecks = reinfChecks;
 globalThis.geomChecks = geomChecks;
 
 // ============================
