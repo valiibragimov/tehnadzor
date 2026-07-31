@@ -167,6 +167,30 @@ function createDom(constructionKey = "slab") {
   construction.dataset.machineValue = constructionKey;
   construction.dataset.displayLabel = "Конструкция";
   construction.dataset.categoryKey = "horizontal";
+  const reinforcementWizard = fakeElement();
+  const reinforcementChecksStep = fakeElement();
+  reinforcementChecksStep.dataset.step = "1";
+  reinforcementChecksStep.classList.add("is-active");
+  const reinforcementParametersStep = fakeElement();
+  reinforcementParametersStep.dataset.step = "2";
+  const reinforcementChecksStepButton = fakeElement();
+  reinforcementChecksStepButton.dataset.wizardStep = "1";
+  reinforcementChecksStepButton.classList.add("is-active");
+  const reinforcementParametersStepButton = fakeElement();
+  reinforcementParametersStepButton.dataset.wizardStep = "2";
+  const wizardEvents = [];
+  reinforcementWizard.dataset.currentStep = "1";
+  reinforcementParametersStepButton.addEventListener("click", () => {
+    reinforcementWizard.dataset.currentStep = "2";
+    reinforcementChecksStep.classList.toggle("is-active", false);
+    reinforcementParametersStep.classList.toggle("is-active", true);
+    reinforcementChecksStepButton.classList.toggle("is-active", false);
+    reinforcementParametersStepButton.classList.toggle(
+      "is-active",
+      true
+    );
+    wizardEvents.push("wizard-step-2");
+  });
   const fields = {
     document: {
       readyState: "complete",
@@ -176,6 +200,11 @@ function createDom(constructionKey = "slab") {
       }
     },
     reinforcementSection: fakeElement(),
+    reinforcementWizard,
+    reinforcementParametersStepButton,
+    reinforcementParametersStep,
+    _reinforcementChecksStep: reinforcementChecksStep,
+    _wizardEvents: wizardEvents,
     construction,
     reinfFloorEl: fakeElement("2"),
     reinfLocationEl: fakeElement(),
@@ -209,6 +238,21 @@ function createDom(constructionKey = "slab") {
     reinfBeamsList: null,
     reinfWallsList: null
   };
+  fields.reinforcementSection.scrollIntoView = () => {
+    fields.reinforcementSection._scrolled = true;
+    wizardEvents.push("scroll");
+  };
+  [
+    ["floor", fields.reinfFloorEl],
+    ["column-floor", fields.reinfColumnFloorEl],
+    ["beam-floor", fields.reinfBeamFloorEl],
+    ["wall-floor", fields.reinfWallFloorEl]
+  ].forEach(([name, element]) => {
+    element.focus = () => {
+      element._focused = true;
+      wizardEvents.push(`focus-${name}`);
+    };
+  });
   return new Proxy(fields, {
     get(target, property) {
       return property in target ? target[property] : null;
@@ -703,7 +747,7 @@ test("changing selected BIM element changes check identity", () => {
   ), false);
 });
 
-test("clicking a saved check card restores its form and focuses it", async () => {
+test("clicking a saved check card opens parameters and restores its form", async () => {
   const { state, dom, runtime } = createRuntimeHarness({
     constructionKey: "column",
     withChecksList: true
@@ -732,9 +776,25 @@ test("clicking a saved check card restores its form and focuses it", async () =>
   runtime.renderChecks();
   const card = dom.reinfChecksList.children[0];
   assert.equal(card.dataset.checkId, "column-card-1");
+  assert.equal(
+    dom._reinforcementChecksStep.classList.contains("is-active"),
+    true
+  );
+  assert.equal(
+    dom.reinforcementParametersStep.classList.contains("is-active"),
+    false
+  );
   await card.click();
 
   assert.equal(state.currentCheckId, "column-card-1");
+  assert.equal(
+    dom._reinforcementChecksStep.classList.contains("is-active"),
+    false
+  );
+  assert.equal(
+    dom.reinforcementParametersStep.classList.contains("is-active"),
+    true
+  );
   assert.equal(dom.construction.dataset.machineValue, "column");
   assert.equal(dom.reinfColumnFloorEl.value, "7");
   assert.equal(state.columns[0].marking, "К1");
@@ -742,6 +802,11 @@ test("clicking a saved check card restores its form and focuses it", async () =>
   assert.match(dom.reinfResult.innerHTML, /Сохранённый результат/);
   assert.equal(dom.reinforcementSection._scrolled, true);
   assert.equal(dom.reinfColumnFloorEl._focused, true);
+  assert.deepEqual(dom._wizardEvents, [
+    "wizard-step-2",
+    "scroll",
+    "focus-column-floor"
+  ]);
 });
 
 test("clicking delete does not open the saved check", async () => {
@@ -759,11 +824,24 @@ test("clicking delete does not open the saved check", async () => {
 
   runtime.renderChecks();
   const card = dom.reinfChecksList.children[0];
+  assert.equal(
+    dom._reinforcementChecksStep.classList.contains("is-active"),
+    true
+  );
   await card._deleteButton.click();
 
   assert.equal(state.currentCheckId, null);
   assert.equal(dom.reinfColumnFloorEl.value, "2");
   assert.equal(dom.reinforcementSection._scrolled, false);
+  assert.equal(
+    dom._reinforcementChecksStep.classList.contains("is-active"),
+    true
+  );
+  assert.equal(
+    dom.reinforcementParametersStep.classList.contains("is-active"),
+    false
+  );
+  assert.deepEqual(dom._wizardEvents, []);
   assert.ok(calls.some((call) =>
     call[0] === "delete" && call[2] === "column-delete-1"
   ));

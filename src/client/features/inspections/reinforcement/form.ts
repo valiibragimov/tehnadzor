@@ -926,7 +926,17 @@ export function createReinforcementForm(
     updateLocation();
   }
 
-  function focusRestoredCheck() {
+  function openRestoredCheckForm() {
+    if (dom.reinforcementWizard) {
+      const parametersButton =
+        dom.reinforcementParametersStepButton;
+      const parametersStep = dom.reinforcementParametersStep;
+      if (!parametersButton || !parametersStep) return false;
+      parametersButton.click();
+      if (!parametersStep.classList.contains("is-active")) {
+        return false;
+      }
+    }
     dom.reinforcementSection?.scrollIntoView({
       behavior: "smooth",
       block: "start"
@@ -941,12 +951,13 @@ export function createReinforcementForm(
           : dom.reinfFloorEl;
     if (primaryField) {
       primaryField.focus();
-      return;
+      return true;
     }
     if (dom.reinforcementSection) {
       dom.reinforcementSection.tabIndex = -1;
       dom.reinforcementSection.focus();
     }
+    return true;
   }
 
   function init() {
@@ -968,7 +979,7 @@ export function createReinforcementForm(
     clear,
     readCheck,
     restoreCheck,
-    focusRestoredCheck,
+    openRestoredCheckForm,
     updateLocation,
     updateFieldsVisibility,
     getConstructionFlags,

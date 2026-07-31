@@ -399,7 +399,7 @@ export function createReinforcementRuntime(
     const check = state.checks.get(id);
     if (!check) return;
     form.restoreCheck({ ...check, id });
-    form.focusRestoredCheck();
+    form.openRestoredCheckForm();
   }
 
   function renderRunResult(check: ReinforcementCheckRecord) {

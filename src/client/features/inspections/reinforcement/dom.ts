@@ -4,6 +4,9 @@ type Select = HTMLSelectElement | null;
 export interface ReinforcementDomBindings {
   document: Document;
   reinforcementSection: HTMLElement | null;
+  reinforcementWizard: HTMLElement | null;
+  reinforcementParametersStepButton: HTMLButtonElement | null;
+  reinforcementParametersStep: HTMLElement | null;
   construction: HTMLSelectElement | null;
   reinfBimSearchInput: Input;
   reinfBimTypeFilter: Select;
@@ -102,6 +105,16 @@ export function createReinforcementDomBindings(
   return {
     document,
     reinforcementSection: document.getElementById("reinforcement"),
+    reinforcementWizard: document.querySelector<HTMLElement>(
+      '#reinforcement [data-wizard="reinforcement"]'
+    ),
+    reinforcementParametersStepButton:
+      document.querySelector<HTMLButtonElement>(
+        '#reinforcement [data-wizard-step="2"]'
+      ),
+    reinforcementParametersStep: document.querySelector<HTMLElement>(
+      '#reinforcement [data-step="2"]'
+    ),
     construction: select(document, "construction"),
     reinfBimSearchInput: input(document, "reinfBimSearchInput"),
     reinfBimTypeFilter: select(document, "reinfBimTypeFilter"),
