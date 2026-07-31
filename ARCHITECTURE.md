@@ -260,15 +260,19 @@ hosting surface и отсутствие новых `globalThis` assignments.
 - `globalThis.reinfChecks` и `globalThis.currentReinfCheckId` удалены;
   journal, overview и summary получают reinforcement state через небольшие
   публичные API;
-- legacy reinforcement DOM rendering, handlers и BIM selection пока остаются
-  в `app/modules/reinforcement.ts` и будут переноситься отдельными этапами.
+- reinforcement DOM bindings, управление формой, строки колонн/балок/стен,
+  пользовательские действия, rendering проверок и orchestration перенесены в
+  `dom.ts`, `form.ts`, `rows-runtime.ts` и `runtime.ts`;
+- `app/modules/reinforcement.ts` теперь является compatibility entrypoint:
+  он конфигурирует feature runtime и временно содержит только
+  reinforcement-specific BIM selection/visual panel integration.
 
 Повторный аудит после миграции:
 
-- 105 клиентских TypeScript-файлов;
+- 115 клиентских TypeScript-файлов;
 - 0 статических циклов импортов;
 - 0 обращений к `globalThis.LS`;
-- 84 smoke/regression-теста;
+- 104 smoke/regression-теста;
 - все этапы отдельно прошли typecheck, lint, build и test.
 
 Оставшиеся наиболее важные зависимости:
@@ -290,6 +294,6 @@ hosting surface и отсутствие новых `globalThis` assignments.
 6. Strength vertical slice завершён на текущей границе: общий IFC import,
    `bim-elements`, visual panel и That Open pipeline остаются shared app
    services и не дублируются внутри feature.
-7. Reinforcement vertical slice пока завершён только на границе state,
-   evaluation и storage: DOM actions/rendering и BIM selection остаются
-   осознанным долгом следующих небольших этапов.
+7. Reinforcement vertical slice включает state, evaluation, storage, форму,
+   DOM actions и rendering. Следующим отдельным этапом остаётся только перенос
+   reinforcement-specific BIM selection из compatibility entrypoint.

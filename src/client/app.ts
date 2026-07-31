@@ -664,7 +664,8 @@ const appModuleBridge = createAppModuleBridge({
     inspectionChecked: checked,
     getCurrentProjectId: () => currentProjectId,
     showNotification,
-    confirm: showConfirm
+    confirm: showConfirm,
+    setConstruction: setConstructionAndTrigger
   },
   strength: {
     state: strengthState,

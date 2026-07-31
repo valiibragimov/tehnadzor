@@ -1,4 +1,6 @@
 export { createFirestoreReinforcementService } from "./firestore-service.js";
+export { createReinforcementDomBindings } from "./dom.js";
+export { createReinforcementRuntime } from "./runtime.js";
 export {
   createReinforcementState,
   setCurrentReinforcementCheckId,
@@ -22,6 +24,7 @@ export {
   evaluateReinforcementCheck
 } from "./evaluation.js";
 export type { ReinforcementService } from "./service.js";
+export type { ReinforcementRuntime } from "./runtime.js";
 export type {
   ReinforcementCheckRecord,
   ReinforcementLinearRecord,

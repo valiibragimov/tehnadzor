@@ -982,3 +982,48 @@ Smoke-регрессия:
 - `npm run lint` — успешно;
 - `npm run build` — успешно;
 - `npm test` — `96/96` тестов успешно.
+
+## Reinforcement form and rows runtime — 2026-07-31
+
+Выполнен второй отдельный этап рефакторинга армирования:
+
+- все reinforcement DOM bindings собраны и типизированы в `dom.ts`;
+- `form.ts` владеет этажом, осями, местоположением, видимостью полей,
+  созданием Firestore payload, очисткой и восстановлением формы;
+- `rows-runtime.ts` владеет rendering и действиями строк колонн, балок и стен,
+  включая лимиты, дубликаты осей и локальный draft стен;
+- `runtime.ts` связывает существующие `ReinforcementState`,
+  `ReinforcementService`, форму, строки, journal, summary и notification
+  callbacks;
+- запуск проверки, создание/обновление, загрузка, rendering и очистка
+  сохранённых проверок больше не находятся в legacy UI;
+- при редактировании проверки с тем же расположением сохраняется прежний ID,
+  а при изменении расположения плиты или лестницы создаётся новая проверка;
+- `app/modules/reinforcement.ts` сокращён до compatibility entrypoint,
+  который конфигурирует runtime и временно предоставляет один BIM API;
+- UI/runtime не импортируют Firebase SDK или repository и не создают новых
+  `globalThis` bridges;
+- Firestore-формат, localStorage keys, тексты, расчёты и пользовательское
+  поведение сохранены.
+
+Добавлены поведенческие regression-тесты:
+
+- формирование местоположения по осям;
+- ленточный фундамент в обоих режимах осей;
+- видимость полей для колонны, балки, стены, плиты и лестницы;
+- создание, восстановление и очистка form payload;
+- обновление существующей проверки и создание новой после смены расположения;
+- добавление, изменение и удаление строк колонн, балок и стен.
+
+Осознанно не входит в этап:
+
+- перенос reinforcement BIM selection и visual panel integration;
+- изменения geodesy, strength, geometry, CSS, bundler, Service Worker,
+  общего IFC pipeline, Firestore-формата и localStorage keys.
+
+Финальная проверка этапа:
+
+- `npm run typecheck` — успешно;
+- `npm run lint` — успешно;
+- `npm run build` — успешно;
+- `npm test` — `104/104` теста успешно.

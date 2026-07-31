@@ -42,6 +42,11 @@ export interface ReinforcementRuntimeDependencies {
   getCurrentProjectId(): string | null;
   showNotification(message: string, tone?: string): void;
   confirm(message: string): Promise<boolean>;
+  setConstruction(
+    construction: string,
+    subtype?: string,
+    pileElement?: string
+  ): unknown;
 }
 
 interface ModuleRuntimeOptions {
