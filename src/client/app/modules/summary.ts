@@ -33,7 +33,7 @@ let analyticsTemplatePromise = null;
 let analyticsWarmupPromise = null;
 let summaryWorkspacePage = 0;
 const SUMMARY_WORKSPACE_MAX_HEIGHT = 440;
-const analyticsTemplateUrl = new URL("./summary/analytics-block.html", import.meta.url);
+const analyticsTemplateUrl = new URL("../../modules/summary/analytics-block.html", import.meta.url);
 const projectSelector = globalThis.projectSelector;
 let getStrengthChecks = () => new Map<string, StrengthCheckRecord>();
 let getReinforcementChecks =
