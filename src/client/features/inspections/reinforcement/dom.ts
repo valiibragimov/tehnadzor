@@ -3,6 +3,7 @@ type Select = HTMLSelectElement | null;
 
 export interface ReinforcementDomBindings {
   document: Document;
+  reinforcementSection: HTMLElement | null;
   construction: HTMLSelectElement | null;
   reinfBimSearchInput: Input;
   reinfBimTypeFilter: Select;
@@ -100,6 +101,7 @@ export function createReinforcementDomBindings(
 
   return {
     document,
+    reinforcementSection: document.getElementById("reinforcement"),
     construction: select(document, "construction"),
     reinfBimSearchInput: input(document, "reinfBimSearchInput"),
     reinfBimTypeFilter: select(document, "reinfBimTypeFilter"),

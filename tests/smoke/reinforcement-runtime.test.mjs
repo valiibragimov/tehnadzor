@@ -29,7 +29,8 @@ global.document = {
 const {
   buildReinforcementLocation,
   createReinforcementForm,
-  getReinforcementVisibility
+  getReinforcementVisibility,
+  isSameReinforcementCheckIdentity
 } = await import(
   "../../dist/features/inspections/reinforcement/form.js"
 );
@@ -66,33 +67,99 @@ function fakeClassList() {
 }
 
 function fakeElement(value = "") {
-  return {
+  const listeners = new Map();
+  const element = {
     value,
     dataset: {},
     style: { display: "" },
     hidden: false,
     disabled: false,
     textContent: "",
-    innerHTML: "",
     className: "",
     classList: fakeClassList(),
     parentElement: null,
+    children: [],
     options: [],
-    addEventListener() {},
+    tabIndex: 0,
+    _focused: false,
+    _scrolled: false,
+    _deleteButton: null,
+    addEventListener(type, handler) {
+      const handlers = listeners.get(type) || [];
+      handlers.push(handler);
+      listeners.set(type, handlers);
+    },
+    async _emit(type, event) {
+      const handlers = listeners.get(type) || [];
+      for (const handler of handlers) {
+        await handler(event);
+      }
+    },
+    async click(target = this) {
+      let stopped = false;
+      const event = {
+        target,
+        preventDefault() {},
+        stopPropagation() {
+          stopped = true;
+        }
+      };
+      await this._emit("click", event);
+      if (!stopped && this.parentElement?._emit) {
+        await this.parentElement._emit("click", event);
+      }
+    },
     appendChild(child) {
       this.options.push(child);
+      this.children.push(child);
+      child.parentElement = this;
     },
-    querySelector() {
+    querySelector(selector) {
+      if (selector === '[data-act="del"]') return this._deleteButton;
       return null;
     },
     querySelectorAll() {
       return [];
     },
-    closest() {
+    closest(selector) {
+      if (
+        selector === '[data-act="del"]' &&
+        this.dataset.act === "del"
+      ) return this;
       return null;
     },
-    focus() {}
+    setAttribute(name, nextValue) {
+      this[name] = String(nextValue);
+    },
+    focus() {
+      this._focused = true;
+    },
+    scrollIntoView() {
+      this._scrolled = true;
+    }
   };
+  let html = "";
+  Object.defineProperty(element, "innerHTML", {
+    get() {
+      return html;
+    },
+    set(nextHtml) {
+      html = String(nextHtml || "");
+      if (!html) {
+        element.children = [];
+        element.options = [];
+      }
+      if (html.includes('data-act="del"')) {
+        const deleteButton = fakeElement();
+        deleteButton.dataset.act = "del";
+        deleteButton.parentElement = element;
+        element._deleteButton = deleteButton;
+      } else {
+        element._deleteButton = null;
+      }
+    }
+  });
+  return element;
 }
 
 function createDom(constructionKey = "slab") {
@@ -108,6 +175,7 @@ function createDom(constructionKey = "slab") {
         return fakeElement();
       }
     },
+    reinforcementSection: fakeElement(),
     construction,
     reinfFloorEl: fakeElement("2"),
     reinfLocationEl: fakeElement(),
@@ -117,9 +185,9 @@ function createDom(constructionKey = "slab") {
     reinfAxisNumberToEl: fakeElement("2"),
     reinfStripAxisModeEl: fakeElement("letter_numbers"),
     reinfStairNameEl: fakeElement(),
-    reinfColumnFloorEl: fakeElement(),
-    reinfBeamFloorEl: fakeElement(),
-    reinfWallFloorEl: fakeElement(),
+    reinfColumnFloorEl: fakeElement("2"),
+    reinfBeamFloorEl: fakeElement("2"),
+    reinfWallFloorEl: fakeElement("2"),
     projDia: fakeElement("12"),
     factDia: fakeElement("12"),
     projStep: fakeElement("200"),
@@ -359,9 +427,13 @@ test("row runtime adds, changes and removes elements", () => {
   assert.equal(state.walls.length, 0);
 });
 
-function createRuntimeHarness() {
+function createRuntimeHarness({
+  constructionKey = "slab",
+  withChecksList = false
+} = {}) {
   const state = createReinforcementState();
-  const dom = createDom("slab");
+  const dom = createDom(constructionKey);
+  if (withChecksList) dom.reinfChecksList = fakeElement();
   const calls = [];
   const journals = [];
   const storage = new Map();
@@ -377,7 +449,9 @@ function createRuntimeHarness() {
       calls.push(["update", projectId, id, payload]);
       return { id, ref: { path: "updated" } };
     },
-    async deleteCheck() {},
+    async deleteCheck(projectId, id) {
+      calls.push(["delete", projectId, id]);
+    },
     async clearChecks() {},
     async loadBimElements() {
       return [];
@@ -450,6 +524,249 @@ test("runtime updates existing check but creates a new one after location change
   await runtime.saveCheck();
   assert.equal(calls[0][0], "create");
   assert.equal(calls[0][2].location, "А-Б, 1-3");
+});
+
+function linearRow(id, marking, factDia = "12") {
+  return {
+    id,
+    marking,
+    projDia: "12",
+    factDia,
+    projStep: "200",
+    factStep: "205",
+    projCover: "30",
+    factCover: "31",
+    projHoopsStep: "200",
+    factHoopsStep: "205"
+  };
+}
+
+function wallRow(id, {
+  numberAxis = "1",
+  letterAxis1 = "А",
+  letterAxis2 = "Б"
+} = {}) {
+  return {
+    id,
+    bindingType: "number_letters",
+    numberAxis,
+    letterAxis1,
+    letterAxis2,
+    letterAxis: "",
+    numberAxis1: "",
+    numberAxis2: "",
+    projDia: "12",
+    factDia: "12",
+    projStep: "200",
+    factStep: "205",
+    projCover: "30",
+    factCover: "31"
+  };
+}
+
+test("changed column marking creates a new check and preserves the old one", async () => {
+  const { state, calls, runtime } = createRuntimeHarness({
+    constructionKey: "column"
+  });
+  state.columns = [linearRow(1, "К1")];
+  const existing = runtime.form.readCheck();
+  state.currentCheckId = "column-1";
+  state.checks.set("column-1", { ...existing, id: "column-1" });
+
+  state.columns[0].marking = "К2";
+  await runtime.saveCheck();
+
+  assert.equal(calls[0][0], "create");
+  assert.equal(state.checks.size, 2);
+  assert.equal(state.checks.get("column-1").columns[0].marking, "К1");
+  assert.equal(state.checks.get("created-1").columns[0].marking, "К2");
+});
+
+test("changed column measurements update the existing check", async () => {
+  const { state, calls, runtime } = createRuntimeHarness({
+    constructionKey: "column"
+  });
+  state.columns = [linearRow(1, "К1")];
+  const existing = runtime.form.readCheck();
+  state.currentCheckId = "column-1";
+  state.checks.set("column-1", { ...existing, id: "column-1" });
+
+  state.columns[0].factDia = "14";
+  await runtime.saveCheck();
+
+  assert.equal(calls[0][0], "update");
+  assert.equal(calls[0][2], "column-1");
+  assert.equal(state.checks.size, 1);
+});
+
+test("changed beam marking creates while changed measurements update", async () => {
+  const changedMark = createRuntimeHarness({
+    constructionKey: "beam"
+  });
+  changedMark.state.beams = [linearRow(1, "Б1")];
+  const existingMark = changedMark.runtime.form.readCheck();
+  changedMark.state.currentCheckId = "beam-1";
+  changedMark.state.checks.set(
+    "beam-1",
+    { ...existingMark, id: "beam-1" }
+  );
+  changedMark.state.beams[0].marking = "Б2";
+  await changedMark.runtime.saveCheck();
+  assert.equal(changedMark.calls[0][0], "create");
+  assert.equal(changedMark.state.checks.size, 2);
+
+  const changedMeasurement = createRuntimeHarness({
+    constructionKey: "beam"
+  });
+  changedMeasurement.state.beams = [linearRow(1, "Б1")];
+  const existingMeasurement =
+    changedMeasurement.runtime.form.readCheck();
+  changedMeasurement.state.currentCheckId = "beam-1";
+  changedMeasurement.state.checks.set(
+    "beam-1",
+    { ...existingMeasurement, id: "beam-1" }
+  );
+  changedMeasurement.state.beams[0].factCover = "35";
+  await changedMeasurement.runtime.saveCheck();
+  assert.equal(changedMeasurement.calls[0][0], "update");
+  assert.equal(changedMeasurement.calls[0][2], "beam-1");
+});
+
+test("changed wall axes create a new check", async () => {
+  const { state, calls, runtime } = createRuntimeHarness({
+    constructionKey: "wall"
+  });
+  state.walls = [wallRow(1)];
+  const existing = runtime.form.readCheck();
+  state.currentCheckId = "wall-1";
+  state.checks.set("wall-1", { ...existing, id: "wall-1" });
+
+  state.walls[0].letterAxis2 = "В";
+  await runtime.saveCheck();
+
+  assert.equal(calls[0][0], "create");
+  assert.equal(state.checks.size, 2);
+});
+
+test("reordering elements and wall extremes keeps check identity", async () => {
+  const { state, calls, runtime } = createRuntimeHarness({
+    constructionKey: "column"
+  });
+  state.columns = [
+    linearRow(1, "К1"),
+    linearRow(2, "К2")
+  ];
+  const existing = runtime.form.readCheck();
+  state.currentCheckId = "columns-1";
+  state.checks.set("columns-1", { ...existing, id: "columns-1" });
+  state.columns.reverse();
+
+  await runtime.saveCheck();
+
+  assert.equal(calls[0][0], "update");
+  assert.equal(calls[0][2], "columns-1");
+  assert.equal(isSameReinforcementCheckIdentity(
+    {
+      construction: "wall",
+      constructionSubtype: "",
+      floor: "2",
+      walls: [wallRow(1)]
+    },
+    {
+      construction: "wall",
+      constructionSubtype: "",
+      floor: "2",
+      walls: [wallRow(2, {
+        letterAxis1: "Б",
+        letterAxis2: "А"
+      })]
+    }
+  ), true);
+});
+
+test("changing selected BIM element changes check identity", () => {
+  assert.equal(isSameReinforcementCheckIdentity(
+    {
+      construction: "column",
+      constructionSubtype: "",
+      floor: "2",
+      bimElementId: "bim-1",
+      columns: [linearRow(1, "К1")]
+    },
+    {
+      construction: "column",
+      constructionSubtype: "",
+      floor: "2",
+      bimElementId: "bim-2",
+      columns: [linearRow(2, "К1")]
+    }
+  ), false);
+});
+
+test("clicking a saved check card restores its form and focuses it", async () => {
+  const { state, dom, runtime } = createRuntimeHarness({
+    constructionKey: "column",
+    withChecksList: true
+  });
+  state.checks.set("column-card-1", {
+    id: "column-card-1",
+    construction: "column",
+    constructionSubtype: "",
+    floor: "7",
+    columns: [{
+      marking: "К1",
+      projDia: 12,
+      factDia: 14,
+      projStep: 200,
+      factStep: 205,
+      projCover: 30,
+      factCover: 31,
+      projHoopsStep: 200,
+      factHoopsStep: 205
+    }],
+    status: "exceeded",
+    lastMsg: "<b>Сохранённый результат</b>",
+    createdAt: 100
+  });
+
+  runtime.renderChecks();
+  const card = dom.reinfChecksList.children[0];
+  assert.equal(card.dataset.checkId, "column-card-1");
+  await card.click();
+
+  assert.equal(state.currentCheckId, "column-card-1");
+  assert.equal(dom.construction.dataset.machineValue, "column");
+  assert.equal(dom.reinfColumnFloorEl.value, "7");
+  assert.equal(state.columns[0].marking, "К1");
+  assert.equal(state.columns[0].factDia, "14");
+  assert.match(dom.reinfResult.innerHTML, /Сохранённый результат/);
+  assert.equal(dom.reinforcementSection._scrolled, true);
+  assert.equal(dom.reinfColumnFloorEl._focused, true);
+});
+
+test("clicking delete does not open the saved check", async () => {
+  const { state, dom, calls, runtime } = createRuntimeHarness({
+    constructionKey: "column",
+    withChecksList: true
+  });
+  state.checks.set("column-delete-1", {
+    id: "column-delete-1",
+    construction: "column",
+    floor: "9",
+    columns: [linearRow(1, "К9")],
+    createdAt: 100
+  });
+
+  runtime.renderChecks();
+  const card = dom.reinfChecksList.children[0];
+  await card._deleteButton.click();
+
+  assert.equal(state.currentCheckId, null);
+  assert.equal(dom.reinfColumnFloorEl.value, "2");
+  assert.equal(dom.reinforcementSection._scrolled, false);
+  assert.ok(calls.some((call) =>
+    call[0] === "delete" && call[2] === "column-delete-1"
+  ));
 });
 
 test("run result contains the final phrase", async () => {

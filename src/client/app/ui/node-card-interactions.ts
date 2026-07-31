@@ -8,7 +8,10 @@ interface NodeCardInteractionOptions {
 const safeValue = (value: unknown) => escapeHtml(value == null ? "" : String(value));
 
 function isDeleteActionTarget(target: EventTarget | null) {
-  return target instanceof Element && !!target.closest('[data-act="del"]');
+  if (!target || typeof (target as Element).closest !== "function") {
+    return false;
+  }
+  return !!(target as Element).closest('[data-act="del"]');
 }
 
 export function buildNodeDeleteIconButton(titleText = "Удалить проверку") {
@@ -30,19 +33,20 @@ export function setupNodeCardInteractions(
   row: Element | null,
   { onOpen, onDelete }: NodeCardInteractionOptions = {}
 ) {
-  if (!(row instanceof HTMLElement)) return;
+  if (!row || typeof row.addEventListener !== "function") return;
 
-  row.classList.add("node-card-compact");
-  row.setAttribute("role", "button");
-  row.tabIndex = 0;
+  const interactiveRow = row as HTMLElement;
+  interactiveRow.classList.add("node-card-compact");
+  interactiveRow.setAttribute("role", "button");
+  interactiveRow.tabIndex = 0;
 
   if (typeof onOpen === "function") {
-    row.addEventListener("click", (event) => {
+    interactiveRow.addEventListener("click", (event) => {
       if (isDeleteActionTarget(event.target)) return;
       onOpen();
     });
 
-    row.addEventListener("keydown", (event) => {
+    interactiveRow.addEventListener("keydown", (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
       if (isDeleteActionTarget(event.target)) return;
       event.preventDefault();
@@ -50,7 +54,7 @@ export function setupNodeCardInteractions(
     });
   }
 
-  const deleteBtn = row.querySelector('[data-act="del"]');
+  const deleteBtn = interactiveRow.querySelector('[data-act="del"]');
   if (deleteBtn && typeof onDelete === "function") {
     deleteBtn.addEventListener("click", async (event) => {
       event.preventDefault();

@@ -186,23 +186,128 @@ export function getReinforcementVisibility(
   };
 }
 
-export function isSameReinforcementLocation(
+function normalizeIdentityValue(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function normalizeIdentityMarkings(
+  items: Array<{ marking?: unknown }> | null | undefined
+) {
+  return [...new Set(
+    (items || [])
+      .map((item) => normalizeMarking(item.marking))
+      .filter(Boolean)
+  )].sort();
+}
+
+function normalizeWallAxis(value: unknown) {
+  return normalizeIdentityValue(value).toLocaleUpperCase("ru");
+}
+
+function normalizeWallBindings(
+  walls: ReinforcementCheckRecord["walls"]
+) {
+  return (walls || []).map((wall) => {
+    if (wall.bindingType === "letter_numbers") {
+      const extremes = [
+        normalizeWallAxis(wall.numberAxis1),
+        normalizeWallAxis(wall.numberAxis2)
+      ].sort();
+      return [
+        "letter_numbers",
+        normalizeWallAxis(wall.letterAxis),
+        ...extremes
+      ].join("|");
+    }
+    const extremes = [
+      normalizeWallAxis(wall.letterAxis1),
+      normalizeWallAxis(wall.letterAxis2)
+    ].sort();
+    return [
+      "number_letters",
+      normalizeWallAxis(wall.numberAxis),
+      ...extremes
+    ].join("|");
+  }).sort();
+}
+
+function sameIdentityList(left: string[], right: string[]) {
+  return left.length === right.length &&
+    left.every((value, index) => value === right[index]);
+}
+
+export function isSameReinforcementCheckIdentity(
   current: ReinforcementCheckRecord | null | undefined,
   next: ReinforcementCheckRecord
 ) {
   if (!current) return false;
-  const normalize = (value: unknown) => String(value ?? "").trim();
-  return [
-    "floor",
-    "axisLetterFrom",
-    "axisLetterTo",
-    "axisNumberFrom",
-    "axisNumberTo",
-    "location",
-    "stairName"
-  ].every((key) =>
-    normalize(current[key]) === normalize(next[key])
+  const currentConstruction = normalizeConstructionKey(
+    current.construction || current.constructionType,
+    normalizeIdentityValue(
+      current.construction || current.constructionType
+    )
   );
+  const nextConstruction = normalizeConstructionKey(
+    next.construction || next.constructionType,
+    normalizeIdentityValue(next.construction || next.constructionType)
+  );
+  if (currentConstruction !== nextConstruction) return false;
+  if (
+    normalizeIdentityValue(current.constructionSubtype) !==
+      normalizeIdentityValue(next.constructionSubtype)
+  ) return false;
+
+  const currentBimElementId = normalizeIdentityValue(
+    current.bimElementId
+  );
+  const nextBimElementId = normalizeIdentityValue(next.bimElementId);
+  if (
+    (currentBimElementId || nextBimElementId) &&
+    currentBimElementId !== nextBimElementId
+  ) return false;
+
+  const sameFloor =
+    normalizeIdentityValue(current.floor) ===
+      normalizeIdentityValue(next.floor);
+  if (current.columns || next.columns) {
+    return sameFloor && sameIdentityList(
+      normalizeIdentityMarkings(current.columns),
+      normalizeIdentityMarkings(next.columns)
+    );
+  }
+  if (current.beams || next.beams) {
+    return sameFloor && sameIdentityList(
+      normalizeIdentityMarkings(current.beams),
+      normalizeIdentityMarkings(next.beams)
+    );
+  }
+  if (current.walls || next.walls) {
+    return sameFloor && sameIdentityList(
+      normalizeWallBindings(current.walls),
+      normalizeWallBindings(next.walls)
+    );
+  }
+
+  const profile = getConstructionProfile(
+    nextConstruction,
+    "reinforcement"
+  );
+  if (profile === "plate" || profile === "stair") {
+    return [
+      "floor",
+      "axisLetterFrom",
+      "axisLetterTo",
+      "axisNumberFrom",
+      "axisNumberTo",
+      "location",
+      "stairName"
+    ].every((key) =>
+      normalizeIdentityValue(current[key]) ===
+        normalizeIdentityValue(next[key])
+    );
+  }
+
+  return sameFloor;
 }
 
 function fillSelect(
@@ -821,6 +926,29 @@ export function createReinforcementForm(
     updateLocation();
   }
 
+  function focusRestoredCheck() {
+    dom.reinforcementSection?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+    const flags = getConstructionFlags();
+    const primaryField = flags.isColumn
+      ? dom.reinfColumnFloorEl
+      : flags.isBeam
+        ? dom.reinfBeamFloorEl
+        : flags.isWall
+          ? dom.reinfWallFloorEl
+          : dom.reinfFloorEl;
+    if (primaryField) {
+      primaryField.focus();
+      return;
+    }
+    if (dom.reinforcementSection) {
+      dom.reinforcementSection.tabIndex = -1;
+      dom.reinforcementSection.focus();
+    }
+  }
+
   function init() {
     initAxes();
     [
@@ -840,6 +968,7 @@ export function createReinforcementForm(
     clear,
     readCheck,
     restoreCheck,
+    focusRestoredCheck,
     updateLocation,
     updateFieldsVisibility,
     getConstructionFlags,

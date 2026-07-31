@@ -26,7 +26,7 @@ import {
 } from "./evaluation.js";
 import {
   createReinforcementForm,
-  isSameReinforcementLocation,
+  isSameReinforcementCheckIdentity,
   type ReinforcementBimFormApi,
   type ReinforcementForm
 } from "./form.js";
@@ -360,6 +360,7 @@ export function createReinforcementRuntime(
           : "status-empty";
       const row = dom.document.createElement("div");
       row.className = "node node-enhanced";
+      row.dataset.checkId = id;
       row.innerHTML = `
         <div class="node-main">
           <div class="node-header">
@@ -398,6 +399,7 @@ export function createReinforcementRuntime(
     const check = state.checks.get(id);
     if (!check) return;
     form.restoreCheck({ ...check, id });
+    form.focusRestoredCheck();
   }
 
   function renderRunResult(check: ReinforcementCheckRecord) {
@@ -534,10 +536,9 @@ export function createReinforcementRuntime(
       ? state.checks.get(currentId) || null
       : null;
     const candidate = form.readCheck(current);
-    const usesLocation = flags.isPlate || flags.isStair;
     const existing =
       current &&
-      (!usesLocation || isSameReinforcementLocation(current, candidate))
+      isSameReinforcementCheckIdentity(current, candidate)
         ? current
         : null;
     const provisionalId = existing
