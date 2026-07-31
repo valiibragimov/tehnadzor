@@ -9,6 +9,9 @@ import {
   setupNodeCardInteractions
 } from "../../../app/ui/node-card-interactions.js";
 import {
+  renderRegulatoryBasisHtml
+} from "../../../app/services/regulatory-basis.js";
+import {
   checkStrictMatch,
   checkTolerance,
   escapeHtml,
@@ -93,6 +96,107 @@ function safe(value: unknown) {
 
 function getRowsForCheck(check: ReinforcementCheckRecord) {
   return check.columns || check.beams || check.walls || null;
+}
+
+interface ReinforcementMeasurementResult {
+  name: string;
+  ok: boolean;
+  html: string;
+  regulatoryDoc: string;
+}
+
+function metricResult(
+  name: string,
+  project: unknown,
+  actual: unknown,
+  tolerance: number | null,
+  regulatoryDoc: string
+): ReinforcementMeasurementResult | null {
+  const projectValue = parseDecimal(project);
+  const actualValue = parseDecimal(actual);
+  if (projectValue == null || actualValue == null) return null;
+  const comparison = tolerance == null
+    ? checkStrictMatch(actualValue, projectValue)
+    : checkTolerance(actualValue, projectValue, tolerance);
+  return {
+    name,
+    ok: comparison.ok,
+    regulatoryDoc,
+    html: formatCheckResult({
+      parameterName: name,
+      actual: actualValue,
+      project: projectValue,
+      tolerance,
+      unit: "мм",
+      regulatoryDoc,
+      isStrict: tolerance == null
+    })
+  };
+}
+
+export function buildReinforcementMeasurementResults(
+  measurements: ReinforcementMeasurements,
+  includeHoops: boolean,
+  construction: string,
+  subtype: string
+) {
+  const stepTolerance = getInspectionToleranceValue(
+    construction,
+    "reinforcement",
+    "rebarStep",
+    TOLERANCES.STEP,
+    subtype
+  );
+  const coverTolerance = getInspectionToleranceValue(
+    construction,
+    "reinforcement",
+    "rebarCover",
+    TOLERANCES.COVER,
+    subtype
+  );
+  const hoopsTolerance = getInspectionToleranceValue(
+    construction,
+    "reinforcement",
+    "hoopsStep",
+    TOLERANCES.HOOPS_STEP,
+    subtype
+  );
+  const results = [
+    metricResult(
+      "Диаметр арматуры",
+      measurements.projDia,
+      measurements.factDia,
+      null,
+      "GOST_R_57997_2017"
+    ),
+    metricResult(
+      "Шаг арматуры",
+      measurements.projStep,
+      measurements.factStep,
+      stepTolerance,
+      "GOST_R_57997_2017"
+    ),
+    metricResult(
+      "Защитный слой",
+      measurements.projCover,
+      measurements.factCover,
+      coverTolerance,
+      "SP_70_13330_2012"
+    )
+  ];
+  if (includeHoops) {
+    results.push(metricResult(
+      "Шаг хомутов",
+      measurements.projHoopsStep,
+      measurements.factHoopsStep,
+      hoopsTolerance,
+      "GOST_R_57997_2017"
+    ));
+  }
+  return results.filter(
+    (result): result is ReinforcementMeasurementResult =>
+      Boolean(result)
+  );
 }
 
 export function createReinforcementRuntime(
@@ -296,97 +400,6 @@ export function createReinforcementRuntime(
     form.restoreCheck({ ...check, id });
   }
 
-  function metricResult(
-    name: string,
-    project: unknown,
-    actual: unknown,
-    tolerance: number | null,
-    regulatoryDoc: string
-  ) {
-    const projectValue = parseDecimal(project);
-    const actualValue = parseDecimal(actual);
-    if (projectValue == null || actualValue == null) return null;
-    const comparison = tolerance == null
-      ? checkStrictMatch(actualValue, projectValue)
-      : checkTolerance(actualValue, projectValue, tolerance);
-    return {
-      ok: comparison.ok,
-      html: formatCheckResult({
-        parameterName: name,
-        actual: actualValue,
-        project: projectValue,
-        tolerance,
-        unit: "мм",
-        regulatoryDoc,
-        isStrict: tolerance == null
-      })
-    };
-  }
-
-  function measurementResults(
-    measurements: ReinforcementMeasurements,
-    includeHoops: boolean,
-    construction: string,
-    subtype: string
-  ) {
-    const stepTolerance = getInspectionToleranceValue(
-      construction,
-      "reinforcement",
-      "rebarStep",
-      TOLERANCES.STEP,
-      subtype
-    );
-    const coverTolerance = getInspectionToleranceValue(
-      construction,
-      "reinforcement",
-      "rebarCover",
-      TOLERANCES.COVER,
-      subtype
-    );
-    const hoopsTolerance = getInspectionToleranceValue(
-      construction,
-      "reinforcement",
-      "hoopsStep",
-      TOLERANCES.HOOPS_STEP,
-      subtype
-    );
-    const results = [
-      metricResult(
-        "Диаметр арматуры",
-        measurements.projDia,
-        measurements.factDia,
-        null,
-        "GOST_R_57997_2017"
-      ),
-      metricResult(
-        "Шаг арматуры",
-        measurements.projStep,
-        measurements.factStep,
-        stepTolerance,
-        "GOST_R_57997_2017"
-      ),
-      metricResult(
-        "Защитный слой",
-        measurements.projCover,
-        measurements.factCover,
-        coverTolerance,
-        "SP_70_13330_2012"
-      )
-    ];
-    if (includeHoops) {
-      results.push(metricResult(
-        "Шаг хомутов",
-        measurements.projHoopsStep,
-        measurements.factHoopsStep,
-        hoopsTolerance,
-        "SP_70_13330_2012"
-      ));
-    }
-    return results.filter(
-      (result): result is NonNullable<typeof result> => Boolean(result)
-    );
-  }
-
   function renderRunResult(check: ReinforcementCheckRecord) {
     const construction = String(
       check.construction || check.constructionType || ""
@@ -396,7 +409,7 @@ export function createReinforcementRuntime(
     const includeHoops = Boolean(check.columns);
     const groups = rowsForCheck || [check];
     const rendered = groups.map((item, index) => {
-      const results = measurementResults(
+      const results = buildReinforcementMeasurementResults(
         item,
         includeHoops,
         construction,
@@ -416,7 +429,22 @@ export function createReinforcementRuntime(
       dom.reinfResult.className = `result ${anyCheck ? (allOk ? "ok" : "not-ok") : ""}`;
       dom.reinfResult.innerHTML = sanitizeHtml(
         anyCheck
-          ? rendered.join("")
+          ? `
+            ${rendered.join("")}
+            <b style="margin-top: 12px; display: block;">
+              ${
+                allOk
+                  ? "Армирование соответствует проекту и нормативным требованиям."
+                  : "Есть несоответствия, требуется корректировка."
+              }
+            </b>
+            ${renderRegulatoryBasisHtml({
+              moduleKey: "reinforcement",
+              checkKind: construction || "default",
+              subtype,
+              helpTargetId: "reinfHelpContent"
+            })}
+          `
           : "Заполните проектные и фактические значения для проверки."
       );
     }
@@ -475,9 +503,9 @@ export function createReinforcementRuntime(
         status: result.allOk ? "ok" : "exceeded"
       });
       skipJournalOnce = true;
-      await saveCheck({ skipJournalOnce: true });
-      updateSummary();
     }
+    await saveCheck({ skipJournalOnce: result.anyCheck });
+    updateSummary();
   }
 
   function requiresFloor(flags: ReturnType<typeof form.getConstructionFlags>) {

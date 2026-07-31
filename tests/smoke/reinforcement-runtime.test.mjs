@@ -5,8 +5,21 @@ global.document = {
   getElementById() {
     return null;
   },
-  createElement() {
+  createElement(tagName) {
+    if (tagName === "template") {
+      return {
+        innerHTML: "",
+        content: {
+          querySelectorAll() {
+            return [];
+          }
+        }
+      };
+    }
     return { id: "", textContent: "" };
+  },
+  createTextNode(textContent) {
+    return { textContent };
   },
   head: {
     appendChild() {}
@@ -23,7 +36,10 @@ const {
 const { createReinforcementRowsRuntime } = await import(
   "../../dist/features/inspections/reinforcement/rows-runtime.js"
 );
-const { createReinforcementRuntime } = await import(
+const {
+  buildReinforcementMeasurementResults,
+  createReinforcementRuntime
+} = await import(
   "../../dist/features/inspections/reinforcement/runtime.js"
 );
 const { createReinforcementState } = await import(
@@ -347,6 +363,7 @@ function createRuntimeHarness() {
   const state = createReinforcementState();
   const dom = createDom("slab");
   const calls = [];
+  const journals = [];
   const storage = new Map();
   const service = {
     async loadChecks() {
@@ -406,11 +423,15 @@ function createRuntimeHarness() {
     notify() {},
     confirm: async () => true,
     updateSummary() {},
-    addJournalEntry() {},
-    upsertJournalEntry() {},
+    addJournalEntry(payload) {
+      journals.push(["add", payload]);
+    },
+    upsertJournalEntry(payload) {
+      journals.push(["upsert", payload]);
+    },
     notifyFirestoreSyncStatus() {}
   });
-  return { state, dom, calls, runtime };
+  return { state, dom, calls, journals, runtime };
 }
 
 test("runtime updates existing check but creates a new one after location changes", async () => {
@@ -429,4 +450,64 @@ test("runtime updates existing check but creates a new one after location change
   await runtime.saveCheck();
   assert.equal(calls[0][0], "create");
   assert.equal(calls[0][2].location, "А-Б, 1-3");
+});
+
+test("run result contains the final phrase", async () => {
+  const { dom, runtime } = createRuntimeHarness();
+  await runtime.runCheck();
+  assert.match(
+    dom.reinfResult.innerHTML,
+    /Армирование соответствует проекту и нормативным требованиям\./
+  );
+});
+
+test("run result contains the reinforcement regulatory basis", async () => {
+  const { dom, runtime } = createRuntimeHarness();
+  await runtime.runCheck();
+  assert.match(dom.reinfResult.innerHTML, /Нормативное основание/);
+});
+
+test("hoops step keeps GOST R 57997-2017 as its regulatory document", () => {
+  const results = buildReinforcementMeasurementResults(
+    {
+      projDia: null,
+      factDia: null,
+      projStep: null,
+      factStep: null,
+      projCover: null,
+      factCover: null,
+      projHoopsStep: 200,
+      factHoopsStep: 205
+    },
+    true,
+    "column",
+    ""
+  );
+  const hoops = results.find((result) => result.name === "Шаг хомутов");
+  assert.equal(hoops?.regulatoryDoc, "GOST_R_57997_2017");
+});
+
+test("partially filled check auto-saves with empty status", async () => {
+  const { state, dom, calls, runtime } = createRuntimeHarness();
+  dom.factDia.value = "";
+  dom.factStep.value = "";
+  dom.factCover.value = "";
+
+  await runtime.runCheck();
+
+  const createCall = calls.find((call) => call[0] === "create");
+  assert.ok(createCall);
+  assert.equal(createCall[2].status, "empty");
+  assert.equal(state.checks.get("created-1")?.status, "empty");
+});
+
+test("empty auto-saved check does not create a journal entry", async () => {
+  const { dom, journals, runtime } = createRuntimeHarness();
+  dom.factDia.value = "";
+  dom.factStep.value = "";
+  dom.factCover.value = "";
+
+  await runtime.runCheck();
+
+  assert.deepEqual(journals, []);
 });
