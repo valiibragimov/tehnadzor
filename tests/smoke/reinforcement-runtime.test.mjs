@@ -378,7 +378,7 @@ test("visibility follows column, beam, wall, plate and stair profiles", () => {
   assert.equal(stair.stairName, true);
 });
 
-test("form creates and restores a persisted payload", () => {
+test("form creates and restores a persisted payload", async () => {
   const { state, dom, form, calls } = createFormHarness();
   const payload = form.readCheck();
   assert.equal(payload.location, "А-Б, 1-2");
@@ -386,7 +386,7 @@ test("form creates and restores a persisted payload", () => {
   assert.equal(payload.projDia, 12);
   assert.equal(payload.bimElementId, "bim-1");
 
-  form.restoreCheck({
+  await form.restoreCheck({
     ...payload,
     id: "saved-1",
     floor: "7",
@@ -473,7 +473,8 @@ test("row runtime adds, changes and removes elements", () => {
 
 function createRuntimeHarness({
   constructionKey = "slab",
-  withChecksList = false
+  withChecksList = false,
+  simulateDeferredConstructionReset = false
 } = {}) {
   const state = createReinforcementState();
   const dom = createDom(constructionKey);
@@ -501,7 +502,8 @@ function createRuntimeHarness({
       return [];
     }
   };
-  const runtime = createReinforcementRuntime({
+  let runtime;
+  runtime = createReinforcementRuntime({
     state,
     service,
     dom,
@@ -537,6 +539,12 @@ function createRuntimeHarness({
     setConstruction(next) {
       dom.construction.value = next;
       dom.construction.dataset.machineValue = next;
+      if (simulateDeferredConstructionReset) {
+        Promise.resolve().then(() => {
+          runtime.form.updateFieldsVisibility(true);
+        });
+      }
+      return true;
     },
     notify() {},
     confirm: async () => true,
@@ -750,8 +758,10 @@ test("changing selected BIM element changes check identity", () => {
 test("clicking a saved check card opens parameters and restores its form", async () => {
   const { state, dom, runtime } = createRuntimeHarness({
     constructionKey: "column",
-    withChecksList: true
+    withChecksList: true,
+    simulateDeferredConstructionReset: true
   });
+  dom.reinfColumnsList = fakeElement();
   state.checks.set("column-card-1", {
     id: "column-card-1",
     construction: "column",
@@ -799,6 +809,9 @@ test("clicking a saved check card opens parameters and restores its form", async
   assert.equal(dom.reinfColumnFloorEl.value, "7");
   assert.equal(state.columns[0].marking, "К1");
   assert.equal(state.columns[0].factDia, "14");
+  assert.equal(dom.reinfColumnsList.children.length, 1);
+  assert.match(dom.reinfColumnsList.children[0].innerHTML, /К1/);
+  assert.match(dom.reinfColumnsList.children[0].innerHTML, /14/);
   assert.match(dom.reinfResult.innerHTML, /Сохранённый результат/);
   assert.equal(dom.reinforcementSection._scrolled, true);
   assert.equal(dom.reinfColumnFloorEl._focused, true);

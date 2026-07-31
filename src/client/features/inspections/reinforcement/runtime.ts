@@ -395,10 +395,10 @@ export function createReinforcementRuntime(
     });
   }
 
-  function loadCheck(id: string) {
+  async function loadCheck(id: string) {
     const check = state.checks.get(id);
     if (!check) return;
-    form.restoreCheck({ ...check, id });
+    await form.restoreCheck({ ...check, id });
     form.openRestoredCheckForm();
   }
 

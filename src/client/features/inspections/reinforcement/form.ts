@@ -851,11 +851,13 @@ export function createReinforcementForm(
     } satisfies ReinforcementWall));
   }
 
-  function restoreCheck(check: ReinforcementCheckRecord) {
-    setConstruction(
-      String(check.construction || check.constructionType || ""),
-      String(check.constructionSubtype || ""),
-      String(check.constructionPileElement || "")
+  async function restoreCheck(check: ReinforcementCheckRecord) {
+    await Promise.resolve(
+      setConstruction(
+        String(check.construction || check.constructionType || ""),
+        String(check.constructionSubtype || ""),
+        String(check.constructionPileElement || "")
+      )
     );
     updateFieldsVisibility(false);
     state.currentCheckId = String(check.id || "") || null;

@@ -1,7 +1,7 @@
 import { escapeHtml } from "../../utils.js";
 
 interface NodeCardInteractionOptions {
-  onOpen?: () => void;
+  onOpen?: () => Promise<void> | void;
   onDelete?: () => Promise<void> | void;
 }
 
@@ -41,16 +41,16 @@ export function setupNodeCardInteractions(
   interactiveRow.tabIndex = 0;
 
   if (typeof onOpen === "function") {
-    interactiveRow.addEventListener("click", (event) => {
+    interactiveRow.addEventListener("click", async (event) => {
       if (isDeleteActionTarget(event.target)) return;
-      onOpen();
+      await onOpen();
     });
 
-    interactiveRow.addEventListener("keydown", (event) => {
+    interactiveRow.addEventListener("keydown", async (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
       if (isDeleteActionTarget(event.target)) return;
       event.preventDefault();
-      onOpen();
+      await onOpen();
     });
   }
 
