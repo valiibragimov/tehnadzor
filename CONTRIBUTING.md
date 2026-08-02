@@ -76,7 +76,7 @@ Documentation-only pull requests should not change application behavior. If the 
 
 ## Contribution License
 
-By contributing, you agree that your contribution may be distributed under the MIT License used by this repository.
+By contributing, you agree that your contribution may be incorporated into Tehnadzor as proprietary software. No license to the project is granted except through an explicit written agreement with the copyright holder.
 
 ---
 
@@ -158,4 +158,4 @@ npm test
 
 ## Лицензирование вклада
 
-Предлагая изменения, вы соглашаетесь, что ваш вклад может распространяться по MIT License, используемой в этом репозитории.
+Предлагая изменения, вы соглашаетесь, что ваш вклад может быть включён в Tehnadzor как в закрытое программное обеспечение. Права на использование проекта предоставляются только по отдельному письменному соглашению с правообладателем.

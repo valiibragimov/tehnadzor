@@ -4,13 +4,13 @@
 
 # Tehnadzor
 
-Tehnadzor is an open-source web application for construction supervision, QA/QC workflows, and BIM/IFC-based inspection records.
+Tehnadzor is a proprietary web application for construction supervision, QA/QC workflows, and BIM/IFC-based inspection records.
 
 Field engineers, technical clients, QA/QC teams, and BIM coordinators need one place to record checks, compare actual values against tolerances, keep inspection context, and prepare clearer reports.
 
 ## Status
 
-Tehnadzor is in early active development. It is usable as a technical prototype, but the public repository is still being prepared for broader collaboration, documentation, demo data, and safer deployment defaults.
+Tehnadzor is in early active development. The full source code is maintained in a private repository.
 
 ## Live App
 
@@ -101,7 +101,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-Tehnadzor is released under the [MIT License](LICENSE).
+Tehnadzor is proprietary software. See [LICENSE](LICENSE). All rights reserved.
 
 ---
 
@@ -111,13 +111,13 @@ Tehnadzor is released under the [MIT License](LICENSE).
 
 # Tehnadzor
 
-Tehnadzor / Технадзор — open-source веб-приложение для строительного контроля, технического надзора и BIM/IFC-сценариев проверки качества.
+Tehnadzor / Технадзор — закрытое веб-приложение для строительного контроля, технического надзора и BIM/IFC-сценариев проверки качества.
 
 Проект вырос из контекста Tehnadzor / Технадзор: инженерам на объекте, техническим заказчикам, QA/QC-командам и BIM-координаторам нужен единый инструмент, где можно фиксировать проверки, сравнивать фактические значения с допусками, сохранять контекст замечаний и готовить более понятные отчеты.
 
 ## Статус
 
-Tehnadzor находится в ранней активной разработке. Сейчас это рабочий технический прототип, а публичный репозиторий постепенно приводится к формату, удобному для совместной разработки, демо-данных, документации и безопасного деплоя.
+Tehnadzor находится в ранней активной разработке. Полный исходный код хранится в приватном репозитории.
 
 ## Онлайн-версия
 
@@ -208,4 +208,4 @@ Tehnadzor связан со строительным контролем, поэ�
 
 ## Лицензия
 
-Tehnadzor распространяется по [MIT License](LICENSE).
+Tehnadzor является закрытым программным обеспечением. См. [LICENSE](LICENSE). Все права защищены.
