@@ -1,3 +1,5 @@
+import type { BimElement } from "../../../types/domain.js";
+
 export type ReinforcementStatus = "empty" | "ok" | "exceeded";
 export type ReinforcementConstructionType = "Колонна" | "Балка" | "Стена";
 export type ReinforcementWallBindingType =
@@ -60,6 +62,33 @@ export interface ReinforcementBimFields extends Record<string, unknown> {
   bimProjectX?: number | null;
   bimProjectY?: number | null;
   bimProjectH?: number | null;
+}
+
+export interface ReinforcementBimElementRecord
+  extends Record<string, unknown> {
+  id: string;
+}
+
+export type ReinforcementBimElement = BimElement &
+  Record<string, unknown>;
+
+export interface ReinforcementBimFilters {
+  search: string;
+  type: string;
+  axes: string;
+}
+
+export interface ReinforcementBimBindingSnapshot {
+  resolved: boolean;
+  elementId: string | null;
+  rawType: string | null;
+  typeLabel: string | null;
+  floor: string | null;
+  mark: string | null;
+  axes: string | null;
+  sourceModelId: string | null;
+  ifcGuid: string | null;
+  title: string;
 }
 
 export interface ReinforcementCheckRecord

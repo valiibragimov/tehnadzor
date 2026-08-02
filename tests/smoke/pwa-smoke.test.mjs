@@ -288,7 +288,7 @@ test("bim viewer launcher and closed workspace do not block page controls", asyn
 test("bim viewer receives project and IFC context in every BIM module", async () => {
   const moduleFiles = [
     "src/client/app/modules/geometry.ts",
-    "src/client/app/modules/reinforcement.ts",
+    "src/client/features/inspections/reinforcement/bim-runtime.ts",
     "src/client/features/inspections/strength/bim-selection-runtime.ts"
   ];
 
@@ -380,16 +380,28 @@ test("support scripts are grouped by responsibility", async () => {
 });
 
 test("inspection modules import storage keys instead of using a global bridge", async () => {
-  const modulePaths = [
-    "src/client/app/modules/geometry.ts",
-    "src/client/app/modules/journal.ts",
-    "src/client/app/modules/reinforcement.ts",
-    "src/client/app/modules/strength.ts"
+  const modules = [
+    {
+      path: "src/client/app/modules/geometry.ts",
+      storageImport: /import \{ APP_STORAGE_KEYS \} from "\.\.\/storage\.js";/u
+    },
+    {
+      path: "src/client/app/modules/journal.ts",
+      storageImport: /import \{ APP_STORAGE_KEYS \} from "\.\.\/storage\.js";/u
+    },
+    {
+      path: "src/client/features/inspections/reinforcement/bim-runtime.ts",
+      storageImport: /import \{ APP_STORAGE_KEYS \} from "\.\.\/\.\.\/\.\.\/app\/storage\.js";/u
+    },
+    {
+      path: "src/client/app/modules/strength.ts",
+      storageImport: /import \{ APP_STORAGE_KEYS \} from "\.\.\/storage\.js";/u
+    }
   ];
 
-  for (const relativePath of modulePaths) {
-    const source = await readFile(resolve(projectRoot, relativePath), "utf8");
-    assert.match(source, /import \{ APP_STORAGE_KEYS \} from "\.\.\/storage\.js";/u);
+  for (const module of modules) {
+    const source = await readFile(resolve(projectRoot, module.path), "utf8");
+    assert.match(source, module.storageImport);
     assert.doesNotMatch(source, /globalThis\.LS/u);
   }
 
