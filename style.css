@@ -3241,21 +3241,6 @@ button.btn-secondary:hover {
   z-index: 60;
 }
 
-.project-select-wrapper::after {
-  content: "";
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: rgba(96, 165, 250, 0.6);
-  transition: width 0.3s ease;
-}
-
-.project-select-wrapper:focus-within::after {
-  width: 100%;
-}
-
 .construction-label {
   font-size: 11px;
   text-transform: uppercase;

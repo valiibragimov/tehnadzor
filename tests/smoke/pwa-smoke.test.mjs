@@ -159,6 +159,9 @@ test("control plan module exposes ITP workflow", async () => {
   assert.match(html, /id="controlPlanSearch"/u);
   assert.match(html, /id="btnControlPlanExportCsv"/u);
   assert.match(html, /id="btnControlPlanExportPdf"/u);
+  assert.doesNotMatch(html, /ITP-матрица обязательных проверок по конструкциям/u);
+  assert.doesNotMatch(html, /Выберите проверку, чтобы подставить значения в форму справа/u);
+  assert.doesNotMatch(html, /Выберите проверку, чтобы загрузить значения в форму/u);
   assert.match(runtimeSource, /features\/control-plan\/index\.js/u);
   assert.match(publicApiSource, /loadProjectControlPlan/u);
   assert.match(publicApiSource, /initControlPlanModule/u);
@@ -205,6 +208,8 @@ test("object overview and grouped inspection navigation are present", async () =
   assert.match(html, /id="overview"/u);
   assert.match(html, /Обзор объекта/u);
   assert.match(html, /id="overviewReadinessValue"/u);
+  assert.match(html, /Проверок по плану/u);
+  assert.match(html, /обязательных объектовых задач выполнено/u);
   assert.match(html, /<div class="overview-heading">/u);
   assert.doesNotMatch(html, /<header class="overview-heading">/u);
   assert.match(html, /data-tabs-group="inspections"/u);
@@ -218,6 +223,9 @@ test("object overview and grouped inspection navigation are present", async () =
   assert.match(runtimeSource, /syncDesktopTabState/u);
   assert.match(overviewSource, /loadProjectIssues/u);
   assert.match(overviewSource, /loadProjectControlPlan/u);
+  assert.match(overviewSource, /buildOverviewReadinessMetrics/u);
+  assert.doesNotMatch(overviewSource, /completedModules\s*\/\s*4/u);
+  assert.doesNotMatch(overviewSource, /completedModules\s*<\s*4/u);
   assert.match(overviewSource, /app:project-context-updated/u);
   assert.match(css, /--ui-radius-md:\s*12px/u);
   assert.match(css, /\.overview-metrics/u);
@@ -237,6 +245,8 @@ test("object overview and grouped inspection navigation are present", async () =
   assert.match(css, /\.overview-module-row\s*\{[\s\S]*?min-height:\s*58px/u);
   assert.match(css, /body\.home-page \.tabs > \.tab::before/u);
   assert.match(css, /\.tabs-group-item__icon\s*\{/u);
+  assert.doesNotMatch(css, /\.project-select-wrapper::after/u);
+  assert.doesNotMatch(css, /\.project-select-wrapper:focus-within::after/u);
   assert.match(css, /body\.home-page > main\s*\{[\s\S]*?max-width:\s*none/u);
   assert.match(css, /body\.home-page\.theme-light > main\s*\{[\s\S]*?background:\s*#f1f5f9\s*!important/u);
   assert.match(css, /body\.home-page > header,[\s\S]*?body\.profile-edit-page > header\s*\{[\s\S]*?background:\s*#0f172a\s*!important/u);

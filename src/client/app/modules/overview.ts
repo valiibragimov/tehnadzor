@@ -4,6 +4,11 @@ import {
   type ControlPlanResult
 } from "../../features/control-plan/index.js";
 import type { IssueRecord } from "../../types/module-records.js";
+import {
+  buildOverviewReadinessMetrics,
+  getOverviewModulePresentation,
+  type OverviewModuleReadiness
+} from "./overview-metrics.js";
 
 const MODULES = [
   { key: "geo", countId: "overviewGeoCount", statusId: "overviewGeoStatus" },
@@ -124,25 +129,21 @@ function setNextAction({
   if (action) button.dataset.overviewAction = action;
 }
 
-function setModuleState(key: string, count: number, openIssues: number, hasProject: boolean) {
+function setModuleState(
+  key: string,
+  count: number,
+  openIssues: number,
+  hasProject: boolean,
+  readiness: OverviewModuleReadiness
+) {
   const moduleConfig = MODULES.find((module) => module.key === key);
   const row = document.querySelector<HTMLElement>(`.overview-module-row[data-overview-target="${key}"]`);
   if (!moduleConfig || !row) return;
 
   setText(moduleConfig.countId, count);
-  if (!hasProject) {
-    row.dataset.tone = "neutral";
-    setText(moduleConfig.statusId, "Нет данных");
-  } else if (openIssues > 0) {
-    row.dataset.tone = "danger";
-    setText(moduleConfig.statusId, `Открытых замечаний: ${openIssues}`);
-  } else if (count === 0) {
-    row.dataset.tone = "warning";
-    setText(moduleConfig.statusId, "Требуется выполнить");
-  } else {
-    row.dataset.tone = "success";
-    setText(moduleConfig.statusId, "Выполнено без открытых замечаний");
-  }
+  const presentation = getOverviewModulePresentation(readiness, openIssues, hasProject);
+  row.dataset.tone = presentation.tone;
+  setText(moduleConfig.statusId, presentation.status);
 }
 
 export async function renderOverview() {
@@ -159,7 +160,6 @@ export async function renderOverview() {
     strength: getStrengthChecksCount()
   };
   const totalChecks = Object.values(moduleCounts).reduce((sum, count) => sum + count, 0);
-  const completedModules = Object.values(moduleCounts).filter((count) => count > 0).length;
   const ifcCount = getIfcCount();
 
   root.setAttribute("aria-busy", "true");
@@ -167,7 +167,6 @@ export async function renderOverview() {
   setText("overviewProjectName", hasProject ? getProjectName() : "Выберите объект, чтобы увидеть текущее состояние контроля.");
   setText("overviewChecksCount", totalChecks);
   setText("overviewIfcCount", ifcCount);
-  setText("overviewModulesCount", `${completedModules} / 4`);
 
   let issues: IssueRecord[] = [];
   let controlPlan: ControlPlanResult | null = null;
@@ -198,12 +197,10 @@ export async function renderOverview() {
 
   const planSummary = controlPlan?.summary;
   const blockedRows = Number(planSummary?.blockedRows || 0);
-  const missingTasks = Number(planSummary?.missingTasks || 0);
-  const readiness = hasProject
-    ? planSummary?.totalRows
-      ? Math.round((Number(planSummary.readyRows || 0) / Number(planSummary.totalRows)) * 100)
-      : Math.round((completedModules / 4) * 100)
-    : 0;
+  const readinessMetrics = buildOverviewReadinessMetrics(controlPlan);
+  const missingTasks = readinessMetrics.incompleteRequiredTasks;
+  const readiness = hasProject ? readinessMetrics.readinessPercent : 0;
+  const hasDeviations = blockedRows > 0 || readinessMetrics.deviationTasks > 0;
 
   setText("overviewIssuesCount", openIssues.length);
   setText(
@@ -212,12 +209,14 @@ export async function renderOverview() {
   );
   setText("overviewReadinessValue", `${readiness}%`);
   setText(
+    "overviewModulesCount",
+    `${readinessMetrics.completedRequiredTasks} / ${readinessMetrics.totalRequiredTasks}`
+  );
+  setText(
     "overviewReadinessNote",
     !hasProject
       ? "Данные появятся после выбора объекта."
-      : planSummary?.totalRows
-        ? `Готово к приёмке: ${planSummary.readyRows} из ${planSummary.totalRows} конструкций.`
-        : `Выполнено разделов контроля: ${completedModules} из 4.`
+      : `Полностью готово: ${readinessMetrics.readyPositions} из ${readinessMetrics.totalPositions} позиций контроля.`
   );
 
   const progress = document.getElementById("overviewProgress");
@@ -226,7 +225,13 @@ export async function renderOverview() {
   progressBar?.style.setProperty("--overview-progress", `${readiness}%`);
 
   MODULES.forEach(({ key }) => {
-    setModuleState(key, moduleCounts[key], issuesByModule.get(key) || 0, hasProject);
+    setModuleState(
+      key,
+      moduleCounts[key],
+      issuesByModule.get(key) || 0,
+      hasProject,
+      readinessMetrics.modules[key]
+    );
   });
 
   const badge = document.getElementById("overviewStatusBadge");
@@ -234,12 +239,15 @@ export async function renderOverview() {
     if (!hasProject) {
       badge.dataset.tone = "neutral";
       badge.textContent = "Нет данных";
-    } else if (blockedRows > 0 || openIssues.length > 0) {
+    } else if (hasDeviations || openIssues.length > 0 || overdueIssues.length > 0) {
       badge.dataset.tone = "danger";
       badge.textContent = "Есть отклонения";
-    } else if (missingTasks > 0 || completedModules < 4) {
+    } else if (missingTasks > 0) {
       badge.dataset.tone = "warning";
       badge.textContent = "Требуется внимание";
+    } else if (readinessMetrics.totalRequiredTasks === 0) {
+      badge.dataset.tone = "neutral";
+      badge.textContent = "Нет обязательных задач";
     } else {
       badge.dataset.tone = "success";
       badge.textContent = "Готово к приёмке";
@@ -261,13 +269,21 @@ export async function renderOverview() {
       target: "journal",
       tone: "danger"
     });
-  } else if (openIssues.length > 0 || blockedRows > 0) {
+  } else if (openIssues.length > 0 || hasDeviations) {
     setNextAction({
       title: "Устраните открытые отклонения",
-      description: `Открытых замечаний: ${openIssues.length}. Заблокировано конструкций: ${blockedRows}.`,
+      description: `Открытых замечаний: ${openIssues.length}. Позиций с отклонениями: ${Math.max(blockedRows, readinessMetrics.deviationTasks)}.`,
       label: "Открыть замечания",
       target: "journal",
       tone: "danger"
+    });
+  } else if (missingTasks > 0) {
+    setNextAction({
+      title: "Продолжите обязательные проверки",
+      description: `По плану контроля не выполнено объектовых задач: ${missingTasks}.`,
+      label: "Открыть план контроля",
+      target: "controlPlan",
+      tone: "warning"
     });
   } else if (ifcCount === 0) {
     setNextAction({
@@ -277,15 +293,13 @@ export async function renderOverview() {
       action: "ifc",
       tone: "warning"
     });
-  } else if (missingTasks > 0 || completedModules < 4) {
+  } else if (readinessMetrics.totalRequiredTasks === 0) {
     setNextAction({
-      title: "Продолжите обязательные проверки",
-      description: missingTasks > 0
-        ? `По плану контроля не выполнено обязательных проверок: ${missingTasks}.`
-        : `Завершено разделов контроля: ${completedModules} из 4.`,
+      title: "Проверьте план контроля",
+      description: "Для выбранных позиций нет обязательных объектовых задач.",
       label: "Открыть план контроля",
       target: "controlPlan",
-      tone: "warning"
+      tone: "neutral"
     });
   } else {
     setNextAction({
