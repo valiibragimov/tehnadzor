@@ -28842,7 +28842,7 @@ body.home-page.theme-light .tabs-group.is-open .tabs-group-trigger .lg-btn__labe
   color: #172033 !important;
 }
 
-body.home-page.theme-light .tabs-group-item,
+body.home-page.theme-light .tabs-group-menu .tabs-group-item,
 body.home-page.theme-light .bottom-nav-group-option {
   background: transparent !important;
   border-color: transparent !important;
@@ -28850,9 +28850,9 @@ body.home-page.theme-light .bottom-nav-group-option {
   box-shadow: none !important;
 }
 
-body.home-page.theme-light .tabs-group-item:hover,
-body.home-page.theme-light .tabs-group-item:focus-visible,
-body.home-page.theme-light .tabs-group-item.active,
+body.home-page.theme-light .tabs-group-menu .tabs-group-item:hover,
+body.home-page.theme-light .tabs-group-menu .tabs-group-item:focus-visible,
+body.home-page.theme-light .tabs-group-menu .tabs-group-item.active,
 body.home-page.theme-light .bottom-nav-group-option:hover,
 body.home-page.theme-light .bottom-nav-group-option:focus-visible {
   background: #eef2f7 !important;
@@ -28860,12 +28860,12 @@ body.home-page.theme-light .bottom-nav-group-option:focus-visible {
   color: #172033 !important;
 }
 
-body.home-page.theme-light .tabs-group-item strong,
+body.home-page.theme-light .tabs-group-menu .tabs-group-item strong,
 body.home-page.theme-light .bottom-nav-group-option span {
   color: #172033 !important;
 }
 
-body.home-page.theme-light .tabs-group-item small,
+body.home-page.theme-light .tabs-group-menu .tabs-group-item small,
 body.home-page.theme-light .bottom-nav-group-option small {
   color: #64748b !important;
 }

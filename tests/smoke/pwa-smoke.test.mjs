@@ -225,6 +225,14 @@ test("object overview and grouped inspection navigation are present", async () =
   assert.match(css, /\.bottom-nav-group-menu/u);
   assert.match(css, /body\.home-page\.theme-light \.overview-readiness/u);
   assert.match(css, /body\.home-page\.theme-light \.tabs-group-trigger/u);
+  assert.match(
+    css,
+    /body\.home-page\.theme-light \.tabs-group-menu \.tabs-group-item,\s*body\.home-page\.theme-light \.bottom-nav-group-option\s*\{[\s\S]*?background:\s*transparent\s*!important;[\s\S]*?color:\s*#172033\s*!important;/u
+  );
+  assert.match(
+    css,
+    /body\.home-page\.theme-light \.tabs-group-menu \.tabs-group-item small,[\s\S]*?color:\s*#64748b\s*!important;/u
+  );
   assert.match(css, /body\.home-page\.theme-light \.overview-module-row/u);
   assert.match(css, /\.overview-module-row\s*\{[\s\S]*?min-height:\s*58px/u);
   assert.match(css, /body\.home-page \.tabs > \.tab::before/u);
