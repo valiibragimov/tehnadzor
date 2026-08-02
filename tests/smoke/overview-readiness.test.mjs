@@ -89,3 +89,27 @@ test("non-applicable overview module is labelled as not required by plan", () =>
     { tone: "neutral", status: "Не требуется по плану" }
   );
 });
+
+test("factory-only module stays neutral without affecting readiness", () => {
+  const metrics = buildOverviewReadinessMetrics(createControlPlan([
+    createTask("factory_control", "factory", "strength")
+  ]));
+
+  assert.equal(metrics.totalRequiredTasks, 0);
+  assert.equal(metrics.readinessPercent, 0);
+  assert.deepEqual(
+    getOverviewModulePresentation(metrics.modules.strength, 0, true),
+    { tone: "neutral", status: "Заводской контроль" }
+  );
+});
+
+test("open issues override factory-only module presentation", () => {
+  const metrics = buildOverviewReadinessMetrics(createControlPlan([
+    createTask("factory_control", "factory", "strength")
+  ]));
+
+  assert.deepEqual(
+    getOverviewModulePresentation(metrics.modules.strength, 2, true),
+    { tone: "danger", status: "Открытых замечаний: 2" }
+  );
+});

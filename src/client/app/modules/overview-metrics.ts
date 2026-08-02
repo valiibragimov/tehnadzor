@@ -3,7 +3,9 @@ import type { ControlPlanResult, ControlPlanTaskStatus } from "../../features/co
 export type OverviewModuleKey = "geo" | "reinforcement" | "geometry" | "strength";
 
 export interface OverviewModuleReadiness {
-  applicable: boolean;
+  hasPlanTasks: boolean;
+  hasObjectTasks: boolean;
+  factoryTasks: number;
   completedTasks: number;
   totalTasks: number;
   incompleteTasks: number;
@@ -43,7 +45,9 @@ const COMPLETED_STATUSES: ReadonlySet<ControlPlanTaskStatus> = new Set(["done", 
 
 function createModuleReadiness(): OverviewModuleReadiness {
   return {
-    applicable: false,
+    hasPlanTasks: false,
+    hasObjectTasks: false,
+    factoryTasks: 0,
     completedTasks: 0,
     totalTasks: 0,
     incompleteTasks: 0,
@@ -74,11 +78,17 @@ export function buildOverviewReadinessMetrics(
   for (const row of controlPlan?.rows || []) {
     for (const task of row.tasks || []) {
       const moduleKey = normalizeModuleKey(task.moduleKey);
-      if (!moduleKey || task.inspectionStatus !== "object") continue;
+      if (!moduleKey) continue;
 
       const module = modules[moduleKey];
+      module.hasPlanTasks = true;
+      if (task.inspectionStatus === "factory") module.factoryTasks += 1;
+      if (task.status === "deviation") module.deviationTasks += 1;
+      if (task.status === "issue_open") module.openIssueTasks += 1;
+      if (task.inspectionStatus !== "object") continue;
+
       const completed = COMPLETED_STATUSES.has(task.status);
-      module.applicable = true;
+      module.hasObjectTasks = true;
       module.totalTasks += 1;
       totalRequiredTasks += 1;
 
@@ -90,11 +100,9 @@ export function buildOverviewReadinessMetrics(
       }
 
       if (task.status === "deviation") {
-        module.deviationTasks += 1;
         deviationTasks += 1;
       }
       if (task.status === "issue_open") {
-        module.openIssueTasks += 1;
         openIssueTasks += 1;
       }
     }
@@ -121,11 +129,15 @@ export function getOverviewModulePresentation(
   hasProject: boolean
 ): OverviewModulePresentation {
   if (!hasProject) return { tone: "neutral", status: "Нет данных" };
-  if (!module.applicable) return { tone: "neutral", status: "Не требуется по плану" };
   if (openIssues > 0) return { tone: "danger", status: `Открытых замечаний: ${openIssues}` };
   if (module.deviationTasks > 0 || module.openIssueTasks > 0) {
     return { tone: "danger", status: "Есть отклонения или замечания" };
   }
+  if (!module.hasPlanTasks) return { tone: "neutral", status: "Не требуется по плану" };
+  if (!module.hasObjectTasks && module.factoryTasks > 0) {
+    return { tone: "neutral", status: "Заводской контроль" };
+  }
+  if (!module.hasObjectTasks) return { tone: "neutral", status: "Не применяется" };
   if (module.incompleteTasks > 0) return { tone: "warning", status: "Требуется выполнить" };
   return { tone: "success", status: "Выполнено без открытых замечаний" };
 }
