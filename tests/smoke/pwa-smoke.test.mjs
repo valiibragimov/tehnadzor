@@ -406,6 +406,19 @@ test("IFC import runtime is not embedded back into app entrypoint", async () => 
   assert.match(css, /@keyframes app-page-reveal/u);
 });
 
+test("mobile wizard action stays fixed above bottom navigation", async () => {
+  const css = await readFile(resolve(projectRoot, "style.css"), "utf8");
+
+  assert.match(
+    css,
+    /body\.home-page main,\s*body\.home-page \.section\.active\s*\{\s*animation-name: fadeInOnly !important;/u
+  );
+  assert.match(
+    css,
+    /\.wizard-footer\s*\{[\s\S]*?position: fixed !important;[\s\S]*?bottom: calc\(74px \+ env\(safe-area-inset-bottom, 0px\)\) !important;/u
+  );
+});
+
 test("app entrypoint delegates inspection evaluation to feature modules", async () => {
   const appSource = await readFile(resolve(projectRoot, "src/client/app.ts"), "utf8");
   const evaluationSource = await readFile(resolve(projectRoot, "src/client/app/inspection-evaluation.ts"), "utf8");

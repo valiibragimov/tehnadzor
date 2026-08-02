@@ -27051,6 +27051,12 @@ body.home-page.scope-scroll-locked {
     padding-bottom: calc(var(--mobile-content-bottom-space) + 46px) !important;
   }
 
+  /* Keep fixed wizard actions relative to the viewport, not animated sections. */
+  body.home-page main,
+  body.home-page .section.active {
+    animation-name: fadeInOnly !important;
+  }
+
   .wizard-footer {
     display: flex !important;
     position: fixed !important;
