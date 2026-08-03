@@ -1,65 +1,26 @@
 import type { DemoService } from "./services/demo-service.js";
-import type {
-  DemoInspectionModule,
-  DemoInspectionStatus,
-  DemoIssueStatus,
-  DemoState,
-  DemoTaskStatus
-} from "./types.js";
-
-type DemoView =
-  | "overview"
-  | "control-plan"
-  | "reinforcement"
-  | "geometry"
-  | "strength"
-  | "journal"
-  | "issues"
-  | "summary";
+import type { DemoInspection, DemoInspectionModule, DemoState } from "./types.js";
 
 export interface DemoUiOptions {
-  root: HTMLElement;
+  root: Document;
   service: DemoService;
 }
 
-const VIEW_LABELS: Record<DemoView, string> = {
-  overview: "Обзор",
-  "control-plan": "План контроля",
-  reinforcement: "Армирование",
-  geometry: "Геометрия",
-  strength: "Прочность",
-  journal: "Журнал",
-  issues: "Замечания",
-  summary: "Итог"
+const MODULE_SECTION: Record<DemoInspectionModule, string> = {
+  geodesy: "geo",
+  reinforcement: "reinforcement",
+  geometry: "geometry",
+  strength: "strength"
 };
 
-const MODULE_LABELS: Record<DemoInspectionModule, string> = {
+const MODULE_LABEL: Record<DemoInspectionModule, string> = {
   geodesy: "Геодезия",
   reinforcement: "Армирование",
   geometry: "Геометрия",
   strength: "Прочность"
 };
 
-const STATUS_LABELS: Record<DemoTaskStatus, string> = {
-  required: "Требуется выполнить",
-  done: "Выполнено",
-  resolved: "Закрыто повторным контролем",
-  deviation: "Есть отклонение",
-  issue_open: "Открыто замечание"
-};
-
-const INSPECTION_STATUS_LABELS: Record<DemoInspectionStatus, string> = {
-  done: "В норме",
-  deviation: "Отклонение",
-  empty: "Черновик"
-};
-
-const ISSUE_STATUS_LABELS: Record<DemoIssueStatus, string> = {
-  open: "Открыто",
-  resolved: "Закрыто"
-};
-
-function escapeHtml(value: unknown) {
+function escapeHtml(value: unknown): string {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -68,460 +29,394 @@ function escapeHtml(value: unknown) {
     .replaceAll("'", "&#039;");
 }
 
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+function formatDate(value: string): string {
   return new Intl.DateTimeFormat("ru-RU", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit"
-  }).format(date);
+  }).format(new Date(value));
 }
 
-function statusClass(status: DemoTaskStatus | DemoInspectionStatus | DemoIssueStatus) {
-  if (status === "done" || status === "resolved") return "is-success";
-  if (status === "deviation" || status === "issue_open" || status === "open") return "is-danger";
-  return "is-warning";
+function statusLabel(status: string): string {
+  if (status === "done" || status === "resolved") return "В норме";
+  if (status === "deviation" || status === "issue_open") return "Есть отклонение";
+  if (status === "required") return "Требуется выполнить";
+  return "Нет данных";
 }
 
-function renderNavigation(activeView: DemoView) {
-  return (Object.entries(VIEW_LABELS) as Array<[DemoView, string]>)
-    .map(
-      ([view, label]) => `
-        <button class="demo-nav__item ${view === activeView ? "is-active" : ""}"
-          type="button" data-demo-nav="${view}" aria-current="${view === activeView ? "page" : "false"}">
-          ${escapeHtml(label)}
-        </button>`
-    )
-    .join("");
-}
-
-function renderOverview(state: DemoState, metrics: ReturnType<DemoService["getMetrics"]>) {
-  const nextAction = metrics.openIssues > 0
-    ? {
-        eyebrow: "Ближайшее действие",
-        title: "Закрыть открытое замечание",
-        description: `Открытых замечаний: ${metrics.openIssues}. Проведите повторный контроль после устранения отклонения.`,
-        view: "issues" as const,
-        label: "Открыть замечания"
-      }
-    : metrics.completed < metrics.total
-      ? {
-          eyebrow: "Ближайшее действие",
-          title: "Продолжить проверки по плану",
-          description: `Осталось выполнить обязательных объектовых задач: ${metrics.total - metrics.completed}.`,
-          view: "control-plan" as const,
-          label: "Открыть план контроля"
-        }
-      : {
-          eyebrow: "Ближайшее действие",
-          title: "Проверить итоговую готовность",
-          description: "Обязательные объектовые задачи завершены, открытых замечаний нет.",
-          view: "summary" as const,
-          label: "Открыть итог"
-        };
-  const taskCards = state.controlPlan
-    .filter((task) => task.inspectionStatus !== "notApplicable")
-    .slice(0, 6)
-    .map(
-      (task) => `
-        <article class="demo-task-card ${statusClass(task.status)}">
-          <div>
-            <span class="demo-eyebrow">${escapeHtml(MODULE_LABELS[task.module])}</span>
-            <h3>${escapeHtml(task.title)}</h3>
-            <p>${escapeHtml(task.constructionMark)}</p>
-          </div>
-          <span class="demo-status">${escapeHtml(
-            task.inspectionStatus === "factory" ? "Заводской контроль" : STATUS_LABELS[task.status]
-          )}</span>
-        </article>`
-    )
-    .join("");
-
-  const bimElements = state.bimElements
-    .map(
-      (element) => `
-        <span class="demo-chip">
-          <strong>${escapeHtml(element.mark)}</strong>
-          ${escapeHtml(element.type)} · ${escapeHtml(element.level)}
-        </span>`
-    )
-    .join("");
-
-  return `
-    <section class="demo-page" data-demo-screen="overview">
-      <div class="demo-page__heading">
-        <div><span class="demo-eyebrow">Рабочая сводка</span><h1>Обзор объекта</h1></div>
-        <span class="demo-status ${metrics.openIssues ? "is-danger" : "is-success"}">
-          ${metrics.openIssues ? "Требуется внимание" : "Готово"}
-        </span>
-      </div>
-      <article class="demo-readiness">
-        <div><span class="demo-eyebrow">Готовность по плану</span><strong>${metrics.percent}%</strong></div>
-        <div class="demo-readiness__copy">Выполнено ${metrics.completed} из ${metrics.total} обязательных объектовых задач</div>
-        <div class="demo-progress"><span style="width:${metrics.percent}%"></span></div>
-      </article>
-      <article class="demo-next-action">
-        <div>
-          <span class="demo-eyebrow">${nextAction.eyebrow}</span>
-          <h2>${nextAction.title}</h2>
-          <p>${nextAction.description}</p>
-        </div>
-        <button class="demo-button" type="button" data-demo-nav="${nextAction.view}">${nextAction.label}</button>
-      </article>
-      <div class="demo-metric-grid">
-        <article><span>Проверок</span><strong>${state.inspections.length}</strong><small>в журнале объекта</small></article>
-        <article><span>Открытых замечаний</span><strong>${metrics.openIssues}</strong><small>требуют закрытия</small></article>
-        <article><span>Отклонений</span><strong>${metrics.deviations}</strong><small>по обязательным задачам</small></article>
-        <article><span>Заводской контроль</span><strong>${metrics.factoryTasks}</strong><small>не влияет на процент</small></article>
-      </div>
-      <div class="demo-layout demo-layout--wide">
-        <article class="demo-panel">
-          <div class="demo-panel__heading"><div><span class="demo-eyebrow">Контроль</span><h2>Проверки по плану</h2></div></div>
-          <div class="demo-task-grid">${taskCards}</div>
-        </article>
-        <aside class="demo-panel">
-          <span class="demo-eyebrow">BIM-контекст</span>
-          <h2>Конструкции объекта</h2>
-          <div class="demo-chip-list">${bimElements}</div>
-          <p class="demo-note">Интерактивная IFC-модель не включена в публичную демонстрацию.</p>
-        </aside>
-      </div>
-    </section>`;
-}
-
-function renderControlPlan(state: DemoState) {
-  const rows = state.controlPlan
-    .map(
-      (task) => `
-        <tr>
-          <td><strong>${escapeHtml(task.title)}</strong><small>${escapeHtml(task.constructionMark)}</small></td>
-          <td>${escapeHtml(MODULE_LABELS[task.module])}</td>
-          <td>${
-            task.inspectionStatus === "object"
-              ? "Объектовый"
-              : task.inspectionStatus === "factory"
-                ? "Заводской"
-                : "Не применяется"
-          }</td>
-          <td><span class="demo-status ${statusClass(task.status)}">${escapeHtml(STATUS_LABELS[task.status])}</span></td>
-        </tr>`
-    )
-    .join("");
-
-  return `
-    <section class="demo-page" data-demo-screen="control-plan">
-      <div class="demo-page__heading"><div><span class="demo-eyebrow">ITP</span><h1>План контроля</h1></div></div>
-      <article class="demo-panel demo-table-wrap">
-        <table class="demo-table">
-          <thead><tr><th>Позиция</th><th>Модуль</th><th>Контроль</th><th>Статус</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </article>
-    </section>`;
-}
-
-function renderInspectionForm(view: "reinforcement" | "geometry" | "strength", state: DemoState) {
-  const config = {
-    reinforcement: {
-      title: "Проверка армирования",
-      description: "Сравните проектный и фактический диаметр арматуры.",
-      mark: "К-02",
-      projectValue: 16,
-      actualValue: 16,
-      tolerance: 0,
-      unit: "мм",
-      projectLabel: "Проектный диаметр",
-      actualLabel: "Фактический диаметр"
-    },
-    geometry: {
-      title: "Геометрический контроль",
-      description: "Зафиксируйте проектное и фактическое положение конструкции.",
-      mark: "СТ-02",
-      projectValue: 0,
-      actualValue: 4,
-      tolerance: 5,
-      unit: "мм",
-      projectLabel: "Проектное значение",
-      actualLabel: "Фактическое отклонение"
-    },
-    strength: {
-      title: "Контроль прочности",
-      description: "Сравните требуемую и фактическую прочность бетона.",
-      mark: "Б-01",
-      projectValue: 30,
-      actualValue: 32,
-      tolerance: 0,
-      unit: "МПа",
-      projectLabel: "Требуемая прочность",
-      actualLabel: "Фактическая прочность"
-    }
-  }[view];
-
-  const recent = state.inspections
-    .filter((inspection) => inspection.module === view)
-    .slice(0, 6)
-    .map(
-      (inspection) => `
-        <article class="demo-record">
-          <div><span class="demo-eyebrow">${formatDate(inspection.createdAt)}</span><h3>${escapeHtml(inspection.title)}</h3><p>${escapeHtml(inspection.summary)}</p></div>
-          <span class="demo-status ${statusClass(inspection.status)}">${escapeHtml(INSPECTION_STATUS_LABELS[inspection.status])}</span>
-        </article>`
-    )
-    .join("");
-
-  return `
-    <section class="demo-page" data-demo-screen="${view}">
-      <div class="demo-page__heading"><div><span class="demo-eyebrow">Проверки</span><h1>${config.title}</h1><p>${config.description}</p></div></div>
-      <div class="demo-layout">
-        <article class="demo-panel">
-          <form class="demo-form" data-demo-form="inspection" data-demo-module="${view}">
-            <label>Марка конструкции<input name="constructionMark" data-demo-field="mark" value="${config.mark}" required maxlength="24" /></label>
-            <div class="demo-form__row">
-              <label>${config.projectLabel}<input name="projectValue" type="number" step="0.1" value="${config.projectValue}" required /></label>
-              <label>${config.actualLabel}<input name="actualValue" type="number" step="0.1" value="${config.actualValue}" required /></label>
-            </div>
-            <input name="tolerance" type="hidden" value="${config.tolerance}" />
-            <input name="unit" type="hidden" value="${config.unit}" />
-            <button class="demo-button demo-button--primary" type="submit" data-demo-submit="inspection">Проверить и сохранить</button>
-          </form>
-        </article>
-        <aside class="demo-panel">
-          <span class="demo-eyebrow">Сохранённые записи</span><h2>${config.title}</h2>
-          <div class="demo-record-list">${recent || '<p class="demo-empty">Проверок пока нет.</p>'}</div>
-        </aside>
-      </div>
-    </section>`;
-}
-
-function renderJournal(state: DemoState) {
-  const entries = state.journal
-    .map(
-      (entry) => `
-        <article class="demo-timeline__entry">
-          <span class="demo-timeline__dot ${statusClass(entry.status)}"></span>
-          <div><span class="demo-eyebrow">${formatDate(entry.createdAt)}</span><h3>${escapeHtml(entry.title)}</h3><p>${escapeHtml(entry.description)}</p></div>
-          <span class="demo-status ${statusClass(entry.status)}">${escapeHtml(STATUS_LABELS[entry.status])}</span>
-        </article>`
-    )
-    .join("");
-
-  return `
-    <section class="demo-page" data-demo-screen="journal">
-      <div class="demo-page__heading"><div><span class="demo-eyebrow">История объекта</span><h1>Журнал</h1></div></div>
-      <div class="demo-layout">
-        <article class="demo-panel"><div class="demo-timeline">${entries}</div></article>
-        <aside class="demo-panel">
-          <span class="demo-eyebrow">Новое замечание</span><h2>Зафиксировать отклонение</h2>
-          <form class="demo-form" data-demo-form="issue">
-            <label>Заголовок<input name="title" value="Локальное отклонение" required maxlength="80" /></label>
-            <label>Марка конструкции<input name="constructionMark" value="СТ-02" required maxlength="24" /></label>
-            <label>Описание<textarea name="description" required maxlength="280">Требуется демонстрационное корректирующее действие.</textarea></label>
-            <button class="demo-button demo-button--primary" type="submit" data-demo-submit="issue">Создать замечание</button>
-          </form>
-        </aside>
-      </div>
-    </section>`;
-}
-
-function renderIssues(state: DemoState) {
-  const issues = state.issues
-    .map(
-      (issue) => `
-        <article class="demo-issue ${statusClass(issue.status)}">
-          <div>
-            <span class="demo-eyebrow">${formatDate(issue.createdAt)} · ${escapeHtml(issue.constructionMark)}</span>
-            <h3>${escapeHtml(issue.title)}</h3>
-            <p>${escapeHtml(issue.description)}</p>
-            ${issue.repeatControlAt ? `<small>Повторный контроль: ${formatDate(issue.repeatControlAt)}</small>` : ""}
-          </div>
-          <div class="demo-issue__actions">
-            <span class="demo-status ${statusClass(issue.status)}">${escapeHtml(ISSUE_STATUS_LABELS[issue.status])}</span>
-            ${
-              issue.status === "open"
-                ? `<button class="demo-button demo-button--compact" type="button" data-demo-repeat-control="${escapeHtml(issue.id)}">Провести повторный контроль</button>`
-                : ""
-            }
-          </div>
-        </article>`
-    )
-    .join("");
-
-  return `
-    <section class="demo-page" data-demo-screen="issues">
-      <div class="demo-page__heading"><div><span class="demo-eyebrow">Корректирующие действия</span><h1>Замечания и повторный контроль</h1></div></div>
-      <article class="demo-panel"><div class="demo-issue-list">${issues}</div></article>
-    </section>`;
-}
-
-function renderSummary(state: DemoState, metrics: ReturnType<DemoService["getMetrics"]>) {
-  const compliant = state.inspections.filter((record) => record.status === "done").length;
-  const deviation = state.inspections.filter((record) => record.status === "deviation").length;
-
-  return `
-    <section class="demo-page" data-demo-screen="summary">
-      <div class="demo-page__heading"><div><span class="demo-eyebrow">Итоговая сводка</span><h1>Готовность объекта</h1></div></div>
-      <article class="demo-summary-hero">
-        <div><strong>${metrics.percent}%</strong><span>готовность по обязательным позициям контроля</span></div>
-        <div class="demo-summary-hero__status ${metrics.openIssues ? "is-danger" : "is-success"}">${metrics.openIssues ? "Требуются корректирующие действия" : "Объект готов к итоговой проверке"}</div>
-      </article>
-      <div class="demo-metric-grid">
-        <article><span>Выполнено по плану</span><strong>${metrics.completed} / ${metrics.total}</strong><small>объектовых задач</small></article>
-        <article><span>В норме</span><strong>${compliant}</strong><small>сохранённых проверок</small></article>
-        <article><span>С отклонением</span><strong>${deviation}</strong><small>сохранённых проверок</small></article>
-        <article><span>Открытые замечания</span><strong>${metrics.openIssues}</strong><small>требуют повторного контроля</small></article>
-      </div>
-      <article class="demo-panel">
-        <span class="demo-eyebrow">Ограничение демонстрации</span>
-        <h2>Локальная интерактивная сессия</h2>
-        <p>Итог отражает только синтетические данные этого браузера. Серверная подпись, отправка документов и административное согласование отключены.</p>
-      </article>
-    </section>`;
-}
-
-function renderView(view: DemoView, state: DemoState, service: DemoService) {
-  const metrics = service.getMetrics();
-  switch (view) {
-    case "control-plan": return renderControlPlan(state);
-    case "reinforcement": return renderInspectionForm(view, state);
-    case "geometry": return renderInspectionForm(view, state);
-    case "strength": return renderInspectionForm(view, state);
-    case "journal": return renderJournal(state);
-    case "issues": return renderIssues(state);
-    case "summary": return renderSummary(state, metrics);
-    default: return renderOverview(state, metrics);
-  }
+function statusTone(status: string): string {
+  if (status === "done" || status === "resolved") return "success";
+  if (status === "deviation" || status === "issue_open") return "danger";
+  return "warning";
 }
 
 export function mountDemoUi({ root, service }: DemoUiOptions) {
-  let currentView: DemoView = "overview";
-  let toastMessage = "";
-  let resetPending = false;
+  const byId = <T extends HTMLElement>(id: string) => root.getElementById(id) as T | null;
+  const setText = (id: string, value: unknown) => {
+    const element = byId(id);
+    if (element) element.textContent = String(value ?? "");
+  };
+  const setInput = (id: string, value: string) => {
+    const input = byId<HTMLInputElement | HTMLSelectElement>(id);
+    if (input) input.value = value;
+  };
+  const show = (id: string, visible = true) => {
+    const element = byId(id);
+    if (!element) return;
+    element.hidden = !visible;
+    element.style.display = visible ? "" : "none";
+  };
+
+  let activeSection = "overview";
+  let toastTimer = 0;
 
   const notify = (message: string) => {
-    toastMessage = message;
-    render();
+    root.querySelector(".demo-toast")?.remove();
+    const toast = root.createElement("div");
+    toast.className = "demo-toast";
+    toast.setAttribute("role", "status");
+    toast.textContent = message;
+    root.body.append(toast);
+    window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => toast.remove(), 2600);
+  };
+
+  const activateSection = (target: string) => {
+    const section = byId(target);
+    if (!section?.classList.contains("section")) return;
+    activeSection = target;
+    root.querySelectorAll<HTMLElement>(".section").forEach((item) => {
+      item.classList.toggle("active", item.id === target);
+    });
+    root.querySelectorAll<HTMLElement>(".tab[data-target]").forEach((item) => {
+      item.classList.toggle("active", item.dataset.target === target);
+    });
+    root.querySelectorAll<HTMLElement>(".bottom-nav-item[data-tab]").forEach((item) => {
+      const tab = item.dataset.tab;
+      item.classList.toggle("active", tab === target);
+    });
+    const inspectionActive = ["geo", "reinforcement", "geometry", "strength"].includes(target);
+    root.querySelector<HTMLElement>('.bottom-nav-item[data-tab-group="inspections"]')?.classList.toggle("active", inspectionActive);
+    const bottomMenu = byId("bottomInspectionMenu");
+    bottomMenu?.classList.remove("is-open");
+    bottomMenu?.setAttribute("aria-hidden", "true");
+    root.querySelector<HTMLElement>('.bottom-nav-item[data-tab-group="inspections"]')?.setAttribute("aria-expanded", "false");
+    root.querySelector(".tabs-group-trigger")?.classList.toggle(
+      "active",
+      ["geo", "reinforcement", "geometry", "strength"].includes(target)
+    );
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const renderInspectionList = (module: DemoInspectionModule, containerId: string) => {
+    const container = byId(containerId);
+    if (!container) return;
+    const inspections = service.getState().inspections.filter((item) => item.module === module);
+    container.innerHTML = inspections.length
+      ? inspections.map((item) => `
+        <article class="node" data-demo-inspection-id="${escapeHtml(item.id)}">
+          <div class="node-head">
+            <strong>${escapeHtml(item.title)}</strong>
+            <span class="status ${item.status === "done" ? "ok" : "bad"}">${statusLabel(item.status)}</span>
+          </div>
+          <div class="meta">${escapeHtml(formatDate(item.createdAt))} · ${escapeHtml(item.constructionMark)}</div>
+          <div class="subtitle">${escapeHtml(item.summary)}</div>
+        </article>`).join("")
+      : '<div class="geo-manual-note">Сохранённых проверок пока нет.</div>';
+  };
+
+  const renderOverview = (state: DemoState) => {
+    const metrics = service.getMetrics();
+    setText("overviewProjectName", `${state.project.name} · ${state.project.organization}`);
+    setText("overviewReadinessValue", `${metrics.percent}%`);
+    setText("overviewReadinessNote", `Выполнено ${metrics.completed} из ${metrics.total} обязательных объектовых задач.`);
+    setText("overviewChecksCount", state.inspections.length);
+    setText("overviewIssuesCount", metrics.openIssues);
+    setText("overviewIssuesNote", metrics.openIssues ? "требуют закрытия" : "нет активных");
+    setText("overviewIfcCount", state.bimElements.length ? 1 : 0);
+    setText("overviewModulesCount", `${metrics.completed} / ${metrics.total}`);
+    setText("overviewStatusBadge", metrics.openIssues || metrics.deviations ? "Требуется внимание" : "Готово");
+    setText("overviewNextTitle", metrics.openIssues ? "Устраните открытые отклонения" : "Продолжите проверки по плану");
+    setText("overviewNextDescription", metrics.openIssues
+      ? `Открытых замечаний: ${metrics.openIssues}. После устранения проведите повторный контроль.`
+      : "Откройте план контроля и выполните следующую обязательную задачу.");
+    const progress = byId("overviewProgressBar");
+    if (progress) progress.style.width = `${metrics.percent}%`;
+    byId("overviewProgress")?.setAttribute("aria-valuenow", String(metrics.percent));
+
+    for (const module of Object.keys(MODULE_SECTION) as DemoInspectionModule[]) {
+      const inspections = state.inspections.filter((item) => item.module === module);
+      const task = state.controlPlan.find((item) => item.module === module && item.inspectionStatus === "object");
+      const suffix = module === "reinforcement" ? "Reinforcement" : module === "geometry" ? "Geometry" : module === "strength" ? "Strength" : "Geo";
+      setText(`overview${suffix}Count`, inspections.length);
+      setText(`overview${suffix}Status`, task ? statusLabel(task.status) : "Не требуется по плану");
+      const row = root.querySelector<HTMLElement>(`.overview-module-row[data-overview-target="${MODULE_SECTION[module]}"]`);
+      if (row) row.dataset.tone = task ? statusTone(task.status) : "neutral";
+    }
+  };
+
+  const renderControlPlan = (state: DemoState) => {
+    const constructionMarks = [...new Set(state.controlPlan.map((item) => item.constructionMark))];
+    const rows = constructionMarks.map((mark) => {
+      const tasks = state.controlPlan.filter((item) => item.constructionMark === mark);
+      const objectTasks = tasks.filter((item) => item.inspectionStatus === "object");
+      const completed = objectTasks.filter((item) => ["done", "resolved"].includes(item.status)).length;
+      const blocked = objectTasks.some((item) => ["deviation", "issue_open"].includes(item.status));
+      const missing = objectTasks.some((item) => item.status === "required");
+      return { mark, tasks, completed, total: objectTasks.length, status: blocked ? "blocked" : missing ? "missing_required" : "ready" };
+    });
+    setText("controlPlanTotalRows", rows.length);
+    setText("controlPlanReadyRows", rows.filter((row) => row.status === "ready").length);
+    setText("controlPlanBlockedRows", rows.filter((row) => row.status === "blocked").length);
+    setText("controlPlanMissingTasks", state.controlPlan.filter((item) => item.inspectionStatus === "object" && item.status === "required").length);
+    const body = byId<HTMLTableSectionElement>("controlPlanTableBody");
+    if (body) {
+      const renderTask = (row: (typeof rows)[number], module: DemoInspectionModule) => {
+        const task = row.tasks.find((item) => item.module === module);
+        if (!task) return '<span class="control-plan-task control-plan-task--na">—</span>';
+        return `<button type="button" class="control-plan-task control-plan-task--${task.status}" data-demo-plan-target="${MODULE_SECTION[module]}">${escapeHtml(statusLabel(task.status))}</button>`;
+      };
+      body.innerHTML = rows.map((row) => {
+        const nextTask = row.tasks.find((item) => !["done", "resolved"].includes(item.status));
+        const statusLabelText = row.status === "ready" ? "Готово" : row.status === "blocked" ? "Нельзя принимать" : "Не хватает проверок";
+        return `
+          <tr class="control-plan-row control-plan-row--${row.status}">
+            <td class="control-plan-construction"><strong>${escapeHtml(row.mark)}</strong><span>${escapeHtml(state.project.structureType)}</span></td>
+            <td><span class="control-plan-status control-plan-status--${row.status}">${statusLabelText}</span></td>
+            <td><span class="control-plan-progress">${row.completed}/${row.total}</span></td>
+            <td><button type="button" class="control-plan-next-action" data-demo-plan-target="${nextTask ? MODULE_SECTION[nextTask.module] : "summary"}">${escapeHtml(nextTask?.title || "Открыть итог")}</button></td>
+            <td>${renderTask(row, "geodesy")}</td>
+            <td>${renderTask(row, "reinforcement")}</td>
+            <td>${renderTask(row, "geometry")}</td>
+            <td>${renderTask(row, "strength")}</td>
+          </tr>`;
+      }).join("");
+    }
+    show("controlPlanEmpty", false);
+    show("controlPlanTableWrap", true);
+  };
+
+  const renderJournal = (state: DemoState) => {
+    const tbody = root.querySelector<HTMLTableSectionElement>("#journalTable tbody");
+    if (tbody) {
+      tbody.innerHTML = state.journal.map((entry) => `
+        <tr>
+          <td>${escapeHtml(formatDate(entry.createdAt))}</td>
+          <td>${escapeHtml(entry.title)}</td>
+          <td>${escapeHtml(entry.kind === "inspection" ? "Конструкция" : "Замечание")}</td>
+          <td>${escapeHtml(entry.description)}</td>
+          <td><span class="status ${statusTone(entry.status)}">${escapeHtml(statusLabel(entry.status))}</span></td>
+          <td>${escapeHtml(entry.description)}</td>
+          <td></td>
+        </tr>`).join("");
+    }
+    setText("journalStatTotal", state.journal.length);
+    setText("journalStatExceeded", state.journal.filter((entry) => ["deviation", "issue_open"].includes(entry.status)).length);
+    const openIssues = state.issues.filter((issue) => issue.status === "open");
+    setText("journalIssueOpenCount", openIssues.length);
+    setText("journalIssueOverdueCount", 0);
+    show("journalIssueEmpty", state.issues.length === 0);
+    const list = byId("journalIssueList");
+    if (list) {
+      list.innerHTML = `
+        <form id="demoIssueForm" class="card" style="margin-bottom:12px">
+          <div class="grid-2"><div><label>Замечание</label><input name="title" required value="Отклонение контрольного параметра"></div><div><label>Марка</label><input name="mark" required value="СТ-02"></div></div>
+          <label>Корректирующее действие</label><textarea name="description" required>Устранить отклонение и предъявить конструкцию повторно.</textarea>
+          <button class="btn-small btn-secondary" type="submit">Создать замечание</button>
+        </form>
+        ${state.issues.map((issue) => `
+          <article class="journal-issue-card" data-demo-issue-id="${escapeHtml(issue.id)}">
+            <div class="journal-issues-head"><div><strong>${escapeHtml(issue.title)}</strong><div class="meta">${escapeHtml(issue.constructionMark)} · ${escapeHtml(formatDate(issue.createdAt))}</div></div><span class="status ${issue.status === "open" ? "bad" : "ok"}">${issue.status === "open" ? "Открыто" : "Закрыто"}</span></div>
+            <p>${escapeHtml(issue.description)}</p>
+            ${issue.status === "open" ? `<div class="demo-issue-actions"><button class="btn-small btn-secondary" type="button" data-demo-repeat-control="${escapeHtml(issue.id)}">Повторный контроль</button></div>` : ""}
+          </article>`).join("")}`;
+    }
+  };
+
+  const renderSummary = (state: DemoState) => {
+    for (const module of Object.keys(MODULE_SECTION) as DemoInspectionModule[]) {
+      const inspections = state.inspections.filter((item) => item.module === module);
+      const deviations = inspections.filter((item) => item.status === "deviation").length;
+      const statusId = module === "reinforcement" ? "summaryModuleStatusReinf" : module === "geometry" ? "summaryModuleStatusGeom" : module === "strength" ? "summaryModuleStatusStrength" : "summaryModuleStatusGeo";
+      const statsId = module === "reinforcement" ? "summaryModuleStatsReinf" : module === "geometry" ? "summaryModuleStatsGeom" : module === "strength" ? "summaryModuleStatsStrength" : "summaryModuleStatsGeo";
+      const status = byId(statusId);
+      if (status) status.innerHTML = `<span class="summary-status-badge ${deviations ? "bad" : inspections.length ? "ok" : "empty"}">${deviations ? "Есть отклонения" : inspections.length ? "Выполнено" : "Нет проверок"}</span>`;
+      const stats = byId(statsId);
+      if (stats) stats.innerHTML = `<span class="summary-module-stat"><span class="summary-module-stat-label">Проверок</span><strong class="summary-module-stat-value">${inspections.length}</strong></span><span class="summary-module-stat"><span class="summary-module-stat-label">Отклонений</span><strong class="summary-module-stat-value">${deviations}</strong></span>`;
+    }
+    setText("summaryParamProject", state.project.name);
+    setText("summaryParamDate", new Intl.DateTimeFormat("ru-RU").format(new Date()));
+    setText("summaryParamEngineer", "Демо-инженер");
+    const text = byId("summaryTextContent");
+    if (text) text.innerHTML = `<p><strong>${escapeHtml(state.project.name)}</strong></p><p>По результатам демонстрационного контроля выполнено ${service.getMetrics().completed} из ${service.getMetrics().total} обязательных задач. Открытых замечаний: ${service.getMetrics().openIssues}.</p>`;
   };
 
   const render = () => {
     const state = service.getState();
-    root.innerHTML = `
-      <div class="demo-app">
-        <header class="demo-header">
-          <a class="demo-brand" href="./demo.html" aria-label="Tehnadzor demo"><span class="demo-brand__mark">T</span><span>Tehnadzor</span></a>
-          <div class="demo-header__actions">
-            <a class="demo-button" href="https://github.com/valiibragimov/tehnadzor-showcase" target="_blank" rel="noreferrer">О проекте</a>
-            <button class="demo-button" type="button" data-demo-unavailable="profile">Профиль</button>
-          </div>
-        </header>
-        <section class="demo-banner" aria-label="Интерактивная демонстрация Tehnadzor">
-          <div>
-            <strong>Интерактивная демонстрация Tehnadzor</strong>
-            <span>Упрощённая презентационная версия на синтетических данных, показывающая основные сценарии строительного контроля.</span>
-            <small>Демонстрационный режим. Функциональность упрощена, все данные синтетические и сохраняются только в вашем браузере.</small>
-          </div>
-          <button class="demo-button demo-button--danger" type="button" data-demo-reset>Сбросить демо</button>
-        </section>
-        <section class="demo-project-bar">
-          <div><span>Объект</span><strong>${escapeHtml(state.project.name)}</strong></div>
-          <div><span>Организация</span><strong>${escapeHtml(state.project.organization)}</strong></div>
-          <div><span>Тип</span><strong>${escapeHtml(state.project.structureType)}</strong></div>
-          <button class="demo-button" type="button" data-demo-unavailable="cloud-upload">Загрузить IFC</button>
-        </section>
-        <nav class="demo-nav" aria-label="Разделы демонстрации">${renderNavigation(currentView)}</nav>
-        <main class="demo-main">${renderView(currentView, state, service)}</main>
-        <footer class="demo-footer">
-          <span>Tehnadzor · локальная демонстрация</span>
-          <div>
-            <button type="button" data-demo-unavailable="users">Управление пользователями</button>
-            <button type="button" data-demo-unavailable="integration">Интеграции</button>
-          </div>
-        </footer>
-        <div class="demo-toast ${toastMessage ? "is-visible" : ""}" role="status">${escapeHtml(toastMessage)}</div>
-        ${resetPending ? `
-          <div class="demo-modal-backdrop">
-            <section class="demo-modal" role="dialog" aria-modal="true" aria-labelledby="demoResetTitle">
-              <span class="demo-eyebrow">Подтверждение</span>
-              <h2 id="demoResetTitle">Сбросить демонстрационные данные?</h2>
-              <p>Будут удалены только локальные изменения в namespace демонстрации. Другие данные браузера останутся без изменений.</p>
-              <div class="demo-modal__actions">
-                <button class="demo-button" type="button" data-demo-reset-cancel>Отмена</button>
-                <button class="demo-button demo-button--danger" type="button" data-demo-reset-confirm>Сбросить демо</button>
-              </div>
-            </section>
-          </div>` : ""}
-      </div>`;
-
-    bindInteractions();
+    renderOverview(state);
+    renderControlPlan(state);
+    renderInspectionList("geodesy", "nodesList");
+    renderInspectionList("reinforcement", "reinfChecksList");
+    renderInspectionList("geometry", "geomChecksList");
+    renderInspectionList("strength", "strengthChecksList");
+    renderJournal(state);
+    renderSummary(state);
+    activateSection(activeSection);
   };
 
-  const bindInteractions = () => {
-    root.querySelectorAll<HTMLButtonElement>("[data-demo-nav]").forEach((button) => {
-      button.addEventListener("click", () => {
-        currentView = button.dataset.demoNav as DemoView;
-        toastMessage = "";
-        render();
+  const projectSelector = byId<HTMLSelectElement>("projectSelector");
+  if (projectSelector) projectSelector.innerHTML = '<option value="demo-project">Демонстрационный объект</option>';
+  const category = byId<HTMLSelectElement>("constructionCategory");
+  if (category) category.innerHTML = '<option>Вертикальные несущие элементы</option>';
+  const type = byId<HTMLSelectElement>("constructionType");
+  if (type) type.innerHTML = '<option value="Колонна">Колонна</option><option value="Стена">Стена</option><option value="Балка">Балка</option><option value="Плита">Плита</option>';
+  setText("bimImportedIfcCount", "IFC: 1");
+  setText("bimImportFileState", "Синтетическая BIM-модель");
+  setText("bimImportStatus", "4 демонстрационных элемента доступны для привязки");
+
+  root.querySelector("header")?.insertAdjacentHTML("afterend", '<div class="demo-only-note">Демонстрационный режим · синтетические данные сохраняются только в этом браузере.</div>');
+
+  root.querySelectorAll<HTMLElement>("[data-wizard]").forEach((wizard) => {
+    const setWizardStep = (step: number) => {
+      const steps = [...wizard.querySelectorAll<HTMLElement>("[data-step]")];
+      if (!steps.length) return;
+      const nextStep = Math.min(Math.max(step, 1), steps.length);
+      wizard.dataset.currentStep = String(nextStep);
+      steps.forEach((item) => item.classList.toggle("is-active", Number(item.dataset.step) === nextStep));
+      wizard.querySelectorAll<HTMLElement>("[data-wizard-step]").forEach((button) => {
+        button.classList.toggle("is-active", Number(button.dataset.wizardStep) === nextStep);
       });
-    });
+      const progress = wizard.querySelector<HTMLElement>("[data-wizard-progress]");
+      if (progress) progress.textContent = `Шаг ${nextStep} из ${steps.length}`;
+      const previous = wizard.querySelector<HTMLButtonElement>("[data-wizard-prev]");
+      const next = wizard.querySelector<HTMLButtonElement>("[data-wizard-next]");
+      if (previous) previous.disabled = nextStep === 1;
+      if (next) next.disabled = nextStep === steps.length;
+    };
 
-    root.querySelector<HTMLButtonElement>("[data-demo-reset]")?.addEventListener("click", () => {
-      resetPending = true;
-      render();
+    wizard.querySelectorAll<HTMLElement>("[data-wizard-step]").forEach((button) => {
+      button.addEventListener("click", () => setWizardStep(Number(button.dataset.wizardStep || 1)));
     });
-
-    root.querySelector<HTMLButtonElement>("[data-demo-reset-cancel]")?.addEventListener("click", () => {
-      resetPending = false;
-      render();
+    wizard.querySelector<HTMLElement>("[data-wizard-prev]")?.addEventListener("click", () => {
+      setWizardStep(Number(wizard.dataset.currentStep || 1) - 1);
     });
+    wizard.querySelector<HTMLElement>("[data-wizard-next]")?.addEventListener("click", () => {
+      setWizardStep(Number(wizard.dataset.currentStep || 1) + 1);
+    });
+    setWizardStep(1);
+  });
 
-    root.querySelector<HTMLButtonElement>("[data-demo-reset-confirm]")?.addEventListener("click", () => {
+  root.querySelectorAll<HTMLElement>("[data-sheet-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const sheet = byId(button.dataset.sheetTarget || "");
+      if (!sheet) return;
+      sheet.classList.add("is-open");
+      sheet.setAttribute("aria-hidden", "false");
+      sheet.querySelector<HTMLElement>("input, select, textarea, button")?.focus({ preventScroll: true });
+    });
+  });
+  root.querySelectorAll<HTMLElement>("[data-sheet-close]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const sheet = button.closest<HTMLElement>(".wizard-sheet");
+      sheet?.classList.remove("is-open");
+      sheet?.setAttribute("aria-hidden", "true");
+    });
+  });
+
+  root.querySelectorAll<HTMLElement>(".tabs-group-trigger").forEach((trigger) => {
+    trigger.addEventListener("click", () => {
+      const group = trigger.closest<HTMLElement>(".tabs-group");
+      const shouldOpen = !group?.classList.contains("is-open");
+      group?.classList.toggle("is-open", shouldOpen);
+      trigger.setAttribute("aria-expanded", String(shouldOpen));
+    });
+  });
+  root.querySelectorAll<HTMLElement>(".tab[data-target]").forEach((tab) => tab.addEventListener("click", () => activateSection(String(tab.dataset.target || "overview"))));
+  root.querySelectorAll<HTMLElement>(".bottom-nav-item[data-tab]").forEach((tab) => tab.addEventListener("click", () => {
+    const target = String(tab.dataset.tab || "overview");
+    activateSection(target);
+  }));
+  root.querySelector<HTMLElement>('.bottom-nav-item[data-tab-group="inspections"]')?.addEventListener("click", (event) => {
+    const button = event.currentTarget as HTMLElement;
+    const menu = byId("bottomInspectionMenu");
+    const shouldOpen = !menu?.classList.contains("is-open");
+    menu?.classList.toggle("is-open", shouldOpen);
+    menu?.setAttribute("aria-hidden", String(!shouldOpen));
+    button.setAttribute("aria-expanded", String(shouldOpen));
+  });
+  root.querySelectorAll<HTMLElement>(".bottom-nav-group-option[data-tab]").forEach((option) => {
+    option.addEventListener("click", () => activateSection(String(option.dataset.tab || "reinforcement")));
+  });
+  root.querySelectorAll<HTMLElement>("[data-overview-target]").forEach((button) => button.addEventListener("click", () => activateSection(String(button.dataset.overviewTarget || "overview"))));
+  root.querySelector(".brand")?.addEventListener("click", () => activateSection("overview"));
+
+  byId("themeToggleBtn")?.addEventListener("click", () => {
+    const light = root.documentElement.classList.toggle("theme-light");
+    root.documentElement.classList.toggle("theme-dark", !light);
+    root.body.classList.toggle("theme-light", light);
+    root.body.classList.toggle("theme-dark", !light);
+  });
+  byId("headerProfileButton")?.addEventListener("click", (event) => { event.preventDefault(); notify("Профиль недоступен в демонстрационном режиме"); });
+  const logout = byId<HTMLButtonElement>("btnLogout");
+  if (logout) {
+    logout.title = "Сбросить демонстрационные данные";
+    logout.setAttribute("aria-label", "Сбросить демонстрационные данные");
+    logout.addEventListener("click", () => {
+      if (!window.confirm("Сбросить демонстрационные данные?")) return;
       service.reset();
-      currentView = "overview";
-      resetPending = false;
+      render();
       notify("Исходные демонстрационные данные восстановлены.");
     });
+  }
 
-    root.querySelectorAll<HTMLButtonElement>("[data-demo-unavailable]").forEach((button) => {
-      button.addEventListener("click", () => notify("Функция недоступна в демонстрационном режиме"));
-    });
+  show("reinfColumnFields", true);
+  show("reinfCommonFields", true);
+  setInput("reinfColumnFloor", "1");
+  const columns = byId("reinfColumnsList");
+  if (columns) columns.innerHTML = '<div class="card"><label>Маркировка колонны</label><input id="demoReinfMark" value="К-02"></div>';
+  setInput("projDia", "16"); setInput("factDia", "16"); setInput("projStep", "200"); setInput("factStep", "198"); setInput("projCover", "30"); setInput("factCover", "31");
+  byId("btnReinf")?.addEventListener("click", () => {
+    service.createInspection({ module: "reinforcement", constructionMark: (byId<HTMLInputElement>("demoReinfMark")?.value || "К-02").trim(), projectValue: Number(byId<HTMLInputElement>("projDia")?.value), actualValue: Number(byId<HTMLInputElement>("factDia")?.value), tolerance: 1, unit: "мм" });
+    render(); notify("Проверка армирования сохранена локально.");
+  });
 
-    const inspectionForm = root.querySelector<HTMLFormElement>("[data-demo-form='inspection']");
-    inspectionForm?.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const data = new FormData(inspectionForm);
-      const module = inspectionForm.dataset.demoModule as "reinforcement" | "geometry" | "strength";
-      service.createInspection({
-        module,
-        constructionMark: String(data.get("constructionMark") || "").trim(),
-        projectValue: Number(data.get("projectValue")),
-        actualValue: Number(data.get("actualValue")),
-        tolerance: Number(data.get("tolerance") || 0),
-        unit: String(data.get("unit") || "")
-      });
-      notify("Проверка сохранена локально.");
-    });
+  show("geomPlateFields", true); show("geomPlateThickFields", true);
+  setInput("geomFloor", "2"); setInput("projPlateHeight", "200"); setInput("factPlateHeight", "202");
+  byId("btnGeom")?.addEventListener("click", () => {
+    service.createInspection({ module: "geometry", constructionMark: "ПЛ-02", projectValue: Number(byId<HTMLInputElement>("projPlateHeight")?.value), actualValue: Number(byId<HTMLInputElement>("factPlateHeight")?.value), tolerance: 5, unit: "мм" });
+    render(); notify("Геометрическая проверка сохранена локально.");
+  });
 
-    const issueForm = root.querySelector<HTMLFormElement>("[data-demo-form='issue']");
-    issueForm?.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const data = new FormData(issueForm);
-      service.createIssue({
-        title: String(data.get("title") || "").trim(),
-        constructionMark: String(data.get("constructionMark") || "").trim(),
-        description: String(data.get("description") || "").trim()
-      });
-      notify("Замечание добавлено в локальный журнал.");
-    });
+  setInput("strengthFloor", "2");
+  const strengthMark = byId<HTMLSelectElement>("mark");
+  if (strengthMark) strengthMark.innerHTML = '<option value="25">B25</option><option value="30">B30</option>';
+  setInput("actual", "27.4"); setInput("days", "28");
+  byId("btnStrength")?.addEventListener("click", () => {
+    service.createInspection({ module: "strength", constructionMark: "Б-02", projectValue: Number(strengthMark?.value || 25), actualValue: Number(byId<HTMLInputElement>("actual")?.value), tolerance: 0, unit: "МПа" });
+    render(); notify("Проверка прочности сохранена локально.");
+  });
 
-    root.querySelectorAll<HTMLButtonElement>("[data-demo-repeat-control]").forEach((button) => {
-      button.addEventListener("click", () => {
-        service.resolveIssueWithRepeatControl(String(button.dataset.demoRepeatControl || ""));
-        notify("Повторный контроль выполнен, замечание закрыто.");
-      });
-    });
-  };
+  root.addEventListener("submit", (event) => {
+    const form = event.target as HTMLFormElement;
+    if (form.id !== "demoIssueForm") return;
+    event.preventDefault();
+    const data = new FormData(form);
+    service.createIssue({ title: String(data.get("title") || "").trim(), constructionMark: String(data.get("mark") || "").trim(), description: String(data.get("description") || "").trim() });
+    render(); notify("Замечание добавлено в локальный журнал.");
+  });
+  root.addEventListener("click", (event) => {
+    const planTarget = (event.target as Element).closest<HTMLElement>("[data-demo-plan-target]");
+    if (planTarget) {
+      activateSection(String(planTarget.dataset.demoPlanTarget || "controlPlan"));
+      return;
+    }
+    const target = (event.target as Element).closest<HTMLElement>("[data-demo-repeat-control]");
+    if (!target) return;
+    service.resolveIssueWithRepeatControl(String(target.dataset.demoRepeatControl));
+    render(); notify("Повторный контроль выполнен, замечание закрыто.");
+  });
 
   render();
 }

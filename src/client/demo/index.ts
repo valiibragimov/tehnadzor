@@ -15,9 +15,6 @@ function bootstrapDemo() {
     throw new Error("Demo bootstrap can run only from the demo entrypoint.");
   }
 
-  const root = document.getElementById("demoApp");
-  if (!root) throw new Error("Demo root element is missing.");
-
   const storage = createDemoStorage(window.localStorage);
   const session = createDemoSession(storage);
   session.initialize();
@@ -25,7 +22,7 @@ function bootstrapDemo() {
   const service = createDemoService(repository);
 
   mountDemoUi({
-    root,
+    root: document,
     service
   });
 }

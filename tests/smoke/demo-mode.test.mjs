@@ -184,7 +184,9 @@ test("demo build is standalone, network-isolated and contains no private runtime
     "demo-core.js",
     "demo.css",
     "demo.html",
-    "demo.js"
+    "demo.js",
+    "liquid-glass.css",
+    "style.css"
   ]);
 
   const forbiddenExtensions = new Set([".map", ".ts", ".ifc"]);
@@ -214,14 +216,22 @@ test("demo build is standalone, network-isolated and contains no private runtime
 
   const html = await readFile(path.join(demoRoot, "demo.html"), "utf8");
   assert.match(html, /connect-src 'none'/);
-  assert.match(html, /id="demoApp"/);
+  assert.match(html, /id="objectOverview"/);
+  assert.match(html, /id="reinforcement"/);
+  assert.match(html, /id="controlPlan"/);
+  assert.match(html, /href="\.\/style\.css"/);
   assert.match(html, /Интерактивная демонстрация Tehnadzor/);
-  assert.doesNotMatch(html, /login|register|serviceWorker/i);
+  assert.doesNotMatch(html, /dist\/app\.js|serviceWorker|firebase/i);
 
   const script = await readFile(path.join(demoRoot, "demo.js"), "utf8");
-  assert.match(script, /Упрощённая презентационная версия на синтетических данных/);
-  assert.match(script, /Функциональность упрощена, все данные синтетические/);
-  assert.match(script, /Ближайшее действие/);
+  assert.match(script, /Проверка армирования сохранена локально/);
+  assert.match(script, /Демонстрационный режим · синтетические данные/);
+
+  assert.equal(
+    await readFile(path.join(demoRoot, "style.css"), "utf8"),
+    await readFile(path.join(projectRoot, "style.css"), "utf8"),
+    "demo must reuse the production stylesheet verbatim"
+  );
 });
 
 test("demo build remains compact", async () => {
@@ -229,5 +239,5 @@ test("demo build remains compact", async () => {
   let bytes = 0;
   for (const file of files) bytes += (await stat(file)).size;
   assert.ok(bytes > 0);
-  assert.ok(bytes < 500_000, `demo build is unexpectedly large: ${bytes}`);
+  assert.ok(bytes < 1_200_000, `demo build is unexpectedly large: ${bytes}`);
 });
