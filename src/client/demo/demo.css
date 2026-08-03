@@ -44,6 +44,7 @@ a { color: inherit; text-decoration: none; }
 .demo-banner div { display: grid; gap: 4px; }
 .demo-banner strong { font-size: 15px; }
 .demo-banner span { color: #b9c8dd; font-size: 14px; }
+.demo-banner small { color: #8fa5c2; font-size: 12px; line-height: 1.4; }
 
 .demo-project-bar { margin-top: 14px; padding: 16px 18px; display: grid; grid-template-columns: 1.25fr 1fr 1fr auto; gap: 14px; align-items: center; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .demo-project-bar > div { min-width: 0; display: grid; gap: 5px; }
@@ -69,6 +70,11 @@ a { color: inherit; text-decoration: none; }
 .demo-readiness__copy { justify-self: end; color: var(--muted); }
 .demo-progress { grid-column: 1 / -1; height: 8px; margin-top: 10px; border-radius: 99px; background: #1d2a3e; overflow: hidden; }
 .demo-progress span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), #68b0ff); }
+
+.demo-next-action { margin-top: 14px; padding: 17px 18px; display: flex; align-items: center; justify-content: space-between; gap: 18px; border: 1px solid rgba(244,187,62,.32); border-radius: var(--radius); background: rgba(244,187,62,.06); }
+.demo-next-action h2 { margin: 4px 0; font-size: 18px; }
+.demo-next-action p { margin: 0; color: var(--muted); line-height: 1.45; }
+.demo-next-action .demo-button { flex: 0 0 auto; }
 
 .demo-metric-grid { margin-top: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .demo-metric-grid article { min-height: 124px; padding: 18px; display: grid; align-content: center; gap: 4px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
@@ -160,6 +166,8 @@ a { color: inherit; text-decoration: none; }
   .demo-page__heading { min-height: 0; }
   .demo-readiness { grid-template-columns: 1fr; }
   .demo-readiness__copy { justify-self: start; }
+  .demo-next-action { align-items: stretch; flex-direction: column; }
+  .demo-next-action .demo-button { width: 100%; }
   .demo-metric-grid, .demo-task-grid, .demo-form__row { grid-template-columns: 1fr; }
   .demo-task-card, .demo-record, .demo-issue, .demo-summary-hero { align-items: flex-start; flex-direction: column; }
   .demo-table th:nth-child(2), .demo-table td:nth-child(2) { display: none; }

@@ -99,6 +99,29 @@ function renderNavigation(activeView: DemoView) {
 }
 
 function renderOverview(state: DemoState, metrics: ReturnType<DemoService["getMetrics"]>) {
+  const nextAction = metrics.openIssues > 0
+    ? {
+        eyebrow: "Ближайшее действие",
+        title: "Закрыть открытое замечание",
+        description: `Открытых замечаний: ${metrics.openIssues}. Проведите повторный контроль после устранения отклонения.`,
+        view: "issues" as const,
+        label: "Открыть замечания"
+      }
+    : metrics.completed < metrics.total
+      ? {
+          eyebrow: "Ближайшее действие",
+          title: "Продолжить проверки по плану",
+          description: `Осталось выполнить обязательных объектовых задач: ${metrics.total - metrics.completed}.`,
+          view: "control-plan" as const,
+          label: "Открыть план контроля"
+        }
+      : {
+          eyebrow: "Ближайшее действие",
+          title: "Проверить итоговую готовность",
+          description: "Обязательные объектовые задачи завершены, открытых замечаний нет.",
+          view: "summary" as const,
+          label: "Открыть итог"
+        };
   const taskCards = state.controlPlan
     .filter((task) => task.inspectionStatus !== "notApplicable")
     .slice(0, 6)
@@ -139,6 +162,14 @@ function renderOverview(state: DemoState, metrics: ReturnType<DemoService["getMe
         <div><span class="demo-eyebrow">Готовность по плану</span><strong>${metrics.percent}%</strong></div>
         <div class="demo-readiness__copy">Выполнено ${metrics.completed} из ${metrics.total} обязательных объектовых задач</div>
         <div class="demo-progress"><span style="width:${metrics.percent}%"></span></div>
+      </article>
+      <article class="demo-next-action">
+        <div>
+          <span class="demo-eyebrow">${nextAction.eyebrow}</span>
+          <h2>${nextAction.title}</h2>
+          <p>${nextAction.description}</p>
+        </div>
+        <button class="demo-button" type="button" data-demo-nav="${nextAction.view}">${nextAction.label}</button>
       </article>
       <div class="demo-metric-grid">
         <article><span>Проверок</span><strong>${state.inspections.length}</strong><small>в журнале объекта</small></article>
@@ -385,8 +416,12 @@ export function mountDemoUi({ root, service }: DemoUiOptions) {
             <button class="demo-button" type="button" data-demo-unavailable="profile">Профиль</button>
           </div>
         </header>
-        <section class="demo-banner" aria-label="Демонстрационный режим">
-          <div><strong>Демонстрационный режим</strong><span>Используются только синтетические данные. Изменения сохраняются локально в этом браузере.</span></div>
+        <section class="demo-banner" aria-label="Интерактивная демонстрация Tehnadzor">
+          <div>
+            <strong>Интерактивная демонстрация Tehnadzor</strong>
+            <span>Упрощённая презентационная версия на синтетических данных, показывающая основные сценарии строительного контроля.</span>
+            <small>Демонстрационный режим. Функциональность упрощена, все данные синтетические и сохраняются только в вашем браузере.</small>
+          </div>
           <button class="demo-button demo-button--danger" type="button" data-demo-reset>Сбросить демо</button>
         </section>
         <section class="demo-project-bar">

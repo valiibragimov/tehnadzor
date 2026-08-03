@@ -195,7 +195,13 @@ test("demo build is standalone, network-isolated and contains no private runtime
   const html = await readFile(path.join(demoRoot, "demo.html"), "utf8");
   assert.match(html, /connect-src 'none'/);
   assert.match(html, /id="demoApp"/);
+  assert.match(html, /Интерактивная демонстрация Tehnadzor/);
   assert.doesNotMatch(html, /login|register|serviceWorker/i);
+
+  const script = await readFile(path.join(demoRoot, "demo.js"), "utf8");
+  assert.match(script, /Упрощённая презентационная версия на синтетических данных/);
+  assert.match(script, /Функциональность упрощена, все данные синтетические/);
+  assert.match(script, /Ближайшее действие/);
 });
 
 test("demo build remains compact", async () => {
