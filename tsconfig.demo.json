@@ -9,7 +9,10 @@
     "types": ["node"]
   },
   "include": [
-    "src/client/app/runtime-mode.ts",
-    "src/client/demo/**/*.ts"
+    "src/client/**/*.ts",
+    "src/client/**/*.d.ts"
+  ],
+  "exclude": [
+    "src/client/app/vendor/**"
   ]
 }

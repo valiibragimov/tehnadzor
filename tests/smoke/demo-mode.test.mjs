@@ -1,12 +1,11 @@
 import assert from "node:assert/strict";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { access, readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 
 const projectRoot = process.cwd();
 const demoRoot = path.join(projectRoot, "dist-demo");
-const demoApi = await import(`${pathToFileURL(path.join(demoRoot, "demo-core.js")).href}?v=${Date.now()}`);
 
 class MemoryStorage {
   #values = new Map();
@@ -19,149 +18,54 @@ class MemoryStorage {
   setItem(key, value) { this.#values.set(String(key), String(value)); }
 }
 
-function createRuntime(storage = new MemoryStorage()) {
-  let sequence = 0;
-  const scoped = demoApi.createDemoStorage(storage);
-  const session = demoApi.createDemoSession(scoped);
-  const repository = demoApi.createDemoRepository({
-    session,
-    createId: (prefix) => `${prefix}-test-${++sequence}`
-  });
-  const service = demoApi.createDemoService(repository, {
-    now: () => "2026-08-03T12:00:00.000Z"
-  });
-  session.initialize();
-  return { storage, scoped, session, repository, service };
-}
+const memoryStorage = new MemoryStorage();
+Object.defineProperty(globalThis, "localStorage", { configurable: true, value: memoryStorage });
+const demoApi = await import(`${pathToFileURL(path.join(demoRoot, "demo-core.js")).href}?v=${Date.now()}`);
 
-test("runtime mode defaults to production and recognizes demo entrypoints", () => {
-  for (const pathname of ["/", "/index.html", "/demo", "/demo.html"]) {
-    assert.equal(demoApi.resolveAppRuntimeMode({ pathname, search: "" }), "demo", pathname);
-  }
+test("fixtures use production-shaped project and inspection records", () => {
+  const state = demoApi.createDemoFixtures();
+  const project = state.projects[demoApi.DEMO_PROJECT_ID];
 
-  for (const pathname of [
-    "/app",
-    "/login",
-    "/dashboard",
-    "/demo-test",
-    "/demos",
-    "/demo/extra",
-    "/src/client/demo",
-    "/index",
-    "/anything.html"
-  ]) {
-    assert.equal(demoApi.resolveAppRuntimeMode({ pathname, search: "" }), "production", pathname);
-  }
-
-  assert.equal(demoApi.resolveAppRuntimeMode({ pathname: "/demo", search: "?source=cloudflare" }), "demo");
-  assert.equal(demoApi.resolveAppRuntimeMode({ pathname: "/demo#overview", search: "" }), "demo");
-  assert.equal(demoApi.resolveAppRuntimeMode({ pathname: "/app", search: "?demo=1" }), "production");
+  assert.equal(state.schemaVersion, 2);
+  assert.equal(project.name, "ЖК «Демонстрационный»");
+  assert.equal(project.construction, "foundation_slab");
+  assert.ok(state.projectCollections[demoApi.DEMO_PROJECT_ID].reinfChecks["reinf-demo-1"]);
+  assert.ok(state.projectCollections[demoApi.DEMO_PROJECT_ID].geomChecks["geom-demo-1"]);
+  assert.ok(state.projectCollections[demoApi.DEMO_PROJECT_ID].strengthChecks["strength-demo-1"]);
+  assert.ok(state.projectCollections[demoApi.DEMO_PROJECT_ID].issues["issue-demo-1"]);
 });
 
-test("fixtures initialize once and preserve visitor changes", () => {
-  const runtime = createRuntime();
-  const initial = runtime.session.read();
-  initial.project.name = "Изменённый демонстрационный объект";
-  runtime.session.write(initial);
+test("local database persists visitor changes and reset only clears demo namespace", () => {
+  const storage = new MemoryStorage();
+  const store = demoApi.createDemoDatabaseStore(storage);
+  storage.setItem("unrelated:key", "keep");
 
-  const reopened = demoApi.createDemoSession(demoApi.createDemoStorage(runtime.storage));
-  assert.equal(reopened.initialize().project.name, "Изменённый демонстрационный объект");
+  const changed = store.read();
+  changed.projects[demoApi.DEMO_PROJECT_ID].name = "Локальное изменение";
+  store.write(changed);
+
+  const reopened = demoApi.createDemoDatabaseStore(storage);
+  assert.equal(reopened.read().projects[demoApi.DEMO_PROJECT_ID].name, "Локальное изменение");
+  assert.equal(reopened.reset().projects[demoApi.DEMO_PROJECT_ID].name, "ЖК «Демонстрационный»");
+  assert.equal(storage.getItem("unrelated:key"), "keep");
+  assert.deepEqual(store.listKeys(), [demoApi.DEMO_DATABASE_KEY]);
 });
 
-test("reset clears only the demo namespace and restores fixtures", () => {
-  const runtime = createRuntime();
-  runtime.storage.setItem("unrelated:key", "keep-me");
-  const changed = runtime.session.read();
-  changed.project.name = "Изменено";
-  runtime.session.write(changed);
-
-  const reset = runtime.session.reset();
-  assert.equal(reset.project.name, "Демонстрационный объект");
-  assert.equal(runtime.storage.getItem("unrelated:key"), "keep-me");
-  assert.deepEqual(runtime.scoped.listKeys(), [
-    `${demoApi.DEMO_STORAGE_NAMESPACE}schema`,
-    `${demoApi.DEMO_STORAGE_NAMESPACE}state`
-  ]);
-});
-
-test("demo repository supports local inspection CRUD", () => {
-  const { repository } = createRuntime();
-  const created = repository.createInspection({
-    module: "strength",
-    title: "Контроль прочности Б-02",
-    constructionMark: "Б-02",
-    createdAt: "2026-08-03T12:00:00.000Z",
-    status: "done",
-    summary: "Соответствует",
-    measurements: []
-  });
-  assert.equal(repository.getState().inspections[0].id, created.id);
-  assert.equal(repository.updateInspection(created.id, { summary: "Обновлено" })?.summary, "Обновлено");
-  assert.equal(repository.deleteInspection(created.id), true);
-  assert.equal(repository.getState().inspections.some((item) => item.id === created.id), false);
-});
-
-test("demo repository supports local issue CRUD", () => {
-  const { repository } = createRuntime();
-  const created = repository.createIssue({
-    title: "Синтетическое замечание",
-    constructionMark: "К-02",
-    description: "Только локальные данные",
-    createdAt: "2026-08-03T12:00:00.000Z",
-    status: "open",
-    linkedTaskId: null,
-    repeatControlAt: null
-  });
-  assert.equal(repository.updateIssue(created.id, { status: "resolved" })?.status, "resolved");
-  assert.equal(repository.deleteIssue(created.id), true);
-  assert.equal(repository.getState().issues.some((item) => item.id === created.id), false);
-});
-
-test("inspection and issue actions persist after a new session", () => {
-  const runtime = createRuntime();
-  const initialInspectionCount = runtime.service.getState().inspections.length;
-  const initialIssueCount = runtime.service.getState().issues.length;
-
-  runtime.service.createInspection({
-    module: "reinforcement",
-    constructionMark: "К-02",
-    projectValue: 16,
-    actualValue: 16,
-    tolerance: 0,
-    unit: "мм"
-  });
-  runtime.service.createIssue({
-    title: "Демонстрационное замечание",
-    constructionMark: "К-02",
-    description: "Корректирующее действие"
+test("demo repository adapter supports production collection CRUD", async () => {
+  demoApi.resetDemoRepository();
+  const projectId = demoApi.DEMO_PROJECT_ID;
+  const created = await demoApi.addProjectCollectionDoc(projectId, "reinfChecks", {
+    construction: "foundation_slab",
+    status: "ok"
   });
 
-  const reopened = createRuntime(runtime.storage);
-  assert.equal(reopened.service.getState().inspections.length, initialInspectionCount + 1);
-  assert.equal(reopened.service.getState().issues.length, initialIssueCount + 1);
-  assert.equal(reopened.service.getState().journal[0].kind, "issue");
-});
-
-test("repeat control resolves issue and its linked plan task", () => {
-  const { service } = createRuntime();
-  const resolved = service.resolveIssueWithRepeatControl("issue-open-01");
-  assert.equal(resolved?.status, "resolved");
-  const state = service.getState();
-  assert.equal(state.controlPlan.find((task) => task.id === "task-geometry-wall")?.status, "resolved");
-  assert.equal(state.journal[0].kind, "repeat-control");
-});
-
-test("readiness uses only object tasks and counts resolved as complete", () => {
-  const { service } = createRuntime();
-  const metrics = service.getMetrics();
-  assert.deepEqual(metrics, {
-    completed: 3,
-    total: 5,
-    percent: 60,
-    openIssues: 1,
-    deviations: 1,
-    factoryTasks: 1
-  });
+  assert.equal((await demoApi.getProjectCollectionDocSnapshot(projectId, "reinfChecks", created.id)).exists(), true);
+  await demoApi.updateProjectCollectionDoc(projectId, "reinfChecks", created.id, { status: "exceeded" });
+  assert.equal((await demoApi.getProjectCollectionDocSnapshot(projectId, "reinfChecks", created.id)).data().status, "exceeded");
+  await demoApi.setProjectCollectionDoc(projectId, "reinfChecks", created.id, { summaryText: "повторный контроль" }, { merge: true });
+  assert.equal((await demoApi.getProjectCollectionDocSnapshot(projectId, "reinfChecks", created.id)).data().summaryText, "повторный контроль");
+  await demoApi.deleteProjectCollectionDoc(projectId, "reinfChecks", created.id);
+  assert.equal((await demoApi.getProjectCollectionDocSnapshot(projectId, "reinfChecks", created.id)).exists(), false);
 });
 
 async function listFiles(directory) {
@@ -175,39 +79,58 @@ async function listFiles(directory) {
   return files;
 }
 
-test("demo build is standalone, network-isolated and contains no private runtime markers", async () => {
-  const bootstrapSource = await readFile(path.join(projectRoot, "src", "client", "demo", "index.ts"), "utf8");
-  assert.doesNotMatch(bootstrapSource, /firebase|initializeApp|getFirestore|getAuth/i);
+test("demo starts the production shell, navigation and feature forms", async () => {
+  const html = await readFile(path.join(demoRoot, "demo.html"), "utf8");
+  const bootstrap = await readFile(path.join(projectRoot, "src", "client", "demo", "index.ts"), "utf8");
 
+  assert.match(bootstrap, /import\("\.\.\/app\.js"\)/, "demo must bootstrap the production app composition root");
+  for (const id of [
+    "projectSelector",
+    "constructionCategory",
+    "constructionType",
+    "construction",
+    "bimImportFileState",
+    "objectOverview",
+    "reinforcement",
+    "geometry",
+    "strength",
+    "controlPlan",
+    "summary",
+    "journal"
+  ]) {
+    assert.match(html, new RegExp(`id=["']${id}["']`), `production shell is missing #${id}`);
+  }
+  assert.match(html, /data-target="overview"/);
+  assert.match(html, /data-target="reinforcement"/);
+  assert.match(html, /data-target="controlPlan"/);
+  assert.match(html, /data-target="journal"/);
+  assert.match(html, /href="\.\/style\.css"/);
+  assert.match(html, /href="\.\/liquid-glass\.css"/);
+  assert.match(html, /href="\.\/modules\/summary\/analytics-block\.css"/);
+});
+
+test("Firebase, Service Worker and remote libraries are excluded from the demo build", async () => {
   const files = await listFiles(demoRoot);
-  assert.deepEqual(files.map((file) => path.basename(file)).sort(), [
-    "demo-core.js",
-    "demo.css",
-    "demo.html",
-    "demo.js",
-    "liquid-glass.css",
-    "style.css"
-  ]);
-
   const forbiddenExtensions = new Set([".map", ".ts", ".ifc"]);
   const forbiddenMarkers = [
-    "apiKey",
+    "www.gstatic.com/firebasejs",
     "firebaseConfig",
+    "__FIREBASE_WEB_PROJECT_ID__",
     "tehnadzor-online",
-    "projectId",
     "private_key",
     "client_secret",
     "serviceAccount",
     "BEGIN PRIVATE KEY",
+    "cdn.jsdelivr.net/npm/chart.js",
+    "cdnjs.cloudflare.com/ajax/libs/jspdf",
+    "serviceWorker.register",
+    "profile-feed.js",
     "Building-Architecture",
-    "C:\\Users\\",
-    "initializeApp",
-    "getFirestore",
-    "getAuth"
+    "C:\\Users\\"
   ];
 
   for (const file of files) {
-    assert.equal(forbiddenExtensions.has(path.extname(file)), false);
+    assert.equal(forbiddenExtensions.has(path.extname(file)), false, file);
     const content = await readFile(file, "utf8");
     for (const marker of forbiddenMarkers) {
       assert.equal(content.includes(marker), false, `${marker} found in ${file}`);
@@ -215,29 +138,49 @@ test("demo build is standalone, network-isolated and contains no private runtime
   }
 
   const html = await readFile(path.join(demoRoot, "demo.html"), "utf8");
-  assert.match(html, /connect-src 'none'/);
-  assert.match(html, /id="objectOverview"/);
-  assert.match(html, /id="reinforcement"/);
-  assert.match(html, /id="controlPlan"/);
-  assert.match(html, /href="\.\/style\.css"/);
-  assert.match(html, /Интерактивная демонстрация Tehnadzor/);
+  assert.match(html, /connect-src 'self'/);
   assert.doesNotMatch(html, /dist\/app\.js|serviceWorker|firebase/i);
 
   const script = await readFile(path.join(demoRoot, "demo.js"), "utf8");
-  assert.match(script, /Проверка армирования сохранена локально/);
-  assert.match(script, /Демонстрационный режим · синтетические данные/);
-
-  assert.equal(
-    await readFile(path.join(demoRoot, "style.css"), "utf8"),
-    await readFile(path.join(projectRoot, "style.css"), "utf8"),
-    "demo must reuse the production stylesheet verbatim"
-  );
+  assert.match(script, /Демонстрационный режим/);
+  assert.match(script, /Функция недоступна в демонстрационном режиме/);
+  assert.match(script, /ЖК «Демонстрационный»/);
 });
 
-test("demo build remains compact", async () => {
+test("old standalone demo UI and duplicated contracts are removed", async () => {
+  for (const relativePath of [
+    "src/client/demo/ui.ts",
+    "src/client/demo/demo.css",
+    "src/client/demo/demo.html",
+    "src/client/demo/types.ts",
+    "src/client/demo/session.ts",
+    "src/client/demo/services/demo-service.ts",
+    "src/client/demo/repositories/demo-repository.ts"
+  ]) {
+    await assert.rejects(access(path.join(projectRoot, relativePath)));
+  }
+
+  const runtime = await readFile(path.join(projectRoot, "src", "client", "demo", "runtime.ts"), "utf8");
+  assert.doesNotMatch(runtime, /renderOverview|renderControlPlan|renderInspectionForm/);
+});
+
+test("demo reuses production stylesheets verbatim and includes a production summary asset", async () => {
+  assert.equal(
+    await readFile(path.join(demoRoot, "style.css"), "utf8"),
+    await readFile(path.join(projectRoot, "style.css"), "utf8")
+  );
+  assert.equal(
+    await readFile(path.join(demoRoot, "liquid-glass.css"), "utf8"),
+    await readFile(path.join(projectRoot, "liquid-glass.css"), "utf8")
+  );
+  assert.ok((await stat(path.join(demoRoot, "modules", "summary", "analytics-block.html"))).size > 0);
+  assert.ok((await stat(path.join(demoRoot, "modules", "summary", "analytics-block.css"))).size > 0);
+});
+
+test("demo build retains the production UI instead of optimizing it into a mini app", async () => {
   const files = await listFiles(demoRoot);
   let bytes = 0;
   for (const file of files) bytes += (await stat(file)).size;
-  assert.ok(bytes > 0);
-  assert.ok(bytes < 1_200_000, `demo build is unexpectedly large: ${bytes}`);
+  assert.ok(bytes > 1_000_000, `production UI bundle is unexpectedly small: ${bytes}`);
+  assert.ok(bytes < 4_000_000, `demo build is unexpectedly large: ${bytes}`);
 });

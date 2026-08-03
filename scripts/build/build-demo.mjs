@@ -11,8 +11,39 @@ const projectRoot = resolve(__dirname, "..", "..");
 const sourceRoot = resolve(projectRoot, "src", "client", "demo");
 const outputRoot = resolve(projectRoot, "dist-demo");
 
+const demoAdapterPlugin = {
+  name: "tehnadzor-demo-adapters",
+  setup(buildContext) {
+    buildContext.onResolve({ filter: /firestore-repository\.js$/ }, () => ({
+      path: resolve(sourceRoot, "repositories", "app-repository.ts")
+    }));
+    buildContext.onResolve({ filter: /bim-visual-panel\.js$/ }, () => ({
+      path: resolve(sourceRoot, "bim-visual-panel-shim.ts")
+    }));
+    buildContext.onResolve({ filter: /ui\/lazy-libs\.js$/ }, () => ({
+      path: resolve(sourceRoot, "lazy-libs-shim.ts")
+    }));
+    buildContext.onResolve({ filter: /^https:\/\/www\.gstatic\.com\/firebasejs\/[^/]+\/firebase-auth\.js$/ }, () => ({
+      path: resolve(sourceRoot, "firebase-auth-shim.ts")
+    }));
+    buildContext.onResolve({ filter: /^https:\/\/www\.gstatic\.com\/firebasejs\/[^/]+\/firebase-firestore\.js$/ }, () => ({
+      path: resolve(sourceRoot, "firebase-firestore-shim.ts")
+    }));
+    buildContext.onResolve({ filter: /^https:\/\/www\.gstatic\.com\/firebasejs\/[^/]+\/firebase-app\.js$/ }, () => ({
+      path: resolve(sourceRoot, "firebase-shim.ts")
+    }));
+    buildContext.onResolve({ filter: /^(?:\.\.\/|\.\/)+firebase\.js$/ }, () => ({
+      path: resolve(sourceRoot, "firebase-shim.ts")
+    }));
+    buildContext.onResolve({ filter: /^(?:\.\.\/|\.\/)+auth\.js$/ }, () => ({
+      path: resolve(sourceRoot, "auth-shim.ts")
+    }));
+  }
+};
+
 await rm(outputRoot, { recursive: true, force: true });
 await mkdir(outputRoot, { recursive: true });
+await mkdir(resolve(outputRoot, "modules", "summary"), { recursive: true });
 
 await build({
   entryPoints: [resolve(sourceRoot, "index.ts")],
@@ -24,7 +55,8 @@ await build({
   minify: true,
   sourcemap: false,
   legalComments: "none",
-  charset: "utf8"
+  charset: "utf8",
+  plugins: [demoAdapterPlugin]
 });
 
 await build({
@@ -44,26 +76,30 @@ const productionHtml = await readIndexHtmlSource(projectRoot);
 const demoHtml = productionHtml
   .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
   .replace(/\s+on(?:click|keydown|error)="[^"]*"/gi, "")
-  .replace(/<link[^>]+(?:manifest|icon|preconnect|fonts\.googleapis|fonts\.gstatic|analytics-block)[^>]*>\s*/gi, "")
+  .replace(/<link[^>]+(?:manifest|icon|preconnect|fonts\.googleapis|fonts\.gstatic)[^>]*>\s*/gi, "")
   .replace(/<title>[\s\S]*?<\/title>/i, "<title>Интерактивная демонстрация Tehnadzor</title>")
   .replace(/<html lang="ru">/i, '<html lang="ru" class="theme-dark">')
-  .replace(/<body class="home-page">/i, '<body class="home-page theme-dark demo-production-ui">')
+  .replace(/<body class="home-page">/i, '<body class="home-page theme-dark">')
   .replace(
     /<meta name="viewport"([^>]+)>/i,
-    `<meta name="viewport"$1>\n  <meta name="robots" content="noindex,nofollow">\n  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'none'; img-src 'self' data:; style-src 'self'; script-src 'self'; base-uri 'none'; form-action 'self'; object-src 'none'">`
+    `<meta name="viewport"$1>\n  <meta name="robots" content="noindex,nofollow">\n  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; base-uri 'none'; form-action 'self'; object-src 'none'">`
   )
-  .replace(/<link rel="stylesheet" href="style\.css\?v=\d+"\s*\/?>/i, '<link rel="stylesheet" href="./style.css">\n  <link rel="stylesheet" href="./demo.css">')
+  .replace(/<link rel="stylesheet" href="style\.css\?v=\d+"\s*\/?>/i, '<link rel="stylesheet" href="./style.css">')
   .replace(/<link rel="stylesheet" href="liquid-glass\.css\?v=\d+"\s*\/?>/i, '<link rel="stylesheet" href="./liquid-glass.css">')
-  .replace(
-    /<div class="header-actions">/i,
-    '<div class="header-actions"><span class="demo-production-badge" title="Все данные синтетические и сохраняются только в браузере">Демо</span>'
-  )
+  .replace(/<link rel="stylesheet" href="dist\/modules\/summary\/analytics-block\.css\?v=\d+"\s*\/?>/i, '<link rel="stylesheet" href="./modules/summary/analytics-block.css">')
   .replace(/<\/body>/i, '  <script type="module" src="./demo.js"></script>\n</body>');
 
 await writeFile(resolve(outputRoot, "demo.html"), demoHtml, "utf8");
 await cp(resolve(projectRoot, "style.css"), resolve(outputRoot, "style.css"));
 await cp(resolve(projectRoot, "liquid-glass.css"), resolve(outputRoot, "liquid-glass.css"));
-await cp(resolve(sourceRoot, "demo.css"), resolve(outputRoot, "demo.css"));
+await cp(
+  resolve(projectRoot, "src", "client", "app", "modules", "summary", "analytics-block.html"),
+  resolve(outputRoot, "modules", "summary", "analytics-block.html")
+);
+await cp(
+  resolve(projectRoot, "src", "client", "app", "modules", "summary", "analytics-block.css"),
+  resolve(outputRoot, "modules", "summary", "analytics-block.css")
+);
 
 async function listFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -88,7 +124,7 @@ const forbiddenMarkers = [
   "apiKey",
   "firebaseConfig",
   "tehnadzor-online",
-  "projectId",
+  "__FIREBASE_WEB_PROJECT_ID__",
   "private_key",
   "client_secret",
   "serviceAccount",
