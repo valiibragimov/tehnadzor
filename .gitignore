@@ -53,6 +53,7 @@ node_modules/
 server/node_modules/
 functions/node_modules/
 dist/
+dist-demo/
 dist-hosting/
 server/dist/
 functions/dist/

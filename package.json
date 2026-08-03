@@ -13,6 +13,7 @@
     "build:index-html": "node ./scripts/build/build-index-html.mjs",
     "build:client:core": "npm run build:index-html && tsc -p ./tsconfig.client.json && node ./scripts/build/inject-firebase-config.mjs && node ./scripts/build/postbuild-client.mjs",
     "build:client": "npm run build:client:core && npm run build:bim-viewer && npm run stamp:sw-cache",
+    "build:demo": "node ./scripts/build/build-demo.mjs",
     "build:server:ts": "tsc -p ./tsconfig.server.json",
     "build:functions:ts": "tsc -p ./tsconfig.functions.json",
     "build:ts": "npm run build:client && npm run build:server:ts && npm run build:functions:ts",
@@ -24,7 +25,7 @@
     "check:hosting": "node ./scripts/checks/check-hosting-public.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test:smoke": "npm run build:client && node ./scripts/checks/run-smoke-tests.mjs",
+    "test:smoke": "npm run build:client && npm run build:demo && node ./scripts/checks/run-smoke-tests.mjs",
     "test": "npm run test:smoke",
     "audit:root": "npm audit --audit-level=moderate",
     "audit:server": "npm audit --audit-level=moderate --prefix ./server",
@@ -32,7 +33,8 @@
     "audit:all": "npm run audit:root && npm run audit:server && npm run audit:functions",
     "typecheck:bim": "tsc -p ./tsconfig.bim.json",
     "typecheck:strict:server-profile-feed": "tsc -p ./tsconfig.server.profile-feed.json --noEmit",
-    "typecheck": "npm run typecheck:bim && npm run typecheck:strict:server-profile-feed && tsc -p ./tsconfig.client.json --noEmit && tsc -p ./tsconfig.server.json --noEmit && tsc -p ./tsconfig.functions.json --noEmit"
+    "typecheck:demo": "tsc -p ./tsconfig.demo.json --noEmit",
+    "typecheck": "npm run typecheck:bim && npm run typecheck:strict:server-profile-feed && tsc -p ./tsconfig.client.json --noEmit && npm run typecheck:demo && tsc -p ./tsconfig.server.json --noEmit && tsc -p ./tsconfig.functions.json --noEmit"
   },
   "dependencies": {
     "@ifc-lite/data": "^1.11.0",

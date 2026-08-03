@@ -18,6 +18,7 @@
   ],
   "exclude": [
     "app/vendor/**",
+    "src/client/demo/**",
     "node_modules",
     "server/**",
     "functions/**"
