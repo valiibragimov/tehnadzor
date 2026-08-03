@@ -35,10 +35,27 @@ function createRuntime(storage = new MemoryStorage()) {
 }
 
 test("runtime mode defaults to production and recognizes demo entrypoints", () => {
-  assert.equal(demoApi.resolveAppRuntimeMode({ pathname: "/", search: "" }), "production");
-  assert.equal(demoApi.resolveAppRuntimeMode({ pathname: "/index.html", search: "" }), "production");
-  assert.equal(demoApi.resolveAppRuntimeMode({ pathname: "/demo.html", search: "" }), "demo");
-  assert.equal(demoApi.resolveAppRuntimeMode({ pathname: "/", search: "?demo=1" }), "demo");
+  for (const pathname of ["/", "/index.html", "/demo", "/demo.html"]) {
+    assert.equal(demoApi.resolveAppRuntimeMode({ pathname, search: "" }), "demo", pathname);
+  }
+
+  for (const pathname of [
+    "/app",
+    "/login",
+    "/dashboard",
+    "/demo-test",
+    "/demos",
+    "/demo/extra",
+    "/src/client/demo",
+    "/index",
+    "/anything.html"
+  ]) {
+    assert.equal(demoApi.resolveAppRuntimeMode({ pathname, search: "" }), "production", pathname);
+  }
+
+  assert.equal(demoApi.resolveAppRuntimeMode({ pathname: "/demo", search: "?source=cloudflare" }), "demo");
+  assert.equal(demoApi.resolveAppRuntimeMode({ pathname: "/demo#overview", search: "" }), "demo");
+  assert.equal(demoApi.resolveAppRuntimeMode({ pathname: "/app", search: "?demo=1" }), "production");
 });
 
 test("fixtures initialize once and preserve visitor changes", () => {
@@ -159,6 +176,9 @@ async function listFiles(directory) {
 }
 
 test("demo build is standalone, network-isolated and contains no private runtime markers", async () => {
+  const bootstrapSource = await readFile(path.join(projectRoot, "src", "client", "demo", "index.ts"), "utf8");
+  assert.doesNotMatch(bootstrapSource, /firebase|initializeApp|getFirestore|getAuth/i);
+
   const files = await listFiles(demoRoot);
   assert.deepEqual(files.map((file) => path.basename(file)).sort(), [
     "demo-core.js",

@@ -5,13 +5,25 @@ export interface RuntimeLocationInput {
   search: string;
 }
 
-export function resolveAppRuntimeMode({ pathname, search }: RuntimeLocationInput): AppRuntimeMode {
-  const normalizedPath = String(pathname || "").toLowerCase();
-  const params = new URLSearchParams(String(search || ""));
+const DEMO_ENTRYPOINT_PATHS = new Set([
+  "/",
+  "/index.html",
+  "/demo",
+  "/demo.html"
+]);
 
-  if (normalizedPath.endsWith("/demo.html") || normalizedPath === "demo.html") {
-    return "demo";
-  }
+export function isDemoEntrypointPath(pathname: string): boolean {
+  const input = String(pathname || "");
+  const queryIndex = input.indexOf("?");
+  const hashIndex = input.indexOf("#");
+  let pathnameEnd = input.length;
 
-  return params.get("demo") === "1" ? "demo" : "production";
+  if (queryIndex >= 0) pathnameEnd = Math.min(pathnameEnd, queryIndex);
+  if (hashIndex >= 0) pathnameEnd = Math.min(pathnameEnd, hashIndex);
+
+  return DEMO_ENTRYPOINT_PATHS.has(input.slice(0, pathnameEnd).toLowerCase());
+}
+
+export function resolveAppRuntimeMode({ pathname }: RuntimeLocationInput): AppRuntimeMode {
+  return isDemoEntrypointPath(pathname) ? "demo" : "production";
 }
