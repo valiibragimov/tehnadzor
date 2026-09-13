@@ -29060,3 +29060,168 @@ body.theme-light.profile-edit-page .site-footer__icon-link:hover {
     padding: 10px 12px;
   }
 }
+
+/* IFC import and BIM viewer layout hardening. Keep these final overrides after
+   the shared home-page theme so generic button rules cannot reduce contrast. */
+.ifc-check-modal {
+  overflow: hidden;
+}
+
+.ifc-check-modal__content {
+  min-width: 0;
+  max-width: calc(100vw - 28px);
+  box-sizing: border-box;
+}
+
+.ifc-check-modal__content > *,
+.ifc-check-modal__header > *,
+.ifc-check-modal__metrics > *,
+.ifc-check-row > *,
+.ifc-check-row__heading > * {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.ifc-check-modal__notice,
+.ifc-check-row__body,
+.ifc-check-row__heading strong,
+.ifc-check-row__body p,
+.ifc-check-row__body small {
+  overflow-wrap: anywhere;
+}
+
+.ifc-check-modal__footer > button,
+.ifc-check-modal__footer > .lg-btn--pill {
+  min-width: 0 !important;
+  max-width: 100%;
+}
+
+body.theme-light .ifc-check-modal__status {
+  border-color: #86efac;
+  background: #dcfce7;
+  color: #166534;
+}
+
+body.theme-light .ifc-check-modal__status[data-status="warning"] {
+  border-color: #facc15;
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+body.theme-light .ifc-check-modal__status[data-status="blocked"] {
+  border-color: #fca5a5;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+body.theme-light .ifc-check-modal__notice {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #14532d;
+}
+
+body.theme-light .ifc-check-modal__notice[data-status="warning"] {
+  border-color: #fde047;
+  background: #fefce8;
+  color: #713f12;
+}
+
+body.theme-light .ifc-check-modal__notice[data-status="blocked"] {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #7f1d1d;
+}
+
+body.theme-light .bim-workspace__action,
+body.theme-light .bim-workspace__action.lg-btn,
+body.theme-light .bim-workspace__action.lg-btn--pill,
+body.theme-light .bim-workspace__normalize,
+body.theme-light .bim-workspace__normalize.lg-btn,
+body.theme-light .bim-workspace__normalize.lg-btn--pill {
+  border-color: #93c5fd !important;
+  background: #eff6ff !important;
+  color: #1e3a8a !important;
+  box-shadow: none !important;
+}
+
+body.theme-light .bim-workspace__action .lg-btn__label,
+body.theme-light .bim-workspace__normalize .lg-btn__label {
+  color: #1e3a8a !important;
+}
+
+body.theme-light .bim-workspace__action:hover,
+body.theme-light .bim-workspace__action:focus-visible,
+body.theme-light .bim-workspace__normalize:hover,
+body.theme-light .bim-workspace__normalize:focus-visible {
+  border-color: #2563eb !important;
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+}
+
+body.theme-light .bim-workspace__action:hover .lg-btn__label,
+body.theme-light .bim-workspace__action:focus-visible .lg-btn__label,
+body.theme-light .bim-workspace__normalize:hover .lg-btn__label,
+body.theme-light .bim-workspace__normalize:focus-visible .lg-btn__label {
+  color: #1d4ed8 !important;
+}
+
+body.theme-light .bim-workspace__diagnostic-warning {
+  color: #92400e;
+}
+
+body.theme-light .bim-workspace__normalized-badge {
+  border-color: #7dd3fc;
+  background: #e0f2fe;
+  color: #075985;
+}
+
+@media (max-width: 768px) {
+  .ifc-check-modal {
+    padding:
+      max(6px, env(safe-area-inset-top, 0px))
+      max(6px, env(safe-area-inset-right, 0px))
+      max(6px, env(safe-area-inset-bottom, 0px))
+      max(6px, env(safe-area-inset-left, 0px));
+  }
+
+  .ifc-check-modal__content {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - 12px);
+  }
+
+  .bim-workspace__actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .bim-workspace__action,
+  .bim-workspace__action.lg-btn,
+  .bim-workspace__action.lg-btn--pill {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 42px !important;
+    white-space: normal !important;
+  }
+
+  .bim-workspace__action .lg-btn__label {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .ifc-check-modal__footer {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .ifc-check-modal__footer > button {
+    width: 100%;
+  }
+}

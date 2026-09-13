@@ -94,6 +94,7 @@ functions/serviceAccount*.json
 
 # Local browser/temp artifacts
 tmp-chrome-*/
+.playwright-cli/
 
 # Firebase emulator/export artifacts
 firebase-export-*/
