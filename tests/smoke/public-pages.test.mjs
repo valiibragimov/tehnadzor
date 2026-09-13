@@ -48,6 +48,7 @@ test("register page exposes registration controls", async () => {
 
 test("about page returns the public product narrative", async () => {
   const { response, body } = await fetchText("/about.html");
+  const { body: css } = await fetchText("/style.css");
 
   assert.equal(response.status, 200);
   assert.match(body, /О проекте — Tehnadzor/);
@@ -62,6 +63,8 @@ test("about page returns the public product narrative", async () => {
   assert.match(body, /--story-progress/);
   assert.doesNotMatch(body, /import \{ initThemeControls \}/);
   assert.doesNotMatch(body, /class="header-actions"/);
+  assert.match(css, /body\.theme-light \.about-hero-signal__item\s*\{[\s\S]*?color:\s*#0f172a/u);
+  assert.match(css, /@media \(max-width: 520px\)\s*\{[\s\S]*?\.about-copy h2\s*\{[\s\S]*?10vw/u);
 });
 
 test("privacy page explains product data handling in plain language", async () => {

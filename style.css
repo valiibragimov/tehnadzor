@@ -169,7 +169,7 @@ body.home-page > main {
    HEADER - iOS Liquid Glass Style
    ========================= */
 
-header {
+body > header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -200,7 +200,7 @@ header {
   box-sizing: border-box;
 }
 
-header.header-hidden {
+body > header.header-hidden {
   transform: translateY(-100%);
   opacity: 0;
   pointer-events: none;
@@ -8152,7 +8152,7 @@ body.theme-light {
 
 /* header + main */
 
-body.theme-light header {
+body.theme-light > header {
   background: #000000;
   backdrop-filter: blur(50px) saturate(180%);
   -webkit-backdrop-filter: blur(50px) saturate(180%);
@@ -9225,7 +9225,7 @@ body.theme-light .project-meta {
    ========================= */
 
 @media (max-width: 1024px) {
-  header {
+  body > header {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
@@ -9264,7 +9264,7 @@ body.theme-light .project-meta {
     padding: 12px 12px 24px;
   }
 
-  header {
+  body > header {
     padding: 6px 10px !important;
     position: static;
     top: auto;
@@ -11204,7 +11204,7 @@ body.theme-light .project-meta {
 
 /* Ландшафтная ориентация на мобильных */
 @media (max-width: 768px) and (orientation: landscape) {
-  header {
+  body > header {
     padding: 8px 12px;
   }
 
@@ -12024,7 +12024,7 @@ body.login-page .link a:hover {
     padding: 10px 10px 20px;
   }
 
-  header {
+  body > header {
     padding: 10px 10px !important;
     gap: 8px !important;
   }
@@ -13506,7 +13506,7 @@ body:not(.theme-light) #reinfWallFloor:autofill {
 
 /* Очень маленькие экраны (до 360px) */
 @media (max-width: 360px) {
-  header {
+  body > header {
     padding: 6px 8px !important;
     gap: 6px !important;
   }
@@ -17812,6 +17812,17 @@ body.theme-light .about-system__board {
   box-shadow: 0 24px 54px rgba(15, 23, 42, 0.1);
 }
 
+body.theme-light .about-hero-signal__item {
+  background: linear-gradient(160deg, #ffffff, #f1f5f9);
+  border-color: #cbd5e1;
+  color: #0f172a;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+}
+
+body.theme-light .about-hero-signal__ring {
+  border-color: rgba(37, 99, 235, 0.32);
+}
+
 body.theme-light .about-device__screen,
 body.theme-light .about-device__panel {
   background: #f8fafc;
@@ -17869,6 +17880,13 @@ body.theme-light .about-closing__summary span {
   .about-immersive {
     min-height: auto;
     padding: 42px 0 20px;
+  }
+
+  .about-copy,
+  .about-hero-signal {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .about-copy h2,
@@ -18075,6 +18093,13 @@ body.theme-light .about-closing__summary span {
   .about-closing__card,
   .about-section-pin {
     transform: none !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .about-copy h2 {
+    max-width: 100%;
+    font-size: clamp(36px, 10vw, 48px);
   }
 }
 
@@ -28041,7 +28066,7 @@ body.home-page.theme-light {
   --ui-muted: #64748b;
 }
 
-body.home-page header,
+body.home-page > header,
 body.home-page .construction-bar,
 body.home-page .tabs,
 body.home-page .card,
@@ -29073,14 +29098,39 @@ body.theme-light.profile-edit-page .site-footer__icon-link:hover {
   box-sizing: border-box;
 }
 
-.ifc-check-modal__content > *,
-.ifc-check-modal__header > *,
 .ifc-check-modal__metrics > *,
 .ifc-check-row > *,
 .ifc-check-row__heading > * {
   min-width: 0;
-  max-width: 100%;
   box-sizing: border-box;
+}
+
+.ifc-check-modal__content > * {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+.ifc-check-modal__header {
+  position: relative;
+  display: block;
+  min-height: 54px;
+  padding-right: 160px;
+}
+
+.ifc-check-modal__header > * {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.ifc-check-modal__status {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: max-content;
+  max-width: 150px;
+  text-align: center;
 }
 
 .ifc-check-modal__notice,
@@ -29176,6 +29226,68 @@ body.theme-light .bim-workspace__normalized-badge {
   color: #075985;
 }
 
+/* Final light-theme contrast pass for states and controls that are rendered
+   outside the main form/button groups. */
+body.theme-light .summary-status-badge.ok {
+  border-color: #86efac;
+  background: #dcfce7;
+  color: #166534;
+}
+
+body.theme-light .summary-status-badge.exceeded {
+  border-color: #fca5a5;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+body.theme-light .summary-status-badge.empty {
+  border-color: #cbd5e1;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+body.theme-light .category-label-text,
+body.theme-light .analytics-page-indicator,
+body.theme-light .summary-workspace-indicator {
+  color: #475569 !important;
+}
+
+body.theme-light .view-btn {
+  border-color: #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+}
+
+body.theme-light .view-btn:hover,
+body.theme-light .view-btn:focus-visible {
+  border-color: #60a5fa !important;
+  background: #eff6ff !important;
+  color: #1e3a8a !important;
+}
+
+body.theme-light .view-btn.active {
+  border-color: #2563eb !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+body.theme-light button:disabled,
+body.theme-light .lg-btn:disabled,
+body.theme-light button[aria-disabled="true"] {
+  border-color: #cbd5e1 !important;
+  background: #e2e8f0 !important;
+  color: #475569 !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+body.theme-light button:disabled .lg-btn__label,
+body.theme-light .lg-btn:disabled .lg-btn__label,
+body.theme-light button[aria-disabled="true"] .lg-btn__label {
+  color: #475569 !important;
+}
+
 @media (max-width: 768px) {
   .ifc-check-modal {
     padding:
@@ -29212,6 +29324,21 @@ body.theme-light .bim-workspace__normalized-badge {
     white-space: normal !important;
     overflow: visible !important;
     text-overflow: clip !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .ifc-check-modal__header {
+    min-height: 0;
+    padding-right: 0;
+  }
+
+  .ifc-check-modal__status {
+    position: static;
+    display: inline-block;
+    width: max-content;
+    max-width: 100%;
+    margin-top: 8px;
   }
 }
 

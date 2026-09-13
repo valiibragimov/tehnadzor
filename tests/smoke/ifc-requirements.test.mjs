@@ -115,7 +115,16 @@ test("BIM workspace CSS removes desktop minimum height that clips the viewer", a
 test("IFC dialog and BIM controls keep responsive layout and light-theme contrast", async () => {
   const css = await readFile(resolve(projectRoot, "style.css"), "utf8");
 
+  assert.doesNotMatch(css, /^\s*header(?:\.header-hidden)?\s*\{/mu);
+  assert.match(css, /^body > header\s*\{/mu);
+  assert.match(css, /^body\.theme-light > header\s*\{/mu);
   assert.match(css, /\.ifc-check-modal__content\s*\{[\s\S]*?max-width:\s*calc\(100vw - 28px\)/u);
+  assert.match(
+    css,
+    /\.ifc-check-modal__header\s*\{[\s\S]*?display:\s*block[\s\S]*?padding-right:\s*160px/u
+  );
+  assert.match(css, /\.ifc-check-modal__content > \*\s*\{[\s\S]*?width:\s*100%[\s\S]*?max-width:\s*none/u);
+  assert.doesNotMatch(css, /\.ifc-check-modal__header > \*,[\s\S]*?max-width:\s*100%/u);
   assert.match(css, /\.ifc-check-modal__footer > button,[\s\S]*?min-width:\s*0 !important/u);
   assert.match(
     css,
