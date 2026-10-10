@@ -3,9 +3,9 @@
 <head>
   <script>
     (function () {
-      let theme = "dark";
+      let theme = "light";
       try {
-        theme = localStorage.getItem("app_theme") || "dark";
+        theme = localStorage.getItem("app_theme") || "light";
       } catch (error) {
         console.warn("Не удалось прочитать сохранённую тему", error);
       }
@@ -75,12 +75,6 @@
   <script>
     document.body.classList.add(window.__appThemeClass || "theme-dark");
   </script>
-  <svg class="lg-filter-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-    <filter id="liquidGlass">
-      <feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves="2" seed="2" result="noise" />
-      <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G" />
-    </filter>
-  </svg>
   <!-- =======================
        HEADER
        ======================= -->
@@ -111,6 +105,7 @@
 
     <!-- Правая панель: дата и профиль -->
     <div class="header-actions">
+      <select id="workspaceLanguage" class="language-select" aria-label="Workspace language"><option value="ru">RU</option><option value="en">EN</option></select>
       <input id="date" type="date" class="header-date-input" hidden />
       <button id="themeToggleBtn" class="header-icon-btn theme-toggle-btn" aria-label="Сменить тему">
         <span class="theme-toggle-icon"></span>
@@ -122,7 +117,7 @@
           <circle cx="12" cy="7" r="4"/>
         </svg>
       </a>
-      <button id="btnLogout" class="header-icon-btn header-icon-btn--danger">
+      <button id="btnLogout" aria-label="Выйти" data-i18n-aria="signOut" class="header-icon-btn header-icon-btn--danger">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
           <polyline points="16 17 21 12 16 7"/>
@@ -135,19 +130,20 @@
   <!-- =======================
        MAIN
        ======================= -->
-  <main>
+  <a class="skip-link" href="#workspaceContent" data-i18n="skipContent">Перейти к содержимому</a>
+  <main id="workspaceContent" tabindex="-1">
     <!-- Блок выбора конструкции и проекта -->
     <div class="construction-bar">
       <div class="project-select-wrapper">
-        <label class="construction-label">Объект</label>
+        <label class="construction-label" data-i18n="project">Объект</label>
         <select id="projectSelector" class="project-select ui-select"></select>
       </div>
       <div class="construction-select-wrapper">
-        <label class="construction-label">Категория</label>
+        <label class="construction-label" data-i18n="category">Категория</label>
         <select id="constructionCategory" class="ui-select"></select>
       </div>
       <div class="construction-select-wrapper" id="constructionFieldShell">
-        <label class="construction-label">Конструкция</label>
+        <label class="construction-label" data-i18n="construction">Конструкция</label>
         <select id="constructionType" class="ui-select"></select>
         <select id="construction" class="ui-select" hidden aria-hidden="true" tabindex="-1">
           <option value="Плита" selected>Плита</option>
@@ -159,7 +155,7 @@
         </select>
       </div>
       <div class="construction-select-wrapper" id="constructionSubtypeShell" hidden>
-        <label class="construction-label" id="constructionSubtypeLabel">Подтип</label>
+        <label class="construction-label" id="constructionSubtypeLabel" data-i18n="subtype">Подтип</label>
         <select id="constructionSubtype" class="ui-select"></select>
       </div>
       <div class="construction-select-wrapper" id="constructionPileElementShell" hidden>
@@ -187,7 +183,7 @@
         </div>
         <div class="bim-import-controls">
           <button type="button" id="btnImportIfc" class="btn-small btn-secondary lg-btn lg-btn--pill bim-import-action bim-import-primary">
-            <span class="lg-btn__label">Выбрать IFC</span>
+            <span class="lg-btn__label" data-i18n="chooseIfc">Выбрать IFC</span>
             <span class="lg-btn__glow" aria-hidden="true"></span>
           </button>
           <input id="ifcFileInput" type="file" accept=".ifc" hidden />
@@ -209,9 +205,9 @@
               <span class="lg-btn__glow" aria-hidden="true"></span>
             </button>
             <div id="ifcActionsMenu" class="menu-panel bim-import-menu-panel" role="menu">
-              <button type="button" id="btnChooseAnotherIfc" class="menu-item" role="menuitem">Выбрать другой IFC</button>
-              <button type="button" id="btnResetSelectedIfc" class="menu-item" role="menuitem">Очистить выбранный файл</button>
-              <button type="button" id="btnClearIfcImport" class="menu-item menu-danger" role="menuitem">Удалить BIM-элементы</button>
+              <button type="button" id="btnChooseAnotherIfc" class="menu-item" role="menuitem" data-i18n="chooseAnotherIfc">Выбрать другой IFC</button>
+              <button type="button" id="btnResetSelectedIfc" class="menu-item" role="menuitem" data-i18n="resetIfc">Очистить выбранный файл</button>
+              <button type="button" id="btnClearIfcImport" class="menu-item menu-danger" role="menuitem" data-i18n="deleteBim">Удалить BIM-элементы</button>
             </div>
           </div>
         </div>
@@ -219,11 +215,11 @@
     </div>
 
     <!-- Вкладки -->
-    <div class="tabs">
-      <div class="tab lg-btn active" data-target="overview">
-        <span class="lg-btn__label">Обзор объекта</span>
+    <nav class="tabs" aria-label="Разделы приложения" data-i18n-aria="navigation">
+      <button type="button" class="tab lg-btn active" data-target="overview">
+        <span class="lg-btn__label" data-i18n="overview">Обзор объекта</span>
         <span class="lg-btn__glow" aria-hidden="true"></span>
-      </div>
+      </button>
       <div class="tabs-group" data-tabs-group="inspections">
         <button
           type="button"
@@ -232,7 +228,7 @@
           aria-expanded="false"
           aria-controls="inspectionTabsMenu"
         >
-          <span class="lg-btn__label">Проверки</span>
+          <span class="lg-btn__label" data-i18n="inspections">Проверки</span>
           <svg class="tabs-group-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="m6 9 6 6 6-6"/>
           </svg>
@@ -247,7 +243,7 @@
               </svg>
             </span>
             <span>
-              <strong>Геодезия</strong>
+              <strong data-i18n="geodesy">Геодезия</strong>
               <small>Привязка и положение конструкций</small>
             </span>
           </button>
@@ -258,7 +254,7 @@
               </svg>
             </span>
             <span>
-              <strong>Армирование</strong>
+              <strong data-i18n="reinforcement">Армирование</strong>
               <small>Состав и параметры армирования</small>
             </span>
           </button>
@@ -270,7 +266,7 @@
               </svg>
             </span>
             <span>
-              <strong>Геометрия</strong>
+              <strong data-i18n="geometry">Геометрия</strong>
               <small>Размеры и допустимые отклонения</small>
             </span>
           </button>
@@ -282,29 +278,29 @@
               </svg>
             </span>
             <span>
-              <strong>Прочность</strong>
+              <strong data-i18n="strength">Прочность</strong>
               <small>Контроль прочности бетона</small>
             </span>
           </button>
         </div>
       </div>
-      <div class="tab lg-btn" data-target="controlPlan">
-        <span class="lg-btn__label">План контроля</span>
+      <button type="button" class="tab lg-btn" data-target="controlPlan">
+        <span class="lg-btn__label" data-i18n="controlPlan">План контроля</span>
         <span class="lg-btn__glow" aria-hidden="true"></span>
-      </div>
-      <div class="tab lg-btn" data-target="summary">
-        <span class="lg-btn__label">Итог</span>
+      </button>
+      <button type="button" class="tab lg-btn" data-target="summary">
+        <span class="lg-btn__label" data-i18n="summary">Итог</span>
         <span class="lg-btn__glow" aria-hidden="true"></span>
-      </div>
-      <div class="tab lg-btn" data-target="journal">
-        <span class="lg-btn__label">Журнал</span>
+      </button>
+      <button type="button" class="tab lg-btn" data-target="journal">
+        <span class="lg-btn__label" data-i18n="journal">Журнал</span>
         <span class="lg-btn__glow" aria-hidden="true"></span>
-      </div>
-      <div class="tab lg-btn" data-target="knowledge">
-        <span class="lg-btn__label">База знаний</span>
+      </button>
+      <button type="button" class="tab lg-btn" data-target="knowledge">
+        <span class="lg-btn__label" data-i18n="knowledge">База знаний</span>
         <span class="lg-btn__glow" aria-hidden="true"></span>
-      </div>
-    </div>
+      </button>
+    </nav>
 
     <!-- Геодезия -->
 
@@ -313,8 +309,8 @@
       <div class="object-overview" id="objectOverview" aria-live="polite">
         <div class="overview-heading">
           <div>
-            <span class="overview-eyebrow">Рабочая сводка</span>
-            <h2>Обзор объекта</h2>
+            <span class="overview-eyebrow" data-i18n="workspaceSummary">Рабочая сводка</span>
+            <h2 data-i18n="overview">Обзор объекта</h2>
             <p class="subtitle" id="overviewProjectName">Выберите объект, чтобы увидеть текущее состояние контроля.</p>
           </div>
           <span class="overview-status-badge" id="overviewStatusBadge" data-tone="neutral">Нет данных</span>
@@ -323,7 +319,7 @@
         <div class="overview-readiness">
           <div class="overview-readiness-copy">
             <div>
-              <span class="overview-readiness-label">Готовность объекта</span>
+              <span class="overview-readiness-label" data-i18n="readiness">Готовность объекта</span>
               <strong class="overview-readiness-value" id="overviewReadinessValue">0%</strong>
             </div>
             <p id="overviewReadinessNote">Данные появятся после выбора объекта.</p>
@@ -343,24 +339,24 @@
 
         <div class="overview-metrics" aria-label="Ключевые показатели объекта">
           <article class="overview-metric">
-            <span class="overview-metric-label">Проверок</span>
+            <span class="overview-metric-label" data-i18n="checksCount">Проверок</span>
             <strong id="overviewChecksCount">0</strong>
-            <span class="overview-metric-note">во всех разделах</span>
+            <span class="overview-metric-note" data-i18n="allSections">во всех разделах</span>
           </article>
           <article class="overview-metric">
-            <span class="overview-metric-label">Открытых замечаний</span>
+            <span class="overview-metric-label" data-i18n="openIssues">Открытых замечаний</span>
             <strong id="overviewIssuesCount">0</strong>
             <span class="overview-metric-note" id="overviewIssuesNote">нет активных</span>
           </article>
           <article class="overview-metric">
-            <span class="overview-metric-label">IFC-моделей</span>
+            <span class="overview-metric-label" data-i18n="models">IFC-моделей</span>
             <strong id="overviewIfcCount">0</strong>
-            <span class="overview-metric-note">загружено в объект</span>
+            <span class="overview-metric-note" data-i18n="uploaded">загружено в объект</span>
           </article>
           <article class="overview-metric">
-            <span class="overview-metric-label">Проверок по плану</span>
+            <span class="overview-metric-label" data-i18n="plannedChecks">Проверок по плану</span>
             <strong id="overviewModulesCount">0 / 0</strong>
-            <span class="overview-metric-note">обязательных объектовых задач выполнено</span>
+            <span class="overview-metric-note" data-i18n="completedRequired">обязательных объектовых задач выполнено</span>
           </article>
         </div>
 
@@ -368,8 +364,8 @@
           <article class="overview-panel overview-next-action">
             <div class="overview-panel-heading">
               <div>
-                <span class="overview-panel-kicker">Приоритет</span>
-                <h3>Следующее действие</h3>
+                <span class="overview-panel-kicker" data-i18n="priority">Приоритет</span>
+                <h3 data-i18n="nextAction">Следующее действие</h3>
               </div>
               <span class="overview-action-marker" id="overviewActionMarker" data-tone="neutral"></span>
             </div>
@@ -391,36 +387,36 @@
           <article class="overview-panel overview-inspections">
             <div class="overview-panel-heading">
               <div>
-                <span class="overview-panel-kicker">Контроль</span>
-                <h3>Проверки</h3>
+                <span class="overview-panel-kicker" data-i18n="control">Контроль</span>
+                <h3 data-i18n="inspections">Проверки</h3>
               </div>
-              <button type="button" class="overview-text-action" data-overview-target="controlPlan">План контроля</button>
+              <button type="button" class="overview-text-action" data-overview-target="controlPlan" data-i18n="controlPlan">План контроля</button>
             </div>
             <div class="overview-module-list">
               <button type="button" class="overview-module-row" data-overview-target="geo" data-tone="warning">
                 <span>
-                  <strong>Геодезия</strong>
+                  <strong data-i18n="geodesy">Геодезия</strong>
                   <small id="overviewGeoStatus">Не выполнялась</small>
                 </span>
                 <span class="overview-module-count" id="overviewGeoCount">0</span>
               </button>
               <button type="button" class="overview-module-row" data-overview-target="reinforcement" data-tone="warning">
                 <span>
-                  <strong>Армирование</strong>
+                  <strong data-i18n="reinforcement">Армирование</strong>
                   <small id="overviewReinforcementStatus">Не выполнялась</small>
                 </span>
                 <span class="overview-module-count" id="overviewReinforcementCount">0</span>
               </button>
               <button type="button" class="overview-module-row" data-overview-target="geometry" data-tone="warning">
                 <span>
-                  <strong>Геометрия</strong>
+                  <strong data-i18n="geometry">Геометрия</strong>
                   <small id="overviewGeometryStatus">Не выполнялась</small>
                 </span>
                 <span class="overview-module-count" id="overviewGeometryCount">0</span>
               </button>
               <button type="button" class="overview-module-row" data-overview-target="strength" data-tone="warning">
                 <span>
-                  <strong>Прочность</strong>
+                  <strong data-i18n="strength">Прочность</strong>
                   <small id="overviewStrengthStatus">Не выполнялась</small>
                 </span>
                 <span class="overview-module-count" id="overviewStrengthCount">0</span>
@@ -430,10 +426,10 @@
         </div>
 
         <div class="overview-shortcuts" aria-label="Быстрые действия">
-          <button type="button" data-overview-target="geo">Начать проверку</button>
-          <button type="button" data-overview-action="ifc">Загрузить IFC</button>
-          <button type="button" data-overview-target="journal">Открыть замечания</button>
-          <button type="button" data-overview-target="summary">Сформировать итог</button>
+          <button type="button" data-overview-target="geo" data-i18n="startInspection">Начать проверку</button>
+          <button type="button" data-overview-action="ifc" data-i18n="uploadIfc">Загрузить IFC</button>
+          <button type="button" data-overview-target="journal" data-i18n="viewIssues">Открыть замечания</button>
+          <button type="button" data-overview-target="summary" data-i18n="prepareSummary">Сформировать итог</button>
         </div>
       </div>
     </section>
@@ -2547,7 +2543,7 @@
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
           </svg>
         </span>
-        <span class="bottom-nav-item__label">Проверки</span>
+        <span class="bottom-nav-item__label" data-i18n="inspections">Проверки</span>
       </button>
       <button class="bottom-nav-item" data-tab="controlPlan" type="button" aria-label="План контроля" title="План контроля">
         <span class="bottom-nav-item__icon" aria-hidden="true">
@@ -2567,7 +2563,7 @@
             <polyline points="22 4 12 14.01 9 11.01"/>
           </svg>
         </span>
-        <span class="bottom-nav-item__label">Итог</span>
+        <span class="bottom-nav-item__label" data-i18n="summary">Итог</span>
       </button>
       <button class="bottom-nav-item" data-tab="journal" type="button" aria-label="Журнал" title="Журнал">
         <span class="bottom-nav-item__icon" aria-hidden="true">
@@ -2578,7 +2574,7 @@
             <line x1="16" y1="17" x2="8" y2="17"/>
           </svg>
         </span>
-        <span class="bottom-nav-item__label">Журнал</span>
+        <span class="bottom-nav-item__label" data-i18n="journal">Журнал</span>
       </button>
       <button class="bottom-nav-item" data-tab="knowledge" type="button" aria-label="База знаний" title="База знаний">
         <span class="bottom-nav-item__icon" aria-hidden="true">
@@ -2592,16 +2588,16 @@
     </div>
     <div class="bottom-nav-group-menu" id="bottomInspectionMenu" role="menu" aria-label="Виды проверок" aria-hidden="true">
       <button type="button" class="bottom-nav-group-option" data-tab="geo" role="menuitem">
-        <span>Геодезия</span><small>Привязка конструкций</small>
+        <span data-i18n="geodesy">Геодезия</span><small>Привязка конструкций</small>
       </button>
       <button type="button" class="bottom-nav-group-option" data-tab="reinforcement" role="menuitem">
-        <span>Армирование</span><small>Параметры армирования</small>
+        <span data-i18n="reinforcement">Армирование</span><small>Параметры армирования</small>
       </button>
       <button type="button" class="bottom-nav-group-option" data-tab="geometry" role="menuitem">
-        <span>Геометрия</span><small>Размеры и отклонения</small>
+        <span data-i18n="geometry">Геометрия</span><small>Размеры и отклонения</small>
       </button>
       <button type="button" class="bottom-nav-group-option" data-tab="strength" role="menuitem">
-        <span>Прочность</span><small>Контроль бетона</small>
+        <span data-i18n="strength">Прочность</span><small>Контроль бетона</small>
       </button>
     </div>
   </nav>
@@ -2647,7 +2643,7 @@
   <!-- =======================
        SCRIPTS
        ======================= -->
-    <script src="dist/liquid-glass.js"></script>
+
     <!-- Регистрация Service Worker -->
     <script>
       if ('serviceWorker' in navigator) {

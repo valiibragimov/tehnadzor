@@ -211,7 +211,8 @@ export async function deleteProjectCollectionDocsByField(
   collectionName,
   field,
   value,
-  batchLimit = 500
+  batchLimit = 500,
+  retainedIds: string[] = []
 ) {
   const normalizedBatchLimit = Math.max(1, Number(batchLimit) || 500);
   const snap = await getDocs(
@@ -219,7 +220,8 @@ export async function deleteProjectCollectionDocsByField(
   );
   if (snap.empty) return 0;
 
-  const docs = snap.docs;
+  const retained = new Set(retainedIds);
+  const docs = snap.docs.filter(doc => !retained.has(doc.id));
   for (let index = 0; index < docs.length; index += normalizedBatchLimit) {
     const chunk = docs.slice(index, index + normalizedBatchLimit);
     const batch = writeBatch(db);

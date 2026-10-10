@@ -78,7 +78,14 @@ function readRuntimeConfigString(key, fallback = "") {
   return runtimeValue.trim() || fallback;
 }
 
+function readRuntimeConfigInteger(key: string, fallback: number, maximum: number) {
+  const value = Number(runtimeAppConfig[key] ?? fallback);
+  return Number.isSafeInteger(value) && value > 0 && value <= maximum ? value : fallback;
+}
+
 export const APP_CONFIG = {
+  IFC_MAX_FILE_BYTES: readRuntimeConfigInteger("IFC_MAX_FILE_BYTES", 25 * 1024 * 1024, 100 * 1024 * 1024),
+  IFC_IMPORT_TIMEOUT_MS: readRuntimeConfigInteger("IFC_IMPORT_TIMEOUT_MS", 120_000, 600_000),
   MAX_ELEMENTS: 20,  // Максимальное количество элементов (колонн, стен, балок) на одну проверку
   DEFAULT_CONSTRUCTION: "floor_slab",
   DEFAULT_LETTER_AXIS: "А",

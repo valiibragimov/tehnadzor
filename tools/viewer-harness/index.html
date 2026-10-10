@@ -107,7 +107,7 @@
       <section class="panel">
         <h1>BIM Viewer Harness</h1>
         <p class="subtitle">
-          Локальный стенд для воспроизведения и проверки That Open viewer на IFC-модели без Firebase-авторизации.
+          Локальный стенд для воспроизведения и проверки BIM viewer на IFC-модели без Firebase-авторизации.
         </p>
         <div class="controls">
           <input id="ifcFile" type="file" accept=".ifc" />
@@ -130,7 +130,7 @@
     <script type="module">
       import { ensureBimVisualPanel } from "../../dist/app/services/bim-visual-panel.js";
       import { parseIfcElements } from "../../dist/app/services/ifc-parser.js";
-      import { createSourceModelIdFromFile } from "../../dist/app/services/ifc-import.js";
+      import { createSourceModelIdFromFile } from "../../dist/app/services/ifc-identity.js";
 
       const ifcFileInput = document.getElementById("ifcFile");
       const loadSampleButton = document.getElementById("loadSample");
@@ -143,7 +143,7 @@
       const host = document.getElementById("host");
       const sourceCard = document.getElementById("sourceCard");
       const query = new URLSearchParams(window.location.search);
-      const samplePath = query.get("sample") || "./assets/cottage.ifc";
+      const samplePath = query.get("sample") || "./assets/inspection-fixture.ifc";
 
       let currentIfcFile = null;
       let parsedElements = [];
@@ -222,7 +222,7 @@
         setStatus(`Разбираю IFC: ${file.name}`);
         const sourceModelId = createSourceModelIdFromFile(file);
         const ifcText = await file.text();
-        const parsed = parseIfcElements(ifcText, {
+        const parsed = await parseIfcElements(ifcText, {
           sourceModelId,
           fileName: file.name
         });

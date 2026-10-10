@@ -12,7 +12,7 @@ import { IfcTypeEnum, type SpatialNode } from "@ifc-lite/data";
 import initIfcLiteWasm, { IfcAPI } from "@ifc-lite/wasm";
 
 import { getCachedProjectIfcFile } from "../services/ifc-file-cache.js";
-import { createSourceModelIdFromFile } from "../services/ifc-import.js";
+import { createSourceModelIdFromFile } from "../services/ifc-identity.js";
 import {
   analyzeIfcElementCoordinates,
   analyzeIfcModelDiagnostics,

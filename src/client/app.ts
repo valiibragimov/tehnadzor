@@ -1,3 +1,4 @@
+import { initializeLocalization } from "./shared/i18n/index.js";
 import {
   getAuth
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
@@ -1092,3 +1093,5 @@ initActionMenus();
 //  Отслеживание сетевого состояния
 // ============================
 initNetworkStatus();
+
+void initializeLocalization();

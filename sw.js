@@ -1,6 +1,5 @@
-"use strict";
 // Service Worker для Tehnadzor
-const CACHE_NAME = "tehnadzor-f4efe4adc165";
+const CACHE_NAME = "tehnadzor-5fc332ecf9d7";
 const OFFLINE_URL = "index.html";
 const MANIFEST_URL = "manifest.json";
 const BYPASS_CACHE_EXTENSIONS = [".css", ".js", ".html"];
@@ -16,8 +15,9 @@ const STATIC_PAGES = [
 ];
 const STATIC_ASSETS = [
     "dist/app.js",
-    "dist/liquid-glass.js",
     "dist/app/ui/theme.js",
+    "dist/shared/i18n/index.js",
+    "dist/infrastructure/api/client.js",
     "dist/app/pdf/pdf-font.js",
     "dist/app/ui/datepicker.js",
     "dist/app/ui/system-ui.js",
@@ -29,17 +29,14 @@ const STATIC_ASSETS = [
     "dist/app/modules/knowledge.js",
     "dist/app/modules/journal.js",
     "dist/app/services/ifc-import-worker.js",
-    "dist/app/vendor/thatopen-bim-visual-panel.bundle.js",
-    "dist/app/vendor/thatopen-fragments-worker.mjs",
-    "dist/app/vendor/web-ifc.wasm",
     "dist/auth.js",
     "dist/config.js",
     "dist/utils.js",
     "dist/firebase.js",
-    "dist/reinf.js",
-    "dist/geom.js",
-    "dist/journal.js",
-    "dist/summary.js",
+    "dist/app/modules/reinforcement/data.js",
+    "dist/app/modules/geometry/data.js",
+    "dist/app/modules/journal/data.js",
+    "dist/app/modules/summary/data.js",
     "dist/modules/summary/analytics-block.css",
     "dist/modules/summary/analytics-block.html",
     "fonts/Roboto-Regular.ttf",

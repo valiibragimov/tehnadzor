@@ -1,3 +1,4 @@
+import { build } from "esbuild";
 import { copyFile, mkdir, rename, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -34,3 +35,15 @@ for (const entry of copies) {
   console.log(`- copied ${entry.to}`);
 }
 console.log(`- promoted service worker to ${rootSwPath}`);
+
+await build({
+  entryPoints: [resolve(projectRoot, "src/client/infrastructure/api/client.ts")],
+  outfile: resolve(distRoot, "infrastructure/api/client.js"),
+  bundle: true, format: "esm", platform: "browser", target: "es2022", minify: true
+});
+
+await build({
+  entryPoints: [resolve(projectRoot, "src/client/shared/i18n/index.ts")],
+  outfile: resolve(distRoot, "shared/i18n/index.js"),
+  bundle: true, format: "esm", platform: "browser", target: "es2022", minify: true
+});

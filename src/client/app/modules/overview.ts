@@ -1,3 +1,4 @@
+import { t, translateStatus } from "../../shared/i18n/index.js";
 import { getRuntimeIssueStatus, loadProjectIssues } from "../services/issues.js";
 import {
   loadProjectControlPlan,
@@ -67,7 +68,7 @@ function getProjectName() {
   const option = selector && selector.selectedIndex >= 0
     ? selector.options[selector.selectedIndex]
     : null;
-  return option?.textContent?.trim() || "Объект не выбран";
+  return option?.textContent?.trim() || t("noProject");
 }
 
 function normalizeIssueModule(issue: IssueRecord) {
@@ -143,7 +144,7 @@ function setModuleState(
   setText(moduleConfig.countId, count);
   const presentation = getOverviewModulePresentation(readiness, openIssues, hasProject);
   row.dataset.tone = presentation.tone;
-  setText(moduleConfig.statusId, presentation.status);
+  setText(moduleConfig.statusId, translateStatus(presentation.status));
 }
 
 export async function renderOverview() {
@@ -164,7 +165,7 @@ export async function renderOverview() {
 
   root.setAttribute("aria-busy", "true");
   root.classList.add("is-loading");
-  setText("overviewProjectName", hasProject ? getProjectName() : "Выберите объект, чтобы увидеть текущее состояние контроля.");
+  setText("overviewProjectName", hasProject ? getProjectName() : t("selectProjectHint"));
   setText("overviewChecksCount", totalChecks);
   setText("overviewIfcCount", ifcCount);
 
@@ -205,7 +206,7 @@ export async function renderOverview() {
   setText("overviewIssuesCount", openIssues.length);
   setText(
     "overviewIssuesNote",
-    overdueIssues.length > 0 ? `просрочено: ${overdueIssues.length}` : openIssues.length > 0 ? "требуют закрытия" : "нет активных"
+    overdueIssues.length > 0 ? t("overdueCount", { count: overdueIssues.length }) : openIssues.length > 0 ? t("requireClosure") : t("noActive")
   );
   setText("overviewReadinessValue", `${readiness}%`);
   setText(
@@ -215,8 +216,8 @@ export async function renderOverview() {
   setText(
     "overviewReadinessNote",
     !hasProject
-      ? "Данные появятся после выбора объекта."
-      : `Полностью готово: ${readinessMetrics.readyPositions} из ${readinessMetrics.totalPositions} позиций контроля.`
+      ? t("dataAfterProject")
+      : t("readyPositions", { ready: readinessMetrics.readyPositions, total: readinessMetrics.totalPositions })
   );
 
   const progress = document.getElementById("overviewProgress");
@@ -238,74 +239,74 @@ export async function renderOverview() {
   if (badge) {
     if (!hasProject) {
       badge.dataset.tone = "neutral";
-      badge.textContent = "Нет данных";
+      badge.textContent = t("noData");
     } else if (hasDeviations || openIssues.length > 0 || overdueIssues.length > 0) {
       badge.dataset.tone = "danger";
-      badge.textContent = "Есть отклонения";
+      badge.textContent = t("hasDeviations");
     } else if (missingTasks > 0) {
       badge.dataset.tone = "warning";
-      badge.textContent = "Требуется внимание";
+      badge.textContent = t("needsAttention");
     } else if (readinessMetrics.totalRequiredTasks === 0) {
       badge.dataset.tone = "neutral";
-      badge.textContent = "Нет обязательных задач";
+      badge.textContent = t("noRequiredTasks");
     } else {
       badge.dataset.tone = "success";
-      badge.textContent = "Готово к приёмке";
+      badge.textContent = t("ready");
     }
   }
 
   if (!hasProject) {
     setNextAction({
-      title: "Выберите объект",
-      description: "После загрузки объекта обзор покажет проверки, замечания и готовность к приёмке.",
-      label: "Объект не выбран",
+      title: t("selectProject"),
+      description: t("selectProjectDescription"),
+      label: t("noProject"),
       tone: "neutral"
     });
   } else if (overdueIssues.length > 0) {
     setNextAction({
-      title: "Закройте просроченные замечания",
-      description: `Просрочено замечаний: ${overdueIssues.length}. Они блокируют итоговую готовность объекта.`,
-      label: "Открыть журнал",
+      title: t("closeOverdue"),
+      description: t("overdueDescription", { count: overdueIssues.length }),
+      label: t("openJournal"),
       target: "journal",
       tone: "danger"
     });
   } else if (openIssues.length > 0 || hasDeviations) {
     setNextAction({
-      title: "Устраните открытые отклонения",
-      description: `Открытых замечаний: ${openIssues.length}. Позиций с отклонениями: ${Math.max(blockedRows, readinessMetrics.deviationTasks)}.`,
-      label: "Открыть замечания",
+      title: t("resolveDeviations"),
+      description: t("deviationsDescription", { issues: openIssues.length, positions: Math.max(blockedRows, readinessMetrics.deviationTasks) }),
+      label: t("viewIssues"),
       target: "journal",
       tone: "danger"
     });
   } else if (missingTasks > 0) {
     setNextAction({
-      title: "Продолжите обязательные проверки",
-      description: `По плану контроля не выполнено объектовых задач: ${missingTasks}.`,
-      label: "Открыть план контроля",
+      title: t("continueRequired"),
+      description: t("incompleteDescription", { count: missingTasks }),
+      label: t("openPlan"),
       target: "controlPlan",
       tone: "warning"
     });
   } else if (ifcCount === 0) {
     setNextAction({
-      title: "Добавьте IFC-модель",
-      description: "Модель позволит связывать проверки с элементами и контролировать состав данных до импорта.",
-      label: "Загрузить IFC",
+      title: t("addModel"),
+      description: t("addModelDescription"),
+      label: t("uploadIfc"),
       action: "ifc",
       tone: "warning"
     });
   } else if (readinessMetrics.totalRequiredTasks === 0) {
     setNextAction({
-      title: "Проверьте план контроля",
-      description: "Для выбранных позиций нет обязательных объектовых задач.",
-      label: "Открыть план контроля",
+      title: t("checkPlan"),
+      description: t("noRequiredDescription"),
+      label: t("openPlan"),
       target: "controlPlan",
       tone: "neutral"
     });
   } else {
     setNextAction({
-      title: "Подготовьте итоговое заключение",
-      description: "Обязательные разделы заполнены, открытых замечаний нет.",
-      label: "Перейти к итогу",
+      title: t("prepareConclusion"),
+      description: t("readyDescription"),
+      label: t("goSummary"),
       target: "summary",
       tone: "success"
     });
@@ -322,6 +323,7 @@ export function initOverviewModule() {
   }
   overviewInitialized = true;
   bindOverviewActions();
+  document.addEventListener("app:language-changed", () => void renderOverview());
   document.addEventListener("app:project-context-updated", () => void renderOverview());
   document.addEventListener("app:ifc-count-updated", () => void renderOverview());
   void renderOverview();

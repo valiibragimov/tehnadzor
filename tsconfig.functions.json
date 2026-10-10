@@ -2,22 +2,26 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "strict": true,
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "module": "CommonJS",
     "moduleResolution": "Node",
     "rootDir": ".",
     "outDir": "./functions/dist",
     "noCheck": false,
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "declaration": false
   },
   "include": [
     "functions/src/**/*.ts",
-    "src/shared/**/*.ts"
+    "src/shared/profile-feed.ts",
+    "src/shared/api-*.ts"
   ],
   "exclude": [
     "functions/node_modules",
     "node_modules"
   ]
 }
-

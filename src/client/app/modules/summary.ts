@@ -1,3 +1,4 @@
+import { createReportApi } from "../../infrastructure/api/client.js";
 import { APP_CONFIG } from "../../config.js";
 import {
   escapeHtml,
@@ -33,7 +34,9 @@ let analyticsTemplatePromise = null;
 let analyticsWarmupPromise = null;
 let summaryWorkspacePage = 0;
 const SUMMARY_WORKSPACE_MAX_HEIGHT = 440;
-const analyticsTemplateUrl = new URL("../../modules/summary/analytics-block.html", import.meta.url);
+const analyticsTemplateUrl = document.documentElement.dataset.runtimeMode === "demo"
+  ? new URL("./modules/summary/analytics-block.html", import.meta.url)
+  : new URL("../../modules/summary/analytics-block.html", import.meta.url);
 const projectSelector = globalThis.projectSelector;
 let getStrengthChecks = () => new Map<string, StrengthCheckRecord>();
 let getReinforcementChecks =
@@ -1236,23 +1239,8 @@ function initSummaryHandlers() {
     updateServerStatusBadge();
     
     try {
-      // Таймаут через Promise.race для совместимости
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Timeout")), 2000)
-      );
-      
-      const fetchPromise = fetch(`${REPORT_API_BASE}/health`, {
-        method: "GET"
-      });
-      
-      const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
-      
-      if (response.ok) {
-        const result = await response.json() as SummaryServerHealth;
-        serverStatus.connected = result.ok === true || result.status === "running";
-      } else {
-        serverStatus.connected = false;
-      }
+      const result = await createReportApi(REPORT_API_BASE).health();
+      serverStatus.connected = result?.ok === true;
     } catch {
       serverStatus.connected = false;
     } finally {
@@ -1412,47 +1400,14 @@ function initSummaryHandlers() {
               }
             };
 
-            const url = `${REPORT_API_BASE}/generateReport`;
-
-            console.log("[generateReport] ========== НАЧАЛО ЗАПРОСА ==========");
-            console.log("[generateReport] URL:", url);
-            console.log("[generateReport] Payload:", JSON.stringify(payload, null, 2));
-
             const authHeaders = await getAuthHeaders();
-            const response = await fetch(url, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...authHeaders
-              },
-              body: JSON.stringify(payload)
-            });
-
-            console.log("[generateReport] Статус ответа:", response.status, response.statusText);
-
-            if (!response.headers.get("content-type")?.includes("application/json")) {
-              const text = await response.text();
-              throw new Error(`Сервер вернул не JSON: ${text.substring(0, 100)}`);
-            }
-
-            const result = await response.json();
-            console.log("[generateReport] Результат:", result);
-
-            if (!response.ok) {
-              throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            if (!result.ok) {
-              throw new Error(result.error || "Сервер вернул ошибку");
-            }
-
-            const reportText = result.text || result.reportText || result.content || "";
+            const reportText = await createReportApi(REPORT_API_BASE).generateReport(payload, authHeaders);
 
             if (!reportText || reportText.trim() === "") {
               throw new Error("Сервер вернул пустой отчёт");
             }
 
-            console.log("[generateReport] Отчёт получен, длина:", reportText.length, "символов");
+
 
             const safeReportText = escapeHtml(reportText);
             contentEl.innerHTML = `

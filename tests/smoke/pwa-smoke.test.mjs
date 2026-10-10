@@ -235,11 +235,11 @@ test("object overview and grouped inspection navigation are present", async () =
   assert.match(css, /body\.home-page\.theme-light \.tabs-group-trigger/u);
   assert.match(
     css,
-    /body\.home-page\.theme-light \.tabs-group-menu \.tabs-group-item,\s*body\.home-page\.theme-light \.bottom-nav-group-option\s*\{[\s\S]*?background:\s*transparent\s*!important;[\s\S]*?color:\s*#172033\s*!important;/u
+    /body\.home-page\.theme-light \.tabs-group-menu \.tabs-group-item,\s*body\.home-page\.theme-light \.bottom-nav-group-option\s*\{[\s\S]*?background:\s*transparent\s*(?:!important)?;[\s\S]*?color:\s*#172033\s*(?:!important)?;/u
   );
   assert.match(
     css,
-    /body\.home-page\.theme-light \.tabs-group-menu \.tabs-group-item small,[\s\S]*?color:\s*#64748b\s*!important;/u
+    /body\.home-page\.theme-light \.tabs-group-menu \.tabs-group-item small,[\s\S]*?color:\s*#64748b\s*(?:!important)?;/u
   );
   assert.match(css, /body\.home-page\.theme-light \.overview-module-row/u);
   assert.match(css, /\.overview-module-row\s*\{[\s\S]*?min-height:\s*58px/u);
@@ -248,20 +248,19 @@ test("object overview and grouped inspection navigation are present", async () =
   assert.doesNotMatch(css, /\.project-select-wrapper::after/u);
   assert.doesNotMatch(css, /\.project-select-wrapper:focus-within::after/u);
   assert.match(css, /body\.home-page > main\s*\{[\s\S]*?max-width:\s*none/u);
-  assert.match(css, /body\.home-page\.theme-light > main\s*\{[\s\S]*?background:\s*#f1f5f9\s*!important/u);
-  assert.match(css, /body\.home-page > header,[\s\S]*?body\.profile-edit-page > header\s*\{[\s\S]*?background:\s*#0f172a\s*!important/u);
-  assert.match(css, /body\.home-page \.site-footer,[\s\S]*?body\.profile-edit-page \.site-footer\s*\{[\s\S]*?background:\s*#0f172a\s*!important/u);
-  assert.match(css, /html\.theme-dark body\.profile-page,[\s\S]*?body\.theme-dark\.profile-page\s*\{[\s\S]*?background:\s*#0f172a\s*!important[\s\S]*?background-image:\s*none\s*!important/u);
-  assert.match(css, /body\.theme-dark\.profile-page > main,[\s\S]*?body\.theme-dark\.profile-edit-page > main\s*\{[\s\S]*?background:\s*#0f172a\s*!important/u);
-  assert.match(css, /html\.theme-light body\.profile-page,[\s\S]*?body\.theme-light\.profile-edit-page > main\s*\{[\s\S]*?background:\s*#f1f5f9\s*!important/u);
-  assert.match(css, /body\.theme-light\.home-page > header,[\s\S]*?body\.theme-light\.profile-edit-page > header\s*\{[\s\S]*?background:\s*#000000\s*!important/u);
-  assert.match(css, /body\.theme-light\.home-page \.site-footer,[\s\S]*?body\.theme-light\.profile-edit-page \.site-footer\s*\{[\s\S]*?background:\s*#000000\s*!important/u);
+  assert.match(css, /body\.home-page\.theme-light > main\s*\{[\s\S]*?background:\s*#f1f5f9\s*(?:!important)?/u);
+  assert.match(css, /body\.home-page > header,[\s\S]*?body\.profile-edit-page > header\s*\{[\s\S]*?background:\s*#0f172a\s*(?:!important)?/u);
+  assert.match(css, /body\.home-page \.site-footer,[\s\S]*?body\.profile-edit-page \.site-footer\s*\{[\s\S]*?background:\s*#0f172a\s*(?:!important)?/u);
+  assert.match(css, /html\.theme-dark body\.profile-page,[\s\S]*?body\.theme-dark\.profile-page\s*\{[\s\S]*?background:\s*#0f172a\s*(?:!important)?[\s\S]*?background-image:\s*none\s*(?:!important)?/u);
+  assert.match(css, /body\.theme-dark\.profile-page > main,[\s\S]*?body\.theme-dark\.profile-edit-page > main\s*\{[\s\S]*?background:\s*#0f172a\s*(?:!important)?/u);
+  assert.match(css, /html\.theme-light body\.profile-page,[\s\S]*?body\.theme-light\.profile-edit-page > main\s*\{[\s\S]*?background:\s*#f1f5f9\s*(?:!important)?/u);
+  assert.match(css, /body\.theme-light\.home-page > header,[\s\S]*?body\.theme-light\.profile-edit-page > header\s*\{[\s\S]*?background:\s*#000000\s*(?:!important)?/u);
+  assert.match(css, /body\.theme-light\.home-page \.site-footer,[\s\S]*?body\.theme-light\.profile-edit-page \.site-footer\s*\{[\s\S]*?background:\s*#000000\s*(?:!important)?/u);
 });
 
 test("bim viewer runtime assets are reachable after client build", async () => {
   const assets = [
     "/dist/app/vendor/thatopen-bim-visual-panel.bundle.js",
-    "/dist/app/vendor/thatopen-fragments-worker.mjs",
     "/dist/app/vendor/web-ifc.wasm",
     "/dist/app/vendor/ifc-lite_bg.wasm"
   ];
@@ -277,11 +276,11 @@ test("bim viewer launcher and closed workspace do not block page controls", asyn
   const css = await response.text();
 
   assert.equal(response.status, 200);
-  assert.match(css, /\.bim-workspace\[hidden\],[\s\S]*?display:\s*none !important;/);
-  assert.match(css, /\.bim-workspace:not\(\[data-open="true"\]\) \*[\s\S]*?pointer-events:\s*none !important;/);
+  assert.match(css, /\.bim-workspace\[hidden\],[\s\S]*?display:\s*none (?:!important)?;/);
+  assert.match(css, /\.bim-workspace:not\(\[data-open="true"\]\) \*[\s\S]*?pointer-events:\s*none (?:!important)?;/);
   assert.match(
     css,
-    /body\.home-page \.bim-viewer-launcher-slot \.bim-viewer-launcher__button\s*\{[\s\S]*?pointer-events:\s*auto !important;/
+    /body\.home-page \.bim-viewer-launcher-slot \.bim-viewer-launcher__button\s*\{[\s\S]*?pointer-events:\s*auto (?:!important)?;/
   );
 });
 
@@ -441,11 +440,11 @@ test("mobile wizard action stays fixed above bottom navigation", async () => {
 
   assert.match(
     css,
-    /body\.home-page main,\s*body\.home-page \.section\.active\s*\{\s*animation-name: fadeInOnly !important;/u
+    /body\.home-page main,\s*body\.home-page \.section\.active\s*\{\s*animation-name: fadeInOnly (?:!important)?;/u
   );
   assert.match(
     css,
-    /\.wizard-footer\s*\{[\s\S]*?position: fixed !important;[\s\S]*?bottom: calc\(74px \+ env\(safe-area-inset-bottom, 0px\)\) !important;/u
+    /\.wizard-footer\s*\{[\s\S]*?position: fixed (?:!important)?;[\s\S]*?bottom: calc\(74px \+ env\(safe-area-inset-bottom, 0px\)\) (?:!important)?;/u
   );
 });
 

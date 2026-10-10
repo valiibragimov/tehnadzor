@@ -19,9 +19,9 @@ test("summary analytics template assets match the compiled runtime URL", async (
   ]);
 
   const summarySource = await readFile(summaryModulePath, "utf8");
-  const templateUrlMatch = summarySource.match(
-    /new URL\("([^"]*analytics-block\.html)", import\.meta\.url\)/u
-  );
+  const templateUrlMatch = [...summarySource.matchAll(
+    /new URL\("([^"]*analytics-block\.html)", import\.meta\.url\)/gu
+  )].find(match => match[1].startsWith("../../"));
 
   assert.ok(templateUrlMatch, "Compiled summary module should define the analytics template URL");
 

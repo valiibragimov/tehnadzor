@@ -9,11 +9,11 @@ self.addEventListener("message", async (event) => {
     }
 
     self.postMessage({ type: "status", phase: "read" });
-    const ifcText = await file.text();
+    const bytes = new Uint8Array(await file.arrayBuffer());
 
     self.postMessage({ type: "status", phase: "parse" });
     const { parseIfcElements } = await import("./ifc-parser.js");
-    const result = parseIfcElements(ifcText, data.options || {});
+    const result = await parseIfcElements(bytes, data.options || {});
 
     self.postMessage({ type: "result", result });
   } catch (error) {

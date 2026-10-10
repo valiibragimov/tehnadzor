@@ -9,7 +9,7 @@ function normalizeTheme(theme) {
 }
 
 function getSavedTheme() {
-  return normalizeTheme(localStorage.getItem(STORAGE_KEY) || "dark");
+  return normalizeTheme(localStorage.getItem(STORAGE_KEY) || "light");
 }
 
 function setThemeClasses(theme) {

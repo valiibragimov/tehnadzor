@@ -3,9 +3,9 @@
 <head>
   <script>
     (function () {
-      let theme = "dark";
+      let theme = "light";
       try {
-        theme = localStorage.getItem("app_theme") || "dark";
+        theme = localStorage.getItem("app_theme") || "light";
       } catch (error) {
         console.warn("Не удалось прочитать сохранённую тему", error);
       }
