@@ -60,3 +60,61 @@ test("existing source normalization and Unicode filename hashes stay stable", as
   for (let index = 0; index < fileName.length; index++) { hash ^= fileName.charCodeAt(index); hash = Math.imul(hash, 16777619); }
   assert.equal((await readIfcModel(modelFixture(), { fileName })).sourceModelId, `ifc-model-${(hash >>> 0).toString(36).slice(0, 6)}`);
 });
+
+
+test("beam axis includes solid placement, profile origin and extrusion direction", async () => {
+  const source = new TextDecoder().decode(modelFixture())
+    .replace("IFCCOLUMN(", "IFCBEAM(").replace(".COLUMN.", ".BEAM.")
+    .replace("#10=IFCCARTESIANPOINT((0.,0.))", "#10=IFCCARTESIANPOINT((0.5,0.25))")
+    .replace("#14=IFCCARTESIANPOINT((0.,0.,0.))", "#14=IFCCARTESIANPOINT((10.,20.,30.))")
+    .replace("#13=IFCDIRECTION((0.,0.,1.))", "#13=IFCDIRECTION((0.,1.,0.))")
+    .replace("#15=IFCAXIS2PLACEMENT3D(#14,$,$)", "#15=IFCAXIS2PLACEMENT3D(#14,#30,#31)")
+    .replace("ENDSEC;\nEND-ISO", "#30=IFCDIRECTION((1.,0.,0.));\n#31=IFCDIRECTION((0.,1.,0.));\nENDSEC;\nEND-ISO");
+  const element = (await readIfcModel(new TextEncoder().encode(source))).elements[0];
+  assert.deepEqual([element.projectX, element.projectY, element.projectH], [1000, 2000, 3000]);
+  assert.deepEqual([element.lineStartX, element.lineStartY, element.lineStartH], [11000, 22500, 33250]);
+  assert.deepEqual([element.lineEndX, element.lineEndY, element.lineEndH], [11000, 22500, 36250]);
+  assert.deepEqual([element.directionX, element.directionY], [0, 0]);
+});
+
+test("wall placement and length do not invent an engineering centreline", async () => {
+  const source = new TextDecoder().decode(modelFixture()).replace("IFCCOLUMN(", "IFCWALL(").replace(".COLUMN.", ".STANDARD.");
+  const element = (await readIfcModel(new TextEncoder().encode(source))).elements[0];
+  assert.equal(element.lineStartX, null);
+  assert.equal(element.lineEndX, null);
+  assert.equal(element.directionX, null);
+});
+
+test("IFC element limits reject excess instead of returning a truncated model", async () => {
+  const source = new TextDecoder().decode(modelFixture()).replace("ENDSEC;\nEND-ISO", "#29=IFCCOLUMN('1BBCDEFGHIJKLMNOPQRSTU',$,'Second',$,$,#8,#20,'C-2',.COLUMN.);\nENDSEC;\nEND-ISO");
+  await assert.rejects(readIfcModel(new TextEncoder().encode(source), { maxElements: 1 }), /exceeds the supported limit/);
+  await assert.rejects(readIfcModel(modelFixture(), { maxElements: 0 }), /Invalid IFC element limit/);
+});
+
+test("caller cancellation does not disable the worker deadline", async () => {
+  const previous = process.env.IFC_WORKER_TIMEOUT_MS;
+  process.env.IFC_WORKER_TIMEOUT_MS = "1";
+  const pool = createIfcWorkerPool();
+  try {
+    await assert.rejects(pool.parse(modelFixture(), {}, new AbortController().signal), /execution limit/);
+  } finally {
+    await pool.close();
+    if (previous === undefined) delete process.env.IFC_WORKER_TIMEOUT_MS;
+    else process.env.IFC_WORKER_TIMEOUT_MS = previous;
+  }
+});
+
+
+test("worker rejects oversized input before scheduling CPU work", async () => {
+  const previous = process.env.IFC_WORKER_MAX_BYTES;
+  process.env.IFC_WORKER_MAX_BYTES = "32";
+  const pool = createIfcWorkerPool();
+  try {
+    await assert.rejects(pool.parse(modelFixture(), {}), { status: 413 });
+    assert.equal(pool.queueSize, 0);
+  } finally {
+    await pool.close();
+    if (previous === undefined) delete process.env.IFC_WORKER_MAX_BYTES;
+    else process.env.IFC_WORKER_MAX_BYTES = previous;
+  }
+});

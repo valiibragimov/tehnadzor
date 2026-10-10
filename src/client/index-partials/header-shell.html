@@ -92,19 +92,13 @@
           <option value="grillage">Ростверк</option>
         </select>
       </div>
-      <div class="bim-import-wrapper">
-        <div class="bim-import-head">
+      <details class="bim-import-wrapper" id="bimModelManager">
+        <summary class="bim-import-head">
           <span class="construction-label">BIM / IFC</span>
           <span id="bimImportedIfcCount" class="bim-import-count" aria-live="polite" aria-label="Количество загруженных IFC-файлов">
             IFC: 0
           </span>
-          <button
-            type="button"
-            class="module-help-toggle bim-import-help-toggle"
-            data-help-target="bimImportHelpContent"
-            aria-label="Показать описание BIM-импорта"
-          ></button>
-        </div>
+        </summary>
         <div class="module-help-content" id="bimImportHelpContent" hidden>
           Загрузите IFC-файл, чтобы добавить BIM-элементы проекта и использовать их в модулях контроля.
         </div>
@@ -138,7 +132,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </details>
     </div>
 
     <!-- Вкладки -->

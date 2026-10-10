@@ -11,7 +11,7 @@
   "scripts": {
     "clean": "node ./scripts/build/clean-runtime-artifacts.mjs",
     "build:index-html": "node ./scripts/build/build-index-html.mjs",
-    "build:client:core": "npm run api:check && npm run build:index-html && tsc -p ./tsconfig.client.json && node ./scripts/build/inject-firebase-config.mjs && node ./scripts/build/postbuild-client.mjs",
+    "build:client:core": "npm run shared:check && npm run api:check && npm run build:index-html && tsc -p ./tsconfig.client.json && node ./scripts/build/inject-firebase-config.mjs && node ./scripts/build/postbuild-client.mjs",
     "build:client": "npm run build:client:core && npm run build:bim-viewer && npm run stamp:sw-cache",
     "build:demo": "node ./scripts/build/build-demo.mjs",
     "build:server:ts": "tsc -p ./tsconfig.server.json",
@@ -38,7 +38,10 @@
     "api:generate": "node scripts/build/generate-api.mjs",
     "api:check": "node scripts/build/generate-api.mjs --check",
     "test:core": "npm run build:server:ts && node --test tests/core/*.test.mjs",
-    "test:ui": "node --test tests/ui/*.test.mjs"
+    "test:ui": "node --test tests/ui/*.test.mjs",
+    "shared:generate": "node scripts/build/generate-shared.mjs",
+    "shared:check": "node scripts/build/generate-shared.mjs --check",
+    "test:integration": "npm run build:server:ts && npx --yes firebase-tools@15.33.0 emulators:exec --only firestore --project demo-tehnadzor-test --config firebase.emulator.json \"node --test tests/integration/*.test.mjs\""
   },
   "dependencies": {
     "@ifc-lite/data": "^1.11.0",
@@ -55,6 +58,7 @@
   "devDependencies": {
     "@apidevtools/swagger-parser": "^13.1.0",
     "@eslint/js": "^10.0.1",
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.5.0",

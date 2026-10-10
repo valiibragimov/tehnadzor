@@ -9,6 +9,7 @@ function positiveInteger(name: string, fallback: number, maximum: number) {
 }
 /** Bounded CPU work; Firestore and network I/O stay on the event loop. */
 export function createIfcWorkerPool() {
+  const maxBytes = positiveInteger("IFC_WORKER_MAX_BYTES", 25 * 1024 * 1024, 100 * 1024 * 1024);
   const maxQueue = positiveInteger("IFC_WORKER_QUEUE", 4, 64);
   const pool = new Piscina({
     filename: path.resolve(__dirname, "../workers/ifc-import.js"), minThreads: 0,
@@ -18,9 +19,11 @@ export function createIfcWorkerPool() {
   });
   return {
     async parse(bytes: Uint8Array, options: { sourceModelId?: string; fileName?: string }, signal?: AbortSignal) {
+      if (bytes.byteLength > maxBytes) throw Object.assign(new Error("IFC model exceeds the worker input limit."), { status: 413 });
       if (pool.queueSize >= maxQueue) throw Object.assign(new Error("IFC import queue is full. Please retry later."), { status: 503 });
+      const deadline = AbortSignal.timeout(positiveInteger("IFC_WORKER_TIMEOUT_MS", 120_000, 600_000));
       try {
-        const result: { ok: true; model: IfcModelData } | { ok: false; error: string } = await pool.run({ bytes, options }, { signal: signal ?? AbortSignal.timeout(positiveInteger("IFC_WORKER_TIMEOUT_MS", 120_000, 600_000)) });
+        const result: { ok: true; model: IfcModelData } | { ok: false; error: string } = await pool.run({ bytes, options }, { signal: signal ? AbortSignal.any([signal, deadline]) : deadline });
         if (result.ok === false) throw Object.assign(new Error(result.error), { status: 422 });
         return result.model;
       } catch (error) {

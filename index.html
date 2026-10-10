@@ -165,19 +165,13 @@
           <option value="grillage">Ростверк</option>
         </select>
       </div>
-      <div class="bim-import-wrapper">
-        <div class="bim-import-head">
+      <details class="bim-import-wrapper" id="bimModelManager">
+        <summary class="bim-import-head">
           <span class="construction-label">BIM / IFC</span>
           <span id="bimImportedIfcCount" class="bim-import-count" aria-live="polite" aria-label="Количество загруженных IFC-файлов">
             IFC: 0
           </span>
-          <button
-            type="button"
-            class="module-help-toggle bim-import-help-toggle"
-            data-help-target="bimImportHelpContent"
-            aria-label="Показать описание BIM-импорта"
-          ></button>
-        </div>
+        </summary>
         <div class="module-help-content" id="bimImportHelpContent" hidden>
           Загрузите IFC-файл, чтобы добавить BIM-элементы проекта и использовать их в модулях контроля.
         </div>
@@ -211,7 +205,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </details>
     </div>
 
     <!-- Вкладки -->
@@ -449,7 +443,7 @@
           <a id="linkSP126" href="#" target="_blank" style="color: #3b82f6; text-decoration: underline;">СП 126.13330.2017</a>.
         </div>
 
-        <div class="card geo-bim-card">
+        <details class="card geo-bim-card bim-selection"><summary data-i18n="chooseFromModel">Выбрать элемент из модели</summary>
           <div class="geo-bim-header">
             <h3 class="card-title">BIM-элемент</h3>
             <div class="geo-bim-filter">
@@ -554,7 +548,7 @@
               <input type="text" id="geoBimAxes" placeholder="Подставляются из BIM при наличии" />
             </div>
           </div>
-        </div>
+        </details>
         <div class="wizard-header">
           <div class="wizard-progress" data-wizard-progress>Шаг 1 из 2</div>
           <div class="wizard-steps-nav" role="tablist" aria-label="Шаги геодезии">
@@ -1940,7 +1934,7 @@
     <section class="section" id="controlPlan">
       <div id="sectionControlPlan">
         <div class="module-title-row">
-          <h2>План контроля</h2>
+          <h2 data-i18n="controlPlan">План контроля</h2>
           <button
             type="button"
             class="module-help-toggle control-plan-help-toggle"
@@ -1954,19 +1948,19 @@
 
         <div class="control-plan-summary" id="controlPlanSummary" aria-live="polite">
           <div class="control-plan-metric">
-            <span>Конструкций</span>
+            <span data-i18n="planStructures">Конструкций</span>
             <strong id="controlPlanTotalRows">0</strong>
           </div>
           <div class="control-plan-metric">
-            <span>Готово</span>
+            <span data-i18n="planReady">Готово</span>
             <strong id="controlPlanReadyRows">0</strong>
           </div>
           <div class="control-plan-metric">
-            <span>Блокировано</span>
+            <span data-i18n="planBlocked">Блокировано</span>
             <strong id="controlPlanBlockedRows">0</strong>
           </div>
           <div class="control-plan-metric">
-            <span>Не хватает</span>
+            <span data-i18n="planMissing">Не хватает</span>
             <strong id="controlPlanMissingTasks">0</strong>
           </div>
         </div>
@@ -1974,12 +1968,12 @@
         <div class="control-plan-panel">
           <div class="control-plan-toolbar">
             <div>
-              <h3 class="control-plan-title">Матрица ITP</h3>
-              <p class="control-plan-description">План-факт по обязательным проверкам объекта.</p>
+              <h3 class="control-plan-title" data-i18n="planMatrix">Матрица ITP</h3>
+              <p class="control-plan-description" data-i18n="planDescription">План-факт по обязательным проверкам объекта.</p>
             </div>
             <div class="control-plan-toolbar-actions">
               <button id="btnControlPlanRefresh" class="btn-small btn-secondary lg-btn lg-btn--pill" type="button">
-                <span class="lg-btn__label">Обновить</span>
+                <span class="lg-btn__label" data-i18n="refresh">Обновить</span>
                 <span class="lg-btn__glow" aria-hidden="true"></span>
               </button>
               <button id="btnControlPlanExportCsv" class="btn-small btn-secondary lg-btn lg-btn--pill" type="button">
@@ -1994,28 +1988,28 @@
           </div>
           <div class="control-plan-filters">
             <div class="control-plan-status-filters" id="controlPlanStatusFilters" role="group" aria-label="Фильтр плана контроля">
-              <button type="button" class="control-plan-filter-btn is-active" data-control-plan-status="all" aria-pressed="true">Все</button>
-              <button type="button" class="control-plan-filter-btn" data-control-plan-status="blocked" aria-pressed="false">Нельзя принимать</button>
-              <button type="button" class="control-plan-filter-btn" data-control-plan-status="missing_required" aria-pressed="false">Не хватает</button>
-              <button type="button" class="control-plan-filter-btn" data-control-plan-status="ready" aria-pressed="false">Готово</button>
+              <button type="button" class="control-plan-filter-btn is-active" data-control-plan-status="all" aria-pressed="true" data-i18n="allResults">Все</button>
+              <button type="button" class="control-plan-filter-btn" data-control-plan-status="blocked" aria-pressed="false" data-i18n="cannotAccept">Нельзя принимать</button>
+              <button type="button" class="control-plan-filter-btn" data-control-plan-status="missing_required" aria-pressed="false" data-i18n="planMissing">Не хватает</button>
+              <button type="button" class="control-plan-filter-btn" data-control-plan-status="ready" aria-pressed="false" data-i18n="planReady">Готово</button>
             </div>
-            <input id="controlPlanSearch" class="control-plan-search" type="search" placeholder="Фильтр по конструкции" autocomplete="off" />
+            <input id="controlPlanSearch" class="control-plan-search" type="search" data-i18n-placeholder="searchStructures" data-i18n-aria="searchStructures" placeholder="Фильтр по конструкции" autocomplete="off" />
           </div>
-          <div id="controlPlanEmpty" class="control-plan-empty">
+          <div id="controlPlanEmpty" class="control-plan-empty" data-i18n="planEmpty">
             Выберите объект или выполните первую проверку, чтобы сформировать план контроля.
           </div>
           <div id="controlPlanTableWrap" class="control-plan-table-wrap" hidden>
             <table class="control-plan-table">
               <thead>
                 <tr>
-                  <th>Конструкция</th>
-                  <th>Готовность</th>
-                  <th>Прогресс</th>
-                  <th>Следующее действие</th>
-                  <th>Гео</th>
-                  <th>Арм</th>
-                  <th>Геом</th>
-                  <th>Прочн</th>
+                  <th data-i18n="construction">Конструкция</th>
+                  <th data-i18n="readiness">Готовность</th>
+                  <th data-i18n="progress">Прогресс</th>
+                  <th data-i18n="nextAction">Следующее действие</th>
+                  <th data-i18n="geodesy">Гео</th>
+                  <th data-i18n="reinforcement">Арм</th>
+                  <th data-i18n="geometry">Геом</th>
+                  <th data-i18n="strength">Прочн</th>
                 </tr>
               </thead>
               <tbody id="controlPlanTableBody"></tbody>
@@ -2233,7 +2227,7 @@
     <section class="section" id="journal">
       <div id="sectionJournal">
         <div class="module-title-row">
-          <h2>Журнал проверок</h2>
+          <h2 data-i18n="inspectionRegister">Журнал проверок</h2>
           <button
             type="button"
             class="module-help-toggle journal-help-toggle"
@@ -2241,31 +2235,19 @@
             aria-label="Показать описание журнала"
           ></button>
         </div>
-        <p class="subtitle">
-          Автоматически сохраняет результаты всех проверок. Можно сохранить текущий журнал в объект или загрузить данные из сохранённой проверки.
+        <p class="subtitle" data-i18n="inspectionRegisterHint">
+          Результаты проверок и корректирующие действия по объекту.
         </p>
         <div class="module-help-content" id="journalHelpContent">
           Автоматически сохраняет результаты всех проверок. Можно сохранить текущий журнал в объект или загрузить данные из сохранённой проверки.
         </div>
 
-        <div class="row" style="margin-bottom: 10px;">
-          <div>
-            <div class="meta">Загрузить параметры конструкций из сохранённой проверки</div>
-            <select id="checkSelector" data-ignore-lock="1" class="check-select ui-select">
-              <option disabled selected>Нет сохранённых проверок</option>
-            </select>
-          </div>
-        </div>
-
         <div class="row journal-toolbar">
-          <button id="btnJournalSaveToProject" class="btn-small btn-secondary lg-btn lg-btn--pill">
-            <span class="lg-btn__label">Сохранить журнал в объект</span>
-            <span class="lg-btn__glow" aria-hidden="true"></span>
-          </button>
+          <input id="journalSearch" type="search" class="journal-search" data-i18n-placeholder="searchInspections" data-i18n-aria="searchInspections" placeholder="Поиск проверок" aria-label="Поиск проверок" />
           <div class="journal-status-filters" id="journalStatusFilters" role="group" aria-label="Фильтр по статусу">
-            <button type="button" class="journal-filter-btn is-active" data-status-filter="all" aria-pressed="true">Все</button>
-            <button type="button" class="journal-filter-btn" data-status-filter="exceeded" aria-pressed="false">Нарушения</button>
-            <button type="button" class="journal-filter-btn" data-status-filter="ok" aria-pressed="false">В норме</button>
+            <button type="button" class="journal-filter-btn is-active" data-status-filter="all" aria-pressed="true" data-i18n="allResults">Все</button>
+            <button type="button" class="journal-filter-btn" data-status-filter="exceeded" aria-pressed="false" data-i18n="deviations">Нарушения</button>
+            <button type="button" class="journal-filter-btn" data-status-filter="ok" aria-pressed="false" data-i18n="withinLimits">В норме</button>
           </div>
           <div class="journal-mini-analytics" id="journalMiniAnalytics" aria-live="polite">
             <span class="journal-mini-analytics-item">
@@ -2288,18 +2270,35 @@
           </div>
         </div>
 
+        <details class="journal-sessions">
+          <summary data-i18n="savedInspections">Сохранённые проверки</summary>
+        <div class="row" style="margin-bottom: 10px;">
+          <div>
+            <div class="meta">Загрузить параметры конструкций из сохранённой проверки</div>
+            <select id="checkSelector" data-ignore-lock="1" class="check-select ui-select">
+              <option disabled selected>Нет сохранённых проверок</option>
+            </select>
+          </div>
+        </div>
+
+          <button id="btnJournalSaveToProject" class="btn-small btn-secondary lg-btn lg-btn--pill">
+            <span class="lg-btn__label">Сохранить журнал в объект</span>
+            <span class="lg-btn__glow" aria-hidden="true"></span>
+          </button>
+        </details>
+
         <input type="file" id="journalFileInput" accept=".json" style="display:none" />
 
         <div class="card journal-table-wrap" style="margin-top:12px; overflow:auto;">
           <table id="journalTable" class="table">
   <thead>
     <tr>
-      <th>Время</th>
-      <th>Модуль</th>
-      <th>Конструкция</th>
-      <th>Узел/Контекст</th>
-      <th>Статус</th>
-      <th>Детали</th>
+      <th data-i18n="time">Время</th>
+      <th data-i18n="module">Модуль</th>
+      <th data-i18n="construction">Конструкция</th>
+      <th data-i18n="context">Узел/Контекст</th>
+      <th data-i18n="status">Статус</th>
+      <th data-i18n="details">Детали</th>
       <th class="journal-actions-head">Действия</th>
     </tr>
   </thead>
@@ -2310,7 +2309,7 @@
         <div class="card journal-issues-panel" id="journalIssuesPanel" style="margin-top:12px;">
           <div class="journal-issues-head">
             <div>
-              <h3 class="card-title">Замечания</h3>
+              <h3 class="card-title" data-i18n="issues">Замечания</h3>
               <p class="subtitle">
                 Создаются из строк журнала с нарушениями и помогают вести корректирующие действия.
               </p>

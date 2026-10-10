@@ -1,4 +1,4 @@
-export interface IfcModelOptions { fileName?: string; sourceModelId?: string; wasmPath?: string }
+export interface IfcModelOptions { fileName?: string; sourceModelId?: string; wasmPath?: string; maxElements?: number }
 export interface IfcElementData {
   elementId: string; expressId: number; sourceModelId: string; type: string;
   ifcGuid: string | null; name: string | null; description: string | null; objectType: string | null;

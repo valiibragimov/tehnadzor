@@ -55,10 +55,7 @@
   .header-icon-btn, .theme-toggle-btn { width: 36px; height: 36px; min-height: 36px; background: transparent; border: 1px solid var(--border); color: var(--text-muted); border-radius: 8px; box-shadow: none; }
   body.home-page > main { margin: 0 auto; animation: none; transform: none; background: var(--canvas); }
   main { width: 100%; max-width: 1440px; padding: 24px 32px 48px; }
-  .construction-bar { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 16px; padding: 18px 20px; margin-bottom: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: none; }
   .construction-label { color: var(--text-muted); font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; }
-  .project-select-wrapper { flex: 1 1 180px; }
-  .bim-import-wrapper { border-left: 1px solid var(--border); padding-left: 18px; margin-left: auto; }
   input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea, .ui-select, .project-select {
     color: var(--text); background: var(--surface); border: 1px solid var(--border);
     border-radius: 6px; box-shadow: none; min-height: 38px;
@@ -113,6 +110,34 @@
   .menu-item, .menu-item:hover { color: var(--text); }
   .menu-danger { color: var(--danger); }
   .site-footer { background: transparent; border-top: 1px solid var(--border); box-shadow: none; padding: 20px 32px; min-height: 64px; }
+  .demo-notice { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 16px 32px 0; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+  .demo-notice button { flex: 0 0 auto; }
+  /* Context is persistent; construction controls belong only to inspections. */
+  .construction-bar { display: flex; flex-direction: row; flex-wrap: wrap; align-items: start; gap: 12px 20px; padding: 16px; margin-bottom: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: none; }
+  main > .construction-bar { margin-top: 0; }
+  .project-select-wrapper { flex: 1 1 240px; max-width: 400px; }
+  .construction-select-wrapper { flex: 1 1 150px; max-width: 220px; }
+  body:not([data-workspace-tab="geo"]):not([data-workspace-tab="geometry"]):not([data-workspace-tab="reinforcement"]):not([data-workspace-tab="strength"]) .construction-select-wrapper { display: none; }
+  .bim-import-wrapper { display: block; width: auto; flex: 0 1 auto; align-self: center; margin: 0 0 0 auto; padding: 0; border: 0; min-width: 0; }
+  .bim-import-wrapper > summary { display: list-item; cursor: pointer; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); }
+  .bim-import-wrapper[open] { flex: 1 1 100%; }
+  .bim-import-wrapper[open] > summary { border: 0; border-bottom: 1px solid var(--border); border-radius: 0; padding-left: 0; }
+  .bim-import-count { margin-left: 10px; }
+  .bim-import-controls { padding-top: 12px; }
+  .bim-selection { padding: 12px 16px; margin-bottom: 20px; }
+  .bim-selection > summary { cursor: pointer; color: var(--text-muted); font-size: 13px; }
+  .bim-selection[open] > summary { margin-bottom: 16px; }
+  .control-plan-summary { border: 1px solid var(--border); border-radius: 6px; gap: 0; overflow: hidden; }
+  .control-plan-metric { background: var(--surface); border: 0; border-right: 1px solid var(--border); border-radius: 0; padding: 16px 20px; box-shadow: none; }
+  .control-plan-metric:last-child { border-right: 0; }
+  .journal-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .journal-search { flex: 1 1 200px; max-width: 320px; }
+  .journal-sessions { margin: 16px 0; color: var(--text-muted); font-size: 13px; }
+  .journal-sessions > summary { cursor: pointer; width: fit-content; padding: 4px 0; }
+  .journal-sessions[open] { padding: 12px 16px; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; }
+  .journal-sessions .row { margin-top: 12px; }
+  .journal-table-wrap { padding: 0; border-radius: 6px; }
+  .journal-table-wrap th, .journal-table-wrap td { padding: 10px 12px; }
   @media (min-width: 1024px) {
     body.home-page { padding-left: 216px; }
     body.home-page header { width: calc(100% + 216px); margin-left: -216px; }
@@ -139,8 +164,27 @@
   }
   @media (max-width: 768px) {
     header, body.home-page header { padding: 0 16px; }
+    body.home-page > header { display: flex; justify-content: space-between; gap: 12px; }
+    body.home-page > header::before { display: none; }
+    body.home-page > header .brand { min-width: 0; width: auto; gap: 8px; }
+    body.home-page > header .brand h1 { font-size: 17px; }
+    body.home-page > header .header-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+    .language-select { width: 56px; min-width: 56px; }
+    body.home-page > header #themeToggleBtn { display: inline-flex; }
+    .home-page .tabs { display: none; }
+    .demo-notice { margin: 12px 16px 0; flex-direction: column; align-items: stretch; gap: 10px; }
+    .construction-bar { min-height: 0; }
+    .project-select-wrapper { flex: 1 1 100%; min-width: 0; }
+    .result:empty { display: none; }
+    #bottomNav { width: calc(100% - 16px); left: 8px; right: 8px; bottom: 8px; margin: 0; transform: none; padding: 4px; }
+    #bottomNav .bottom-nav__track { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); width: 100%; overflow: visible; padding: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
+    #bottomNav .bottom-nav__track::before, #bottomNav .bottom-nav__track::after { display: none; }
+    #bottomNav .bottom-nav-item { min-width: 0; width: auto; padding: 6px 2px; }
+    #bottomNav .bottom-nav-item__label { font-size: 10px; }
+
     .construction-bar { gap: 12px; padding: 14px; margin-bottom: 16px; }
-    .bim-import-wrapper { border-left: 0; padding-left: 0; margin-left: 0; width: 100%; }
+    .bim-import-wrapper { margin-left: 0; width: auto; }
+    .project-select-wrapper { max-width: none; }
     .object-overview { padding: 0; }
   .overview-dashboard { padding: 18px; }
     .overview-heading h2 { font-size: 22px; }

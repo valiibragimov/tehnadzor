@@ -21965,23 +21965,7 @@ body.theme-light.home-page .wizard-step-btn.btn-small.btn-secondary.lg-btn.lg-bt
   }
 }
 
-body.home-page .construction-bar,
-body.home-page .construction-bar > * {
-  pointer-events: none;
-}
 
-body.home-page .construction-bar :is(
-  select,
-  button,
-  input,
-  .ui-select,
-  .menu-panel,
-  .menu-item,
-  .module-help-content:not([hidden]),
-  a
-) {
-  pointer-events: auto;
-}
 
 body.home-page .tabs {
   position: relative;

@@ -28,6 +28,23 @@ test("workspace: navigation, themes, language, mobile layout and persistence", a
     assert.equal(await page.locator("#geometry").isVisible(), true);
     await page.locator('.tabs [data-target="journal"]').click();
     assert.equal(await page.locator("#journal").isVisible(), true);
+    assert.equal(await page.locator("#constructionCategory").isVisible(), false);
+    const journalHeading = await page.locator("#journal h2").boundingBox();
+    assert.ok(journalHeading.y < 370, `Journal starts too far down: ${journalHeading.y}`);
+    await page.locator("#journalTable tbody tr[data-entry-id]").first().waitFor();
+    const rows = await page.locator("#journalTable tbody tr[data-entry-id]").count();
+    await page.locator("#journalSearch").fill("no-matching-inspection-123");
+    assert.equal(await page.locator("#journalTable tbody tr[data-entry-id]").count(), 0);
+    await page.locator("#journalSearch").fill("");
+    assert.equal(await page.locator("#journalTable tbody tr[data-entry-id]").count(), rows);
+    await page.locator("#bimModelManager summary").click();
+    assert.equal(await page.locator("#btnImportIfc").isVisible(), true);
+    await page.locator("#bimModelManager summary").click();
+    assert.equal(await page.locator("#btnImportIfc").isVisible(), false);
+    await page.locator("#journalTable tbody tr[data-entry-id]").filter({ hasText: "Геометрия" }).click();
+    await page.locator("#geometry.active").waitFor();
+    await page.waitForFunction(() => document.getElementById("factPlateHeight").value === "514");
+    assert.equal(await page.locator("#geomFloor").inputValue(), "-1");
     await page.locator('.tabs [data-target="summary"]').click();
     assert.equal(await page.locator("#summary").isVisible(), true);
     await page.locator("#analyticsBlock").waitFor();
@@ -35,12 +52,24 @@ test("workspace: navigation, themes, language, mobile layout and persistence", a
     await page.locator("#workspaceLanguage").selectOption("en");
     await page.locator('h2[data-i18n="overview"]').filter({ hasText: "Project overview" }).waitFor();
     assert.equal(await page.locator("html").getAttribute("lang"), "en");
+    await page.locator('.tabs [data-target="controlPlan"]').click();
+    await page.locator('#controlPlan h2').filter({ hasText: "Control plan" }).waitFor();
+    assert.equal(await page.locator("#constructionCategory").isVisible(), false);
+    assert.equal(await page.locator("#controlPlanSearch").getAttribute("placeholder"), "Search structures");
+    await page.locator('.tabs [data-target="overview"]').click();
     await page.reload();
     await page.locator('h2[data-i18n="overview"]').filter({ hasText: "Project overview" }).waitFor();
     await page.locator("#themeToggleBtn").click();
     assert.equal(await page.locator("body").evaluate(e => e.classList.contains("theme-dark")), true);
     await page.setViewportSize({ width: 390, height: 844 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    assert.equal(await page.locator(".tabs").isVisible(), false);
+    const context = await page.locator("main > .construction-bar").boundingBox();
+    assert.ok(context.height < 190, `Mobile project context is too tall: ${context.height}`);
+    for (const target of ["overview", "controlPlan", "summary", "journal", "knowledge"]) {
+      const rect = await page.locator(`#bottomNav [data-tab="${target}"]`).boundingBox();
+      assert.ok(rect.x >= 0 && rect.x + rect.width <= 390, `Mobile navigation hides ${target}`);
+    }
     await page.locator('#bottomNav [data-tab="journal"]').click();
     assert.equal(await page.locator("#journal").isVisible(), true);
     assert.deepEqual(errors, []);

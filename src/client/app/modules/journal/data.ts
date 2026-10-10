@@ -12,7 +12,7 @@ import {
   getJournalEntriesFilteredSnapshot,
   getJournalEntriesSnapshot
 } from "../../repositories/firestore-repository.js";
-import { Timestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { Timestamp } from "../../../infrastructure/firebase/firestore.js";
 
 // ============================
 // Константы

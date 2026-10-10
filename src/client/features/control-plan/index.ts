@@ -1,5 +1,6 @@
 export {
   getLastControlPlan,
+  configureControlPlanWorkspace,
   initControlPlanModule
 } from "./ui.js";
 

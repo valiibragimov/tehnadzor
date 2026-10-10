@@ -19,6 +19,9 @@ function renderTranslations() {
   document.querySelectorAll<HTMLElement>("[data-i18n-aria]").forEach(element => {
     element.setAttribute("aria-label", t(element.dataset.i18nAria!));
   });
+  document.querySelectorAll<HTMLInputElement>("[data-i18n-placeholder]").forEach(element => {
+    element.placeholder = t(element.dataset.i18nPlaceholder!);
+  });
   const selector = document.getElementById("workspaceLanguage") as HTMLSelectElement | null;
   if (selector) selector.value = i18next.resolvedLanguage || "ru";
   document.dispatchEvent(new CustomEvent("app:language-changed"));

@@ -1,3 +1,14 @@
+import { t, translateStatus } from "../../shared/i18n/index.js";
+import type { WorkspaceContext } from "../workspace-context.js";
+let workspace: Pick<WorkspaceContext, "getProjectId" | "selectProject" | "construction" | "geometryChecks" | "geometryCheckId" | "setConstruction" | "inspectionState" | "inspectionChecked">;
+let summaryChanged: () => unknown = () => undefined;
+let geometryActions: { save(): unknown; render(): unknown; load(id: string): unknown };
+export function configureJournalWorkspace(context: typeof workspace, updateSummary: () => unknown, geometry: typeof geometryActions) { workspace = context; summaryChanged = updateSummary; geometryActions = geometry; }
+let journal: import("../../types/module-records.js").JournalViewEntry[] = [];
+let journalEntries: JournalEntryRecord[] = [];
+let journalFilteredEntries: JournalEntryRecord[] = [];
+let journalFilterModule: string | null = null;
+let journalFilterConstruction: string | null = null;
 import {
   addProjectCollectionDoc,
   clearProjectCollection,
@@ -29,7 +40,7 @@ import {
   loadProjectIssues,
   updateProjectIssueStatus
 } from "../services/issues.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getAuth } from "../../infrastructure/firebase/auth.js";
 import { showNotification, showConfirm } from "../../utils.js";
 import { APP_STORAGE_KEYS } from "../storage.js";
 import {
@@ -245,54 +256,6 @@ const resolveJournalTimestampMs = (value) => {
   return Date.now();
 };
 
-// ============================
-//  Event Bus для уведомлений об изменении данных
-// ============================
-const appEventBus = {
-  listeners: {},
-  
-  /**
-   * Подписывается на событие
-   * @param {string} event - Название события
-   * @param {Function} callback - Функция-обработчик
-   */
-  on(event, callback) {
-    if (!this.listeners[event]) {
-      this.listeners[event] = [];
-    }
-    this.listeners[event].push(callback);
-  },
-  
-  /**
-   * Отписывается от события
-   * @param {string} event - Название события
-   * @param {Function} callback - Функция-обработчик
-   */
-  off(event, callback) {
-    if (!this.listeners[event]) return;
-    this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
-  },
-  
-  /**
-   * Отправляет событие
-   * @param {string} event - Название события
-   * @param {*} payload - Данные события
-   */
-  emit(event, payload) {
-    if (!this.listeners[event]) return;
-    this.listeners[event].forEach(callback => {
-      try {
-        callback(payload);
-      } catch (error) {
-        console.error(`[EventBus] Ошибка в обработчике события ${event}:`, error);
-      }
-    });
-  }
-};
-
-// Экспорт для глобального доступа
-window.dispatchAppEvent = (event, payload) => appEventBus.emit(event, payload);
-
 checkSelector = document.getElementById("checkSelector");
 journalTableBody = document.querySelector("#journalTable tbody");
 journalStatusFilterButtons = Array.from(
@@ -313,8 +276,8 @@ function normalizeJournalStatus(status) {
 }
 
 function getJournalStatusLabel(status) {
-  if (status === "ok") return "В норме";
-  if (status === "exceeded") return "Превышено";
+  if (status === "ok") return t("withinLimits");
+  if (status === "exceeded") return t("deviations");
   return "—";
 }
 
@@ -337,7 +300,7 @@ function getPendingRepeatControlIssueId() {
     const raw = sessionStorage.getItem(ISSUE_REPEAT_CONTROL_STORAGE_KEY);
     if (!raw) return "";
     const data = JSON.parse(raw);
-    if (data?.projectId && data.projectId !== currentProjectId) return "";
+    if (data?.projectId && data.projectId !== workspace.getProjectId()) return "";
     return String(data?.issueId || "").trim();
   } catch {
     return "";
@@ -345,11 +308,11 @@ function getPendingRepeatControlIssueId() {
 }
 
 function setPendingRepeatControl(issue: IssueRecord) {
-  if (!currentProjectId || !issue?.id) return;
+  if (!workspace.getProjectId() || !issue?.id) return;
   sessionStorage.setItem(
     ISSUE_REPEAT_CONTROL_STORAGE_KEY,
     JSON.stringify({
-      projectId: currentProjectId,
+      projectId: workspace.getProjectId(),
       issueId: issue.id,
       sourceInspectionId: issue.sourceInspectionId || null,
       sourceJournalEntryId: issue.sourceJournalEntryId || null,
@@ -404,13 +367,13 @@ function findIssueForRepeatControl(entry: JournalEntryRecord) {
 }
 
 async function linkRepeatControlFromJournalEntry(entry: JournalEntryRecord) {
-  if (!currentProjectId || normalizeJournalStatus(entry?.status) !== "ok") return;
+  if (!workspace.getProjectId() || normalizeJournalStatus(entry?.status) !== "ok") return;
   const issue = findIssueForRepeatControl(entry);
   if (!issue?.id) return;
 
   const repeatControlAt = resolveJournalTimestampMs(entry.timestamp ?? entry.ts);
   try {
-    await linkProjectIssueRepeatControl(currentProjectId, issue.id, {
+    await linkProjectIssueRepeatControl(workspace.getProjectId(), issue.id, {
       repeatControlJournalEntryId: entry.id || null,
       repeatControlInspectionId: entry.sourceId || null,
       repeatControlAt,
@@ -437,7 +400,7 @@ async function linkRepeatControlFromJournalEntry(entry: JournalEntryRecord) {
 function buildJournalEntryFromIssue(issue: IssueRecord): JournalEntryRecord {
   return {
     id: issue.sourceJournalEntryId || null,
-    projectId: issue.projectId || currentProjectId || null,
+    projectId: issue.projectId || workspace.getProjectId() || null,
     module: issue.module || "",
     construction: issue.construction || "",
     constructionLabel: issue.constructionLabel || null,
@@ -493,13 +456,13 @@ function getIssueTransition(status: IssueRecord["status"]) {
 }
 
 async function deleteIssueFromRegistry(issue: IssueRecord) {
-  if (!currentProjectId || !issue.id) return;
+  if (!workspace.getProjectId() || !issue.id) return;
   if (!(await showConfirm("Удалить это замечание? Связь со строкой журнала будет снята, но запись журнала останется."))) {
     return;
   }
 
   try {
-    await deleteProjectIssue(currentProjectId, issue.id);
+    await deleteProjectIssue(workspace.getProjectId(), issue.id);
     issueRecords = issueRecords.filter((item) => item.id !== issue.id);
     renderIssueRegistry();
     renderJournal();
@@ -582,14 +545,14 @@ function renderIssueRegistry() {
     action.textContent = transition.label;
     action.title = transition.note;
     action.addEventListener("click", async () => {
-      if (!currentProjectId || !issue.id) return;
+      if (!workspace.getProjectId() || !issue.id) return;
       if (transition.nextStatus === "closed" && !hasIssueRepeatControl(issue)) {
         showNotification("Сначала выполните и привяжите повторный контроль с результатом «В норме».", "warning");
         return;
       }
       action.disabled = true;
       try {
-        await updateProjectIssueStatus(currentProjectId, issue.id, transition.nextStatus);
+        await updateProjectIssueStatus(workspace.getProjectId(), issue.id, transition.nextStatus);
         issue.status = transition.nextStatus;
         issue.updatedAt = Date.now();
         issue.closedAt = transition.nextStatus === "closed" ? Date.now() : null;
@@ -650,14 +613,14 @@ function renderIssueRegistry() {
 }
 
 async function loadIssuesFromFirestore() {
-  if (!currentProjectId) {
+  if (!workspace.getProjectId()) {
     issueRecords = [];
     renderIssueRegistry();
     return;
   }
 
   try {
-    issueRecords = await loadProjectIssues(currentProjectId);
+    issueRecords = await loadProjectIssues(workspace.getProjectId());
   } catch (error) {
     console.error("[Issues] Ошибка загрузки замечаний:", error);
     issueRecords = [];
@@ -666,7 +629,7 @@ async function loadIssuesFromFirestore() {
 }
 
 async function createIssueFromJournalEntry(entry, button = null) {
-  if (!currentProjectId) {
+  if (!workspace.getProjectId()) {
     showNotification("Сначала выберите или создайте объект.", "warning");
     return;
   }
@@ -686,9 +649,9 @@ async function createIssueFromJournalEntry(entry, button = null) {
   try {
     const payload = createIssuePayloadFromJournalEntry({
       ...entry,
-      projectId: currentProjectId
+      projectId: workspace.getProjectId()
     });
-    const created = await createProjectIssue(currentProjectId, payload);
+    const created = await createProjectIssue(workspace.getProjectId(), payload);
     issueRecords.unshift(created);
     renderIssueRegistry();
     renderJournal();
@@ -738,7 +701,7 @@ journalStatusFilterButtons.forEach((btn) => {
 syncJournalStatusFilterUI();
 
 function journalStorageKey() {
-  const id = currentProjectId || "no_project";
+  const id = workspace.getProjectId() || "no_project";
   return `${APP_STORAGE_KEYS.journal}_${id}`;
 }
 
@@ -813,14 +776,14 @@ async function loadJournalSessionsForProject(projectId) {
 
 if (checkSelector) {
   checkSelector.addEventListener("change", async () => {
-    if (!currentProjectId) return;
+    if (!workspace.getProjectId()) return;
     const sessionId = checkSelector.value;
     if (!sessionId) return;
 
     let session = journalSessionsCache.get(sessionId);
     if (!session || !Array.isArray(session.entries)) {
       try {
-        const snap = await getProjectCollectionDocSnapshot(currentProjectId, "journalSessions", sessionId);
+        const snap = await getProjectCollectionDocSnapshot(workspace.getProjectId(), "journalSessions", sessionId);
         if (!snap.exists()) {
           showNotification("Проверка не найдена.", "warning");
           return;
@@ -841,7 +804,7 @@ if (checkSelector) {
     journal = entries;
     saveJournal();
     renderJournal();
-    updateSummaryTab();
+    summaryChanged();
   });
 }
 
@@ -849,7 +812,7 @@ if (checkSelector) {
  * Загружает записи журнала из Firestore
  */
 async function loadJournalFromFirestore() {
-  if (!currentProjectId) {
+  if (!workspace.getProjectId()) {
     journalEntries = [];
     journalFilteredEntries = [];
     issueRecords = [];
@@ -858,7 +821,7 @@ async function loadJournalFromFirestore() {
   }
 
   try {
-    const entries = await loadJournalEntries(currentProjectId);
+    const entries = await loadJournalEntries(workspace.getProjectId());
     journalEntries = Array.isArray(entries) ? entries : [];
     console.log(
       `[Journal] Загружено ${journalEntries.length} записей из Firestore (full set)`
@@ -908,7 +871,7 @@ function fmtDate(ts) {
  * @returns {Promise<string|null>} ID созданной записи или null
  */
 async function upsertJournalEntry({ module, status, context = "", details = "", exceededCount = 0, sourceId = null, construction: providedConstruction = null }) {
-  if (!currentProjectId) {
+  if (!workspace.getProjectId()) {
     console.warn("[Journal] Нельзя добавить запись без выбранного проекта");
     return null;
   }
@@ -924,23 +887,23 @@ async function upsertJournalEntry({ module, status, context = "", details = "", 
   try {
     // Используем переданную конструкцию или получаем из DOM
     const currentConstruction = normalizeConstructionKey(
-      providedConstruction || construction?.dataset?.machineValue || construction?.value || "",
+      providedConstruction || workspace.construction?.dataset?.machineValue || workspace.construction?.value || "",
       ""
     );
     const currentConstructionLabel =
-      construction?.dataset?.displayLabel ||
-      getConstructionLabel(currentConstruction, providedConstruction || construction?.value || "");
+      workspace.construction?.dataset?.displayLabel ||
+      getConstructionLabel(currentConstruction, providedConstruction || workspace.construction?.value || "");
     const currentConstructionCategory =
-      construction?.dataset?.categoryKey || getConstructionCategoryKey(currentConstruction, "");
-    const currentConstructionSubtype = construction?.dataset?.subtypeKey || "";
-    const currentConstructionSubtypeLabel = construction?.dataset?.subtypeLabel || "";
+      workspace.construction?.dataset?.categoryKey || getConstructionCategoryKey(currentConstruction, "");
+    const currentConstructionSubtype = workspace.construction?.dataset?.subtypeKey || "";
+    const currentConstructionSubtypeLabel = workspace.construction?.dataset?.subtypeLabel || "";
     
     if (!currentConstruction) {
       console.warn("[Journal] Конструкция не указана для записи журнала");
     }
     
     const entry = createJournalEntry({
-      projectId: currentProjectId,
+      projectId: workspace.getProjectId(),
       module,
       construction: currentConstruction,
       constructionCategory: currentConstructionCategory,
@@ -1006,16 +969,8 @@ async function upsertJournalEntry({ module, status, context = "", details = "", 
     }
     
     // Уведомляем о изменении журнала через event bus
-    appEventBus.emit("journal:changed", {
-      type: "journal",
-      projectId: currentProjectId,
-      construction: currentConstruction,
-      entryId,
-      module
-    });
-    
     // Обновляем итог
-    updateSummaryTab();
+    summaryChanged();
     
     console.log("[Journal] upsertJournalEntry: журнал обновлен, длина:", journalEntries.length);
     return entryId;
@@ -1056,7 +1011,9 @@ function applyJournalFilter() {
     ? moduleNames[journalFilterModule] || journalFilterModule
     : null;
 
+  const query = (document.getElementById("journalSearch") as HTMLInputElement | null)?.value.trim().toLocaleLowerCase() || "";
   journalFilteredEntries = journalEntries.filter(entry => {
+    if (query && ![entry?.module, entry?.construction, entry?.node, entry?.context, entry?.status, entry?.details].some(value => String(value ?? "").toLocaleLowerCase().includes(query))) return false;
     if (!entry) return false;
 
     if (expectedModuleName && entry.module !== expectedModuleName) {
@@ -1110,10 +1067,10 @@ async function clearInspectionDualWriteForSourceCollection(projectId, sourceColl
 }
 
 async function clearModuleCollection(collectionName, map, saveFn, renderFn, resetFn) {
-  if (!currentProjectId) return;
+  if (!workspace.getProjectId()) return;
   try {
-    await clearProjectCollection(currentProjectId, collectionName);
-    await clearInspectionDualWriteForSourceCollection(currentProjectId, collectionName);
+    await clearProjectCollection(workspace.getProjectId(), collectionName);
+    await clearInspectionDualWriteForSourceCollection(workspace.getProjectId(), collectionName);
   } catch (error) {
     console.error(`[Journal] Ошибка очистки коллекции ${collectionName}:`, error);
   }
@@ -1160,19 +1117,19 @@ async function clearAllModuleChecksForProject() {
   );
   await clearModuleCollection(
     "geomChecks",
-    geomChecks,
-    saveGeomChecks,
-    renderGeomChecks,
+    workspace.geometryChecks,
+    geometryActions.save,
+    geometryActions.render,
     () => {
-      currentGeomCheckId = null;
-      state.geometry = false;
-      checked.geometry = false;
+      workspace.geometryCheckId = null;
+      workspace.inspectionState.geometry = false;
+      workspace.inspectionChecked.geometry = false;
     }
   );
   const strength = getStrengthApi();
-  if (currentProjectId) {
+  if (workspace.getProjectId()) {
     try {
-      await strength.clearChecks(currentProjectId);
+      await strength.clearChecks(workspace.getProjectId());
     } catch (error) {
       console.error("[Journal] Ошибка очистки коллекции strengthChecks:", error);
     }
@@ -1185,7 +1142,7 @@ async function clearAllModuleChecksForProject() {
 }
 
 async function deleteModuleCheckFromEntry(entry) {
-  if (!currentProjectId || !entry) return;
+  if (!workspace.getProjectId() || !entry) return;
 
   const moduleName = entry.module || "";
   let sourceId = entry.sourceId || null;
@@ -1200,8 +1157,8 @@ async function deleteModuleCheckFromEntry(entry) {
       if (!sourceId) sourceId = findGeoNodeKeyForJournalEntry(entry);
 
       if (!sourceId) return;
-      await deleteProjectCollectionDoc(currentProjectId, "geoNodes", sourceId);
-      await deleteInspectionAndRefreshAnalytics(currentProjectId, sourceId);
+      await deleteProjectCollectionDoc(workspace.getProjectId(), "geoNodes", sourceId);
+      await deleteInspectionAndRefreshAnalytics(workspace.getProjectId(), sourceId);
       if (geodesy.nodes.has(sourceId)) {
         geodesy.nodes.delete(sourceId);
         geodesy.saveNodes();
@@ -1242,7 +1199,7 @@ async function deleteModuleCheckFromEntry(entry) {
       }
 
       if (!sourceId) return;
-      await reinforcement.deleteCheck(currentProjectId, sourceId);
+      await reinforcement.deleteCheck(workspace.getProjectId(), sourceId);
       if (reinforcement.checks.has(sourceId)) {
         reinforcement.checks.delete(sourceId);
         reinforcement.saveChecks();
@@ -1259,7 +1216,7 @@ async function deleteModuleCheckFromEntry(entry) {
       if (!sourceId) {
         let bestMatch = null;
         let bestTimeDiff = Infinity;
-        for (const [id, check] of geomChecks.entries()) {
+        for (const [id, check] of workspace.geometryChecks.entries()) {
           if (!check) continue;
           if (entry.construction && check.construction && !matchesConstructionValue(check.construction, entry.construction)) continue;
 
@@ -1288,16 +1245,16 @@ async function deleteModuleCheckFromEntry(entry) {
       }
 
       if (!sourceId) return;
-      await deleteProjectCollectionDoc(currentProjectId, "geomChecks", sourceId);
-      await deleteInspectionAndRefreshAnalytics(currentProjectId, sourceId);
-      if (geomChecks.has(sourceId)) {
-        geomChecks.delete(sourceId);
-        saveGeomChecks();
-        renderGeomChecks();
+      await deleteProjectCollectionDoc(workspace.getProjectId(), "geomChecks", sourceId);
+      await deleteInspectionAndRefreshAnalytics(workspace.getProjectId(), sourceId);
+      if (workspace.geometryChecks.has(sourceId)) {
+        workspace.geometryChecks.delete(sourceId);
+        geometryActions.save();
+        geometryActions.render();
       }
-      if (currentGeomCheckId === sourceId) currentGeomCheckId = null;
-      state.geometry = false;
-      checked.geometry = false;
+      if (workspace.geometryCheckId === sourceId) workspace.geometryCheckId = null;
+      workspace.inspectionState.geometry = false;
+      workspace.inspectionChecked.geometry = false;
       return;
     }
 
@@ -1321,7 +1278,7 @@ async function deleteModuleCheckFromEntry(entry) {
       }
 
       if (!sourceId) return;
-      await strength.deleteCheck(currentProjectId, sourceId);
+      await strength.deleteCheck(workspace.getProjectId(), sourceId);
       if (strength.checks.has(sourceId)) {
         strength.checks.delete(sourceId);
         strength.saveChecks();
@@ -1336,18 +1293,9 @@ async function deleteModuleCheckFromEntry(entry) {
 }
 
 // Экспортируем функцию для использования в HTML (кнопка "Перейти в журнал")
-window.setJournalFilters = setJournalFilters;
+
 
 // Подписываемся на события изменения журнала
-appEventBus.on("journal:changed", (payload) => {
-  console.log("[EventBus] journal:changed:", payload);
-  // Если открыта вкладка Итог, обновляем её
-  const summarySection = document.getElementById("summary");
-  if (summarySection && summarySection.classList.contains("active")) {
-    console.log("[EventBus] Вкладка Итог активна, обновляем");
-    updateSummaryTab();
-  }
-});
 
 /**
  * Обработчик клика по строке журнала для навигации к соответствующей проверке
@@ -1363,9 +1311,9 @@ async function onJournalRowClick(entry) {
       console.log("[Journal] Начало навигации к записи:", entry);
 
       // Шаг 1: Проверяем и переключаем проект, если нужно
-      if (entry.projectId && entry.projectId !== currentProjectId) {
+      if (entry.projectId && entry.projectId !== workspace.getProjectId()) {
         console.log("[Journal] Переключаем проект:", entry.projectId);
-        await selectProject(entry.projectId);
+        await workspace.selectProject(entry.projectId);
         // Ждем для загрузки всех данных проекта (узлы, проверки, журнал)
         await new Promise(resolve => setTimeout(resolve, 800));
         // Перезагружаем журнал, чтобы убедиться, что данные синхронизированы
@@ -1373,11 +1321,11 @@ async function onJournalRowClick(entry) {
       }
 
     // Шаг 2: Устанавливаем конструкцию
-    if (entry.construction && construction) {
+    if (entry.construction && workspace.construction) {
       const constructionValue = entry.construction;
-      if (!matchesConstructionValue(construction.dataset.machineValue || construction.value, constructionValue)) {
+      if (!matchesConstructionValue(workspace.construction.dataset.machineValue || workspace.construction.value, constructionValue)) {
         console.log("[Journal] Устанавливаем конструкцию:", constructionValue);
-        if (!setConstructionAndTrigger(constructionValue, entry.constructionSubtype || "")) {
+        if (!workspace.setConstruction(constructionValue, entry.constructionSubtype || "")) {
           showNotification(`Не удалось установить конструкцию "${constructionValue}"`, "warning");
         }
       }
@@ -1519,7 +1467,7 @@ async function onJournalRowClick(entry) {
       // Ищем проверку геометрии
       let targetCheckId = null;
 
-      if (entry.sourceId && geomChecks.has(entry.sourceId)) {
+      if (entry.sourceId && workspace.geometryChecks.has(entry.sourceId)) {
         targetCheckId = entry.sourceId;
         found = true;
       } else {
@@ -1527,7 +1475,7 @@ async function onJournalRowClick(entry) {
         let bestMatch = null;
         let bestTimeDiff = Infinity;
 
-        for (const [id, check] of geomChecks.entries()) {
+        for (const [id, check] of workspace.geometryChecks.entries()) {
           if (!check || !matchesConstructionValue(check.construction, entry.construction)) continue;
 
           const checkTime = Number(check.createdAt || 0);
@@ -1554,9 +1502,9 @@ async function onJournalRowClick(entry) {
         targetCheckId = bestMatch;
       }
 
-      if (targetCheckId && geomChecks.has(targetCheckId)) {
+      if (targetCheckId && workspace.geometryChecks.has(targetCheckId)) {
         console.log("[Journal] Открываем проверку геометрии:", targetCheckId);
-        loadGeomCheck(targetCheckId);
+        geometryActions.load(targetCheckId);
 
         // Если это стена, ищем конкретную стену
         if (matchesConstructionValue(entry.construction, "wall") && entry.context) {
@@ -1663,7 +1611,7 @@ function renderJournal() {
   // Используем отфильтрованный набор, если он есть; иначе — полный набор из Firestore;
   // если и его нет (офлайн-режим без Firestore) — используем legacy journal из localStorage.
   let entriesToRender = [];
-  if (journalFilteredEntries.length > 0 || journalFilterModule || journalFilterConstruction) {
+  if (journalFilteredEntries.length > 0 || journalFilterModule || journalFilterConstruction || (document.getElementById("journalSearch") as HTMLInputElement | null)?.value.trim()) {
     entriesToRender = journalFilteredEntries;
   } else if (journalEntries.length > 0) {
     entriesToRender = journalEntries;
@@ -1676,7 +1624,7 @@ function renderJournal() {
       context: e.node || e.context,
       status: e.status,
       details: e.details,
-      projectId: currentProjectId || null,
+      projectId: workspace.getProjectId() || null,
       sourceId: e.sourceId || null
     }));
   }
@@ -1689,7 +1637,7 @@ function renderJournal() {
     const tdEmpty = document.createElement("td");
     tdEmpty.colSpan = 7;
     tdEmpty.className = "journal-empty-cell";
-    tdEmpty.textContent = "Нет записей для выбранного фильтра";
+    tdEmpty.textContent = t("noMatchingInspections");
     trEmpty.appendChild(tdEmpty);
     journalTableBody.appendChild(trEmpty);
     return;
@@ -1703,7 +1651,7 @@ function renderJournal() {
     // Обрабатываем как записи из Firestore (с timestamp объектом), так и legacy из localStorage
     const fullEntry = {
       id: entryId,
-      projectId: e.projectId || currentProjectId || null,
+      projectId: e.projectId || workspace.getProjectId() || null,
       module: e.module || "",
       construction: e.construction || "",
       constructionCategory: e.constructionCategory || null,
@@ -1732,7 +1680,7 @@ function renderJournal() {
     tdTime.textContent = formatJournalTimestamp(timestamp);
 
     const tdModule = document.createElement("td");
-    tdModule.textContent = fullEntry.module || "";
+    tdModule.textContent = translateStatus(fullEntry.module || "");
 
     const tdConstr = document.createElement("td");
     tdConstr.textContent = getEntryConstructionLabel(fullEntry);
@@ -1817,7 +1765,7 @@ function renderJournal() {
 
         saveJournal();
         renderJournal();
-        updateSummaryTab();
+        summaryChanged();
         showNotification("Запись удалена", "success");
       } catch (error) {
         console.error("[Journal] Ошибка удаления записи:", error);
@@ -1920,7 +1868,7 @@ function notifyFirestoreSyncStatus(docRef) {
 document
   .getElementById("btnJournalSaveToProject")
   .addEventListener("click", async () => {
-    if (!currentProjectId) {
+    if (!workspace.getProjectId()) {
       showNotification("Сначала выберите или создайте объект.", "warning");
       return;
     }
@@ -1930,7 +1878,7 @@ document
     }
 
     try {
-      const snap = await getProjectDocSnapshot(currentProjectId);
+      const snap = await getProjectDocSnapshot(workspace.getProjectId());
       const projectData = snap.exists() ? snap.data() || {} : {};
 
       let lastNumber = 0;
@@ -1955,21 +1903,21 @@ document
       if (createdBy) sessionPayload.createdBy = createdBy;
 
       const savedSession = await addProjectCollectionDoc(
-        currentProjectId,
+        workspace.getProjectId(),
         "journalSessions",
         sessionPayload
       );
 
       const inspectionPayload = {
         ...sessionPayload,
-        projectId: currentProjectId,
+        projectId: workspace.getProjectId(),
         sessionId: savedSession.id,
         sourceCollection: "journalSessions",
         sourceSessionId: savedSession.id,
         entriesCount: Array.isArray(journal) ? journal.length : 0
       };
       await saveInspectionAndRefreshAnalytics(
-        currentProjectId,
+        workspace.getProjectId(),
         savedSession.id,
         inspectionPayload,
         { merge: true }
@@ -1982,10 +1930,10 @@ document
       };
       if (ownerUid) projectPatch.ownerUid = ownerUid;
       if (createdBy) projectPatch.createdBy = createdBy;
-      await mergeProjectDoc(currentProjectId, projectPatch);
+      await mergeProjectDoc(workspace.getProjectId(), projectPatch);
 
       showNotification(`Журнал сохранён как проверка №${checkNumber}.`, "success");
-      await loadJournalSessionsForProject(currentProjectId);
+      await loadJournalSessionsForProject(workspace.getProjectId());
     } catch (e) {
       console.error("Ошибка сохранения журнала:", e);
       showNotification("Не удалось сохранить журнал для объекта.", "error");
@@ -2039,14 +1987,14 @@ document
   });
 
 document.getElementById("btnJournalClear").addEventListener("click", async () => {
-  if (!currentProjectId) {
+  if (!workspace.getProjectId()) {
     showNotification("Сначала выберите объект", "warning");
     return;
   }
   
   if (await showConfirm("Очистить весь журнал этого объекта? Все записи будут удалены из Firestore.")) {
     try {
-      const deletedCount = await clearJournal(currentProjectId);
+      const deletedCount = await clearJournal(workspace.getProjectId());
       journal = [];
       journalEntries = [];
       journalFilteredEntries = [];
@@ -2055,7 +2003,7 @@ document.getElementById("btnJournalClear").addEventListener("click", async () =>
       saveJournal();
       renderJournal();
       await clearAllModuleChecksForProject();
-      updateSummaryTab();
+      summaryChanged();
       showNotification(`Удалено ${deletedCount} записей из журнала`, "success");
     } catch (error) {
       console.error("[Journal] Ошибка очистки журнала:", error);
@@ -2064,30 +2012,35 @@ document.getElementById("btnJournalClear").addEventListener("click", async () =>
   }
 });
 
-loadJournal(); // Загружаем из localStorage для обратной совместимости
-// Загружаем из Firestore при инициализации
-const restoreOnce = localStorage.getItem("journal_restore_once") === "1";
-const restoreProject = localStorage.getItem("journal_restore_project");
-const shouldRestoreLocalJournal = restoreOnce && restoreProject === currentProjectId;
-
-if (currentProjectId) {
-  if (shouldRestoreLocalJournal) {
-    renderJournal();
-    void loadIssuesFromFirestore().then(() => renderJournal());
-    updateSummaryTab();
-    localStorage.removeItem("journal_restore_once");
-    localStorage.removeItem("journal_restore_project");
-  } else {
-    loadJournalFromFirestore();
-  }
-} else {
-  renderIssueRegistry();
-  renderJournal();
-}
-
 export function initJournalModule() {
   if (journalInitialized) return;
   journalInitialized = true;
+  document.addEventListener("app:language-changed", () => renderJournal());
+  document.getElementById("journalSearch")?.addEventListener("input", () => {
+    applyJournalFilter();
+    renderJournal();
+  });
+  loadJournal(); // Загружаем из localStorage для обратной совместимости
+  // Загружаем из Firestore при инициализации
+  const restoreOnce = localStorage.getItem("journal_restore_once") === "1";
+  const restoreProject = localStorage.getItem("journal_restore_project");
+  const shouldRestoreLocalJournal = restoreOnce && restoreProject === workspace.getProjectId();
+
+  if (workspace.getProjectId()) {
+    if (shouldRestoreLocalJournal) {
+      renderJournal();
+      void loadIssuesFromFirestore().then(() => renderJournal());
+      summaryChanged();
+      localStorage.removeItem("journal_restore_once");
+      localStorage.removeItem("journal_restore_project");
+    } else {
+      loadJournalFromFirestore();
+    }
+  } else {
+    renderIssueRegistry();
+    renderJournal();
+  }
+
 }
 
 export {

@@ -1,3 +1,4 @@
+import type { WorkspaceContext } from "./workspace-context.js";
 import { createModuleRuntime } from "./module-runtime.js";
 import type {
   ReinforcementRuntimeDependencies,
@@ -7,6 +8,7 @@ import { APP_STORAGE_KEYS } from "./storage.js";
 import type { JournalGeodesyApi } from "./modules/journal.js";
 
 interface AppModuleBridgeOptions {
+  workspace: WorkspaceContext;
   onJournalTabActivated?: () => void;
   journalGeodesy: JournalGeodesyApi;
   reinforcement: ReinforcementRuntimeDependencies;
@@ -21,6 +23,7 @@ type StrengthModule = typeof import("./modules/strength.js");
 type ModuleAction<TModule, TResult> = (module: TModule) => TResult | Promise<TResult>;
 
 export function createAppModuleBridge({
+  workspace,
   onJournalTabActivated,
   journalGeodesy,
   reinforcement,
@@ -31,6 +34,7 @@ export function createAppModuleBridge({
   function getModuleRuntime() {
     if (!moduleRuntime) {
       moduleRuntime = createModuleRuntime({
+        workspace,
         onJournalTabActivated,
         journalGeodesy,
         reinforcement,
@@ -271,18 +275,6 @@ export function createAppModuleBridge({
 
     getModuleRuntime().initBottomNav(storageKey);
   }
-
-  globalThis.loadReinfChecks = loadReinfChecks;
-  globalThis.saveReinfChecks = saveReinfChecks;
-  globalThis.renderReinfChecks = renderReinfChecks;
-  globalThis.loadReinfCheck = loadReinfCheck;
-  globalThis.updateReinfLocationFieldsVisibility = updateReinfLocationFieldsVisibility;
-
-  globalThis.loadStrengthChecks = loadStrengthChecks;
-  globalThis.saveStrengthChecks = saveStrengthChecks;
-  globalThis.renderStrengthChecks = renderStrengthChecks;
-  globalThis.loadStrengthCheck = loadStrengthCheck;
-  globalThis.updateStrengthFieldsVisibility = updateStrengthFieldsVisibility;
 
   return {
     initNavigation,

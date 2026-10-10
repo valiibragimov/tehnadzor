@@ -1,3 +1,4 @@
+import { getProjectBimSnapshot, hideProjectBimModels } from "./bim-repository.js";
 import { db } from "../../firebase.js";
 import {
   addDoc,
@@ -8,13 +9,15 @@ import {
   getDocs,
   onSnapshot,
   type OrderByDirection,
+  type QuerySnapshot,
+  type DocumentData,
   orderBy,
   query,
   setDoc,
   serverTimestamp,
   where,
   writeBatch
-} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+} from "../../infrastructure/firebase/firestore.js";
 
 const JOURNAL_COLLECTION = "journal";
 type FirestoreRecord = Record<string, unknown>;
@@ -114,7 +117,10 @@ function getUserDocRef(uid: string) {
   return doc(db, "users", uid);
 }
 
+export function getProjectCollectionSnapshot(projectId: string, collectionName: "elements"): ReturnType<typeof getProjectBimSnapshot>;
+export function getProjectCollectionSnapshot(projectId: string, collectionName: string): Promise<QuerySnapshot<DocumentData>>;
 export async function getProjectCollectionSnapshot(projectId, collectionName) {
+  if (collectionName === "elements") return getProjectBimSnapshot(projectId);
   return getDocs(getProjectCollectionRef(projectId, collectionName));
 }
 
@@ -189,7 +195,8 @@ export async function deleteProjectCollectionDoc(projectId, collectionName, docI
   await deleteDoc(ref);
 }
 
-export async function clearProjectCollection(projectId, collectionName) {
+export async function clearProjectCollection(projectId: string, collectionName: string) {
+  if (collectionName === "elements") return hideProjectBimModels(projectId);
   const snap = await getProjectCollectionSnapshot(projectId, collectionName);
   if (snap.empty) return 0;
 

@@ -1,3 +1,4 @@
+import type { WorkspaceContext } from "../workspace-context.js";
 import { APP_CONFIG, TOLERANCES, UI_TEXT } from "../../config.js";
 import {
   getConstructionCategoryKey,
@@ -84,8 +85,7 @@ import {
 } from "../services/bim-elements.js";
 import { ensureBimVisualPanel } from "../services/bim-visual-panel.js";
 import {
-  getCurrentIfcFileFromInput,
-  getCurrentProjectIdFromGlobal
+  getCurrentIfcFileFromInput
 } from "../services/bim-runtime-context.js";
 import { onAppTabActivated } from "../services/module-activation.js";
 import {
@@ -93,66 +93,26 @@ import {
   setupNodeCardInteractions
 } from "../ui/node-card-interactions.js";
 import { APP_STORAGE_KEYS } from "../storage.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getAuth } from "../../infrastructure/firebase/auth.js";
 
 const safeValue = (value) => escapeHtml(value == null ? "" : String(value));
 const BIM_MANUAL_MODE_MESSAGE = "";
 const BIM_LOAD_ERROR_MESSAGE = "Не удалось загрузить BIM-элементы. Можно продолжить ручной ввод.";
 
-const getCurrentProjectId = getCurrentProjectIdFromGlobal;
+const getCurrentProjectId = () => geometryContext.getProjectId();
 const getCurrentIfcFile = getCurrentIfcFileFromInput;
-const getGeomChecksMap = () => {
-  if (!(globalThis.geomChecks instanceof Map)) {
-    globalThis.geomChecks = new Map<string, GeometryCheckRecord>();
-  }
-  return globalThis.geomChecks as Map<string, GeometryCheckRecord>;
-};
-const setCurrentGeomCheckId = (value) => {
-  globalThis.currentGeomCheckId = value;
-};
-const getCurrentGeomCheckId = () => globalThis.currentGeomCheckId || null;
-
-const getState = () => {
-  if (!globalThis.state) {
-    globalThis.state = {};
-  }
-  return globalThis.state;
-};
-
-const getChecked = () => {
-  if (!globalThis.checked) {
-    globalThis.checked = {};
-  }
-  return globalThis.checked;
-};
-
-const updateSummary = () => {
-  if (typeof globalThis.updateSummaryTab === "function") {
-    return globalThis.updateSummaryTab();
-  }
-  return undefined;
-};
-
-const addJournalEntrySafe = (params) => {
-  if (typeof globalThis.addJournalEntry === "function") {
-    return globalThis.addJournalEntry(params);
-  }
-  return null;
-};
-
-const upsertJournalEntrySafe = (params) => {
-  if (typeof globalThis.upsertJournalEntry === "function") {
-    return globalThis.upsertJournalEntry(params);
-  }
-  return null;
-};
-
-const notifyFirestoreSyncStatusSafe = (docRef) => {
-  if (typeof globalThis.notifyFirestoreSyncStatus === "function") {
-    return globalThis.notifyFirestoreSyncStatus(docRef);
-  }
-  return undefined;
-};
+type GeometryContext = Pick<WorkspaceContext, "getProjectId" | "geometryChecks" | "geometryCheckId" | "inspectionState" | "inspectionChecked" | "setConstruction">;
+let geometryContext: GeometryContext;
+let geometryActions: { updateSummary(): unknown; addJournalEntry(params: unknown): unknown; upsertJournalEntry(params: unknown): unknown; notifySync(ref: unknown): unknown };
+export function configureGeometryWorkspace(context: GeometryContext, actions: typeof geometryActions) { geometryContext = context; geometryActions = actions; geomChecks = context.geometryChecks; }
+const setCurrentGeomCheckId = (value: string | null) => { geometryContext.geometryCheckId = value; };
+const getCurrentGeomCheckId = () => geometryContext.geometryCheckId;
+const getState = () => geometryContext.inspectionState;
+const getChecked = () => geometryContext.inspectionChecked;
+const updateSummary = () => geometryActions.updateSummary();
+const addJournalEntrySafe = (params: unknown) => geometryActions.addJournalEntry(params);
+const upsertJournalEntrySafe = (params: unknown) => geometryActions.upsertJournalEntry(params);
+const notifyFirestoreSyncStatusSafe = (ref: unknown) => geometryActions.notifySync(ref);
 
 const auth = getAuth();
 
@@ -198,7 +158,7 @@ async function clearGeomInspectionDualWrite(projectId) {
   });
 }
 
-const geomChecks = getGeomChecksMap();
+let geomChecks: Map<string, GeometryCheckRecord>;
 let geometryInitialized = false;
 let geomAxesInitialized = false;
 let skipGeomJournalOnce = false;
@@ -1892,8 +1852,8 @@ function applyGeomBimElementSelection(elementId) {
   const targetConstruction = getTehnadzorTypeByBimType(element.type) || construction?.value || "";
   const targetFlags = getGeometryConstructionFlags(targetConstruction);
   if (construction && targetConstruction) {
-    if (window.setConstructionAndTrigger) {
-      window.setConstructionAndTrigger(targetConstruction);
+    if (geometryContext.setConstruction) {
+      geometryContext.setConstruction(targetConstruction);
     } else {
       construction.value = targetConstruction;
       updateGeomFieldsVisibility();
@@ -3021,8 +2981,8 @@ function loadGeomCheck(id) {
   if (!d) return;
   setCurrentGeomCheckId(id);
 
-    if (window.setConstructionAndTrigger) {
-      window.setConstructionAndTrigger(d.construction || d.constructionType || "", d.constructionSubtype || "", d.constructionPileElement || "");
+    if (geometryContext.setConstruction) {
+      geometryContext.setConstruction(d.construction || d.constructionType || "", d.constructionSubtype || "", d.constructionPileElement || "");
     } else if (construction && d.constructionType) {
       construction.value = d.constructionType;
     }

@@ -1,3 +1,6 @@
+import type { WorkspaceContext } from "../../workspace-context.js";
+let workspace: Pick<WorkspaceContext, "getProjectId" | "nodes" | "geometryChecks">;
+export function configureAnalyticsSources(context: typeof workspace) { workspace = context; }
 import { auth } from "../../../firebase.js";
 import { runSingleFlight, setButtonBusyState, showNotification } from "../../../utils.js";
 import {
@@ -134,14 +137,7 @@ function invalidateAnalyticsCaches({ userId = "", projectId = "" } = {}) {
   }
 }
 
-function getCurrentProjectId() {
-  return (
-    localStorage.getItem("currentProjectId") ||
-    localStorage.getItem("current_project_id") ||
-    globalThis.currentProjectId ||
-    ""
-  );
-}
+function getCurrentProjectId() { return workspace.getProjectId() || ""; }
 
 function hideStates(ui) {
   ui.loader.hidden = true;
@@ -1974,8 +1970,8 @@ async function getProjectSources(projectId) {
     });
 
     if (isCurrentProject) {
-      if (!geoNodes.length && globalThis.nodes instanceof Map) {
-        geoNodes = Array.from(globalThis.nodes.entries()).map(([id, data]) => ({
+      if (!geoNodes.length && workspace.nodes instanceof Map) {
+        geoNodes = Array.from(workspace.nodes.entries()).map(([id, data]) => ({
           ...(data || {}),
           _docId: id
         }));
@@ -1987,8 +1983,8 @@ async function getProjectSources(projectId) {
           _docId: id
         }));
       }
-      if (!geomChecks.length && globalThis.geomChecks instanceof Map) {
-        geomChecks = Array.from(globalThis.geomChecks.entries()).map(([id, data]) => ({
+      if (!geomChecks.length && workspace.geometryChecks instanceof Map) {
+        geomChecks = Array.from(workspace.geometryChecks.entries()).map(([id, data]) => ({
           ...(data || {}),
           _docId: id
         }));
@@ -2131,9 +2127,9 @@ async function getCollectionDocsByIds(projectId, collectionName, docIds) {
 }
 
 function getLocalLegacyMapByCollection(collectionName) {
-  if (collectionName === "geoNodes" && globalThis.nodes instanceof Map) return globalThis.nodes;
+  if (collectionName === "geoNodes" && workspace.nodes instanceof Map) return workspace.nodes;
   if (collectionName === "reinfChecks") return getReinforcementChecks();
-  if (collectionName === "geomChecks" && globalThis.geomChecks instanceof Map) return globalThis.geomChecks;
+  if (collectionName === "geomChecks" && workspace.geometryChecks instanceof Map) return workspace.geometryChecks;
   if (collectionName === "strengthChecks") return getStrengthChecks();
   return null;
 }

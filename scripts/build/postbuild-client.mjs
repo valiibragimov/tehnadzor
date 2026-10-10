@@ -47,3 +47,13 @@ await build({
   outfile: resolve(distRoot, "shared/i18n/index.js"),
   bundle: true, format: "esm", platform: "browser", target: "es2022", minify: true
 });
+
+// Build one shared Firebase runtime; every feature imports these local facades.
+await build({
+  entryPoints: ["app", "auth", "firestore"].map(name => resolve(projectRoot, `src/client/infrastructure/firebase/${name}.ts`)),
+  outdir: resolve(distRoot, "infrastructure/firebase"),
+  entryNames: "[name]", chunkNames: "chunks/[name]-[hash]", splitting: true,
+  bundle: true, format: "esm", platform: "browser", target: "es2022", minify: true
+});
+
+await build({ entryPoints: [resolve(projectRoot, "src/shared/bim/publication.ts")], outfile: resolve(distRoot, "infrastructure/bim-publication.js"), bundle: true, format: "esm", platform: "browser", target: "es2022", minify: true });

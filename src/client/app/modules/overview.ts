@@ -1,3 +1,6 @@
+import type { WorkspaceContext } from "../workspace-context.js";
+let workspace: Pick<WorkspaceContext, "getProjectId" | "projectSelector" | "construction" | "nodes" | "geometryChecks">;
+export function configureOverviewWorkspace(context: typeof workspace) { workspace = context; }
 import { t, translateStatus } from "../../shared/i18n/index.js";
 import { getRuntimeIssueStatus, loadProjectIssues } from "../services/issues.js";
 import {
@@ -64,7 +67,7 @@ function getIfcCount() {
 }
 
 function getProjectName() {
-  const selector = globalThis.projectSelector;
+  const selector = workspace.projectSelector;
   const option = selector && selector.selectedIndex >= 0
     ? selector.options[selector.selectedIndex]
     : null;
@@ -92,6 +95,8 @@ function bindOverviewActions() {
         return;
       }
       if (button.dataset.overviewAction === "ifc") {
+        const manager = document.getElementById("bimModelManager") as HTMLDetailsElement | null;
+        if (manager) manager.open = true;
         const importButton = document.getElementById("btnImportIfc");
         importButton?.scrollIntoView({ behavior: "smooth", block: "center" });
         window.setTimeout(() => importButton?.focus(), 320);
@@ -152,12 +157,12 @@ export async function renderOverview() {
   if (!root) return;
 
   const sequence = ++renderSequence;
-  const projectId = String(globalThis.currentProjectId || "").trim();
+  const projectId = String(workspace.getProjectId() || "").trim();
   const hasProject = Boolean(projectId);
   const moduleCounts = {
-    geo: getCollectionSize(globalThis.nodes),
+    geo: getCollectionSize(workspace.nodes),
     reinforcement: getReinforcementChecksCount(),
-    geometry: getCollectionSize(globalThis.geomChecks),
+    geometry: getCollectionSize(workspace.geometryChecks),
     strength: getStrengthChecksCount()
   };
   const totalChecks = Object.values(moduleCounts).reduce((sum, count) => sum + count, 0);
@@ -172,15 +177,15 @@ export async function renderOverview() {
   let issues: IssueRecord[] = [];
   let controlPlan: ControlPlanResult | null = null;
   if (hasProject) {
-    const fallbackConstruction = globalThis.construction?.dataset?.machineValue
-      || globalThis.construction?.value
+    const fallbackConstruction = workspace.construction?.dataset?.machineValue
+      || workspace.construction?.value
       || "";
     [issues, controlPlan] = await Promise.all([
       loadProjectIssues(projectId).catch(() => []),
       loadProjectControlPlan(projectId, {
         fallbackConstruction,
-        fallbackConstructionLabel: globalThis.construction?.dataset?.displayLabel
-          || globalThis.construction?.value
+        fallbackConstructionLabel: workspace.construction?.dataset?.displayLabel
+          || workspace.construction?.value
           || ""
       }).catch(() => null)
     ]);

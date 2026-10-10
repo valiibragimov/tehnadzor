@@ -13,18 +13,14 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { initFirebaseAdmin } from "./infrastructure/firebase-admin";
 import { getAuth } from "firebase-admin/auth";
-import { ensureProjectAccess, clearProjectElements, writeImportedElements, clearExistingElementsBySourceModelId } from "./repositories/bim-repository";
+import { ensureProjectAccess, clearProjectElements, publishProjectBimModel } from "./repositories/bim-repository";
 import { reportRequestSchema, ifcImportQuerySchema, bimDeleteQuerySchema } from "./http-contract";
 import { API_ROUTES } from "../../src/shared/api-routes";
 import { createIfcWorkerPool } from "./services/ifc-worker-pool";
 const ifcWorkers = createIfcWorkerPool();
 const importIfc = createIfcImportService({
   parse: (bytes, options) => ifcWorkers.parse(bytes, options),
-  async save(projectId, model) {
-    const writtenCount = await writeImportedElements(projectId, model.elements);
-    const removedCount = await clearExistingElementsBySourceModelId(projectId, model.sourceModelId, model.elements.map(element => element.elementId));
-    return { writtenCount, removedCount };
-  }
+  save: publishProjectBimModel
 });
 import { getProfileFeed } from "./services/profile-feed";
 

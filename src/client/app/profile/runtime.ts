@@ -25,7 +25,6 @@ export function createProfileRuntime({
 
   const publishEngineerName = (value: string) => {
     currentEngineerName = value;
-    globalThis.currentUserEngineerName = value;
   };
 
   const setHeaderProfileAvatar = (dataUrl = "") => {

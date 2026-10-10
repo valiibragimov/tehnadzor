@@ -8,6 +8,7 @@ User data and inspection correctness take precedence over visual changes. Never 
 
 ## Boundaries
 
+- `src/shared/bim/publication.ts`: common atomic publication policy. Stage immutable generations before publishing the manifest; preserve revision/epoch checks. Never delete superseded generations without a reader-safe retention policy. Client declarations are generated with `npm run shared:generate`; CI/build rejects drift.
 - `src/shared/bim/types.ts`: vendor-independent engineering data, in millimetres.
 - `src/shared/bim/ifc-model.ts`: the sole IFC import adapter (WebIFC). STEP grammar belongs to the library, not regular expressions. Keep unknown measurements null. Never use rendered bounding boxes as authoritative design dimensions.
 - `server/src/application`: application policy and injected ports. No Express, Firebase, browser APIs or concrete worker implementations.
@@ -20,7 +21,7 @@ User data and inspection correctness take precedence over visual changes. Never 
 
 Single Responsibility: split by a real reason to change, not by file length. Dependency Inversion: application services consume small typed ports; composition supplies implementations. Open/Closed: add a provider through an existing port when needed, not conditionals spread across UI and services. Shared code must not depend on client, server or Firebase runtime.
 
-Use feature public APIs across feature boundaries. Do not add global state bridges. Do not add infrastructure imports to calculation or evaluation modules. Preserve stable IDs and stored Firestore contracts; a data format change needs a versioned migration and a rollback path.
+Use feature public APIs across feature boundaries. Do not add global state bridges. Pass workspace dependencies through `WorkspaceContext` at composition; features own their mutable state. Do not add infrastructure imports to calculation or evaluation modules. Preserve stable IDs and stored Firestore contracts; a data format change needs a versioned migration and a rollback path.
 
 ## HTTP contract
 
@@ -38,13 +39,15 @@ Use Node 22 (`.nvmrc`). Install root, server and functions dependencies with `np
 
 ```sh
 npm run api:check
+npm run shared:check
 npm run typecheck
 npm run lint
 npm run build
 npm test
+npm run test:integration
 npm run audit:all
 ```
 
-The test command includes smoke, core application/worker tests, and real browser tests. On Linux, install the test browser with `npx playwright install --with-deps chromium`. Windows UI tests use installed Chrome. Use synthetic fixtures; never require live production credentials. IFC changes need browser WASM and Node worker parity checks, units, placements, metadata and failure-path tests. A successful build is not evidence of a working viewer.
+The test command includes smoke, core application/worker tests, and real browser tests. On Linux, install the test browser with `npx playwright install --with-deps chromium`. Windows UI tests use installed Chrome. Use synthetic fixtures; never require live production credentials. Integration tests require Java 21+ and run only against the loopback Firestore emulator with a `demo-` project ID. IFC changes need browser WASM and Node worker parity checks, units, placements, metadata and failure-path tests. A successful build is not evidence of a working viewer.
 
 Generated outputs (`dist`, `dist-demo`, `dist-hosting`, `server/dist`, `functions/dist`, root `sw.js`, root `index.html`) are rebuilt from source. Do not edit them by hand. Do not commit node_modules, local env files, service accounts, browser profiles, audit logs or temporary screenshots. Delete files only after tracing imports and build consumers.

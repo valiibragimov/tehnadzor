@@ -1,3 +1,6 @@
+import type { WorkspaceContext } from "../../app/workspace-context.js";
+let workspace: Pick<WorkspaceContext, "getProjectId" | "getEngineerName" | "projectSelector" | "construction">;
+export function configureControlPlanWorkspace(context: typeof workspace) { workspace = context; }
 import { escapeHtml, setButtonBusyState, showNotification } from "../../utils.js";
 import { formatLastCheckDate } from "../../shared/date-time.js";
 import {
@@ -19,7 +22,7 @@ let controlPlanSearchQuery = "";
 const safeValue = (value: unknown) => escapeHtml(value == null ? "" : String(value));
 
 function getSelectedConstructionFallback() {
-  const selected = globalThis.construction;
+  const selected = workspace.construction;
   const key = selected?.dataset?.machineValue || selected?.value || "";
   return {
     key,
@@ -134,7 +137,7 @@ function getExportFileDate() {
 }
 
 function getSelectedProjectFallbackMeta() {
-  const selector = globalThis.projectSelector;
+  const selector = workspace.projectSelector;
   const selectedOption = selector && selector.selectedIndex >= 0
     ? selector.options[selector.selectedIndex]
     : null;
@@ -142,7 +145,7 @@ function getSelectedProjectFallbackMeta() {
   const engineerAttr = selectedOption
     ? (selectedOption.getAttribute("data-engineer") || selectedOption.dataset?.engineer || "")
     : "";
-  const engineerName = engineerAttr.trim() || String(globalThis.currentUserEngineerName || "").trim() || "—";
+  const engineerName = engineerAttr.trim() || String(workspace.getEngineerName() || "").trim() || "—";
   return { projectName, engineerName };
 }
 
@@ -223,7 +226,7 @@ export async function exportControlPlanPdf() {
     const { plan, rows } = exportData;
     const documentDate = formatDate(Date.now());
     const fallbackMeta = getSelectedProjectFallbackMeta();
-    const requisites = await loadDocumentRequisites(currentProjectId, {
+    const requisites = await loadDocumentRequisites(workspace.getProjectId(), {
       kind: "itp",
       date: documentDate,
       projectNameFallback: fallbackMeta.projectName,
@@ -598,7 +601,7 @@ export async function updateControlPlan() {
 
   try {
     setButtonBusyState(button, true, { busyLabel: "Обновление..." });
-    const plan = await loadProjectControlPlan(String(currentProjectId || ""), {
+    const plan = await loadProjectControlPlan(String(workspace.getProjectId() || ""), {
       fallbackConstruction: fallback.key,
       fallbackConstructionLabel: fallback.label
     });

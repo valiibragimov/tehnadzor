@@ -1,11 +1,7 @@
 import { createSourceModelIdFromFile } from "./ifc-identity.js";
 export { createSourceModelIdFromFile } from "./ifc-identity.js";
 import { APP_CONFIG } from "../../config.js";
-import {
-  clearProjectCollection,
-  deleteProjectCollectionDocsByField,
-  setProjectCollectionDocs
-} from "../repositories/firestore-repository.js";
+import { publishProjectBimModel, hideProjectBimModels } from "../repositories/bim-repository.js";
 import { getBimTypeLabel } from "./bim-elements.js";
 import type {
   IfcImportProgress,
@@ -17,7 +13,6 @@ import {
   shouldShowIfcCoordinateWarning
 } from "./ifc-diagnostics.js";
 
-const FIRESTORE_BATCH_LIMIT = 500;
 
 interface IfcImportOptions {
   sourceModelId: string;
@@ -168,20 +163,8 @@ export async function importIfcIntoProject({
     sourceModelId: parsedImport.sourceModelId
   });
 
-  const importedCount = await setProjectCollectionDocs(
-    normalizedProjectId,
-    "elements",
-    parsedImport.elements,
-    {
-      idField: "elementId",
-      serverTimestampField: "importedAt",
-      batchLimit: FIRESTORE_BATCH_LIMIT
-    }
-  );
-
-  const replacedCount = await deleteProjectCollectionDocsByField(
-    normalizedProjectId, "elements", "sourceModelId", parsedImport.sourceModelId,
-    FIRESTORE_BATCH_LIMIT, parsedImport.elements.map(element => String(element.elementId))
+  const { writtenCount: importedCount, removedCount: replacedCount } = await publishProjectBimModel(
+    normalizedProjectId, parsedImport.sourceModelId, parsedImport.elements as Array<{ elementId: string; sourceModelId: string; [key: string]: unknown }>
   );
 
   return {
@@ -211,14 +194,7 @@ export async function deleteImportedBimElements({
   }
 
   const normalizedSourceModelId = String(sourceModelId || "").trim();
-  const deletedCount = normalizedSourceModelId
-    ? await deleteProjectCollectionDocsByField(
-        normalizedProjectId,
-        "elements",
-        "sourceModelId",
-        normalizedSourceModelId
-      )
-    : await clearProjectCollection(normalizedProjectId, "elements");
+  const deletedCount = await hideProjectBimModels(normalizedProjectId, normalizedSourceModelId || undefined);
 
   return {
     ok: true,

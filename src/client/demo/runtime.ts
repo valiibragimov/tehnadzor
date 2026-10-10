@@ -45,7 +45,7 @@ export function mountDemoRuntimeControls() {
   const header = document.querySelector("header");
   if (header && !document.getElementById("demoModeBanner")) {
     header.insertAdjacentHTML("afterend", `
-      <aside id="demoModeBanner" class="construction-bar" role="status">
+      <aside id="demoModeBanner" class="demo-notice" role="status">
         <div><strong>Демонстрационный режим</strong> — используются только синтетические данные. Изменения сохраняются локально в этом браузере.</div>
         <button id="btnResetDemo" type="button" class="btn-small btn-primary lg-btn lg-btn--pill">Сбросить демо</button>
       </aside>

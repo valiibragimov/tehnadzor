@@ -30,18 +30,20 @@ const round = (n: number) => Math.round(n * 1000) / 1000;
 
 /** One WebIFC adapter for browser workers and Node workers. No STEP grammar is implemented here. */
 export async function readIfcModel(bytes: Uint8Array, options: IfcModelOptions = {}): Promise<IfcModelData> {
+  const maxElements = options.maxElements ?? 100_000;
+  if (!Number.isSafeInteger(maxElements) || maxElements < 1 || maxElements > 100_000) throw new InvalidIfcModelError("Invalid IFC element limit");
   const api = new WebIFC.IfcAPI();
   if (options.wasmPath) api.SetWasmPath(options.wasmPath, true);
-  await api.Init(undefined, true);
   let model: number | undefined;
   try {
+    await api.Init(undefined, true);
     model = api.OpenModel(bytes, { COORDINATE_TO_ORIGIN: false });
     if (model < 0 || !api.GetModelSchema(model)) throw new InvalidIfcModelError("Unsupported or invalid IFC model");
     const read = (ref: any): any => ref?.type === 5 ? api.GetLine(model!, ref.value) : ref;
-    const lines = (type: number): any[] => {
+    function* lines(type: number): Generator<any> {
       const ids = api.GetLineIDsWithType(model!, type);
-      return Array.from({ length: ids.size() }, (_, i) => api.GetLine(model!, ids.get(i)));
-    };
+      for (let i = 0; i < ids.size(); i++) yield api.GetLine(model!, ids.get(i));
+    }
     // Project units, including conversion-based units (e.g. feet). Never assume millimetres.
     const prefixes: Record<string, number> = { EXA: 1e18, PETA: 1e15, TERA: 1e12, GIGA: 1e9, MEGA: 1e6, KILO: 1e3, HECTO: 1e2, DECA: 10, DECI: .1, CENTI: .01, MILLI: .001, MICRO: 1e-6, NANO: 1e-9, PICO: 1e-12, FEMTO: 1e-15, ATTO: 1e-18 };
     const scaleUnit = (ref: any, visited = new Set<number>()): number => {
@@ -59,7 +61,7 @@ export async function readIfcModel(bytes: Uint8Array, options: IfcModelOptions =
       }
       throw new InvalidIfcModelError("Unsupported IFC length unit");
     };
-    const project = lines(WebIFC.IFCPROJECT)[0];
+    const project = (() => { for (const entry of lines(WebIFC.IFCPROJECT)) return entry; })();
     const assignment = read(project?.UnitsInContext);
     const lengthUnit = assignment?.Units?.find((ref: any) => value(read(ref)?.UnitType) === "LENGTHUNIT");
     if (!lengthUnit) throw new InvalidIfcModelError("IFC project length unit is missing");
@@ -77,6 +79,15 @@ export async function readIfcModel(bytes: Uint8Array, options: IfcModelOptions =
       if (!result.every(Number.isFinite)) throw new InvalidIfcModelError("Invalid IFC coordinate");
       return result;
     };
+    const axisTransform = (parent: Transform, axis: any): Transform => {
+      if (!axis) return parent;
+      const z = unit(vector(axis.Axis, "DirectionRatios", [0, 0, 1]));
+      const reference = unit(vector(axis.RefDirection, "DirectionRatios", [1, 0, 0]));
+      const y = unit(cross(z, reference));
+      const x = unit(cross(y, z));
+      const offset = rotate(parent, vector(axis.Location, "Coordinates", [0, 0, 0]));
+      return { origin: parent.origin.map((n, i) => n + offset[i]) as Vector, x: rotate(parent, x), y: rotate(parent, y), z: rotate(parent, z) };
+    };
     const placements = new Map<number, Transform>();
     const placement = (ref: any, active = new Set<number>()): Transform => {
       if (!ref) return identity();
@@ -87,12 +98,7 @@ export async function readIfcModel(bytes: Uint8Array, options: IfcModelOptions =
       active.add(entry.expressID);
       const parent = placement(entry.PlacementRelTo, active);
       const axis = read(entry.RelativePlacement);
-      const z = unit(vector(axis.Axis, "DirectionRatios", [0, 0, 1]));
-      const reference = unit(vector(axis.RefDirection, "DirectionRatios", [1, 0, 0]));
-      const y = unit(cross(z, reference));
-      const x = unit(cross(y, z));
-      const offset = rotate(parent, vector(axis.Location, "Coordinates", [0, 0, 0]));
-      const result: Transform = { origin: parent.origin.map((n, i) => n + offset[i]) as Vector, x: rotate(parent, x), y: rotate(parent, y), z: rotate(parent, z) };
+      const result = axisTransform(parent, axis);
       placements.set(entry.expressID, result);
       active.delete(entry.expressID);
       return result;
@@ -121,6 +127,7 @@ export async function readIfcModel(bytes: Uint8Array, options: IfcModelOptions =
     const countsByType: Record<string, number> = {};
     for (const [ifcType, type] of Object.entries(IFC_ELEMENT_TYPES)) {
       for (const entity of lines(WebIFC[ifcType as keyof typeof IFC_ELEMENT_TYPES])) {
+        if (elements.length >= maxElements) throw new InvalidIfcModelError(`IFC model exceeds the supported limit of ${maxElements} elements`);
         const properties: Record<string, any> = {};
         const propertyUnits: Record<string, any> = {};
         for (const ref of propertySets.get(entity.expressID) || []) {
@@ -148,10 +155,22 @@ export async function readIfcModel(bytes: Uint8Array, options: IfcModelOptions =
         };
         const representation = read(entity.Representation);
         const items = (representation?.Representations || []).flatMap((ref: any) => read(ref)?.Items || []);
+        let lineTransform: Transform | null = null;
+        let direction: Vector | null = null;
+        let lineLength: number | null = null;
         if (items.length === 1) {
           const solid = read(items[0]);
           if (solid?.type === WebIFC.IFCEXTRUDEDAREASOLID) {
             const profile = read(solid.SweptArea);
+            // Only an explicit swept solid defines an authoritative extrusion axis.
+            // Product placement alone does not describe a beam/wall centreline.
+            if (transform && type === "beam" && profile?.type === WebIFC.IFCRECTANGLEPROFILEDEF) {
+              const solidTransform = axisTransform(transform, read(solid.Position));
+              const profileOffset = rotate(solidTransform, vector(read(profile.Position)?.Location, "Coordinates", [0, 0, 0]));
+              lineTransform = { ...solidTransform, origin: solidTransform.origin.map((n, i) => n + profileOffset[i]) as Vector };
+              direction = unit(rotate(solidTransform, vector(solid.ExtrudedDirection, "DirectionRatios", [0, 0, 1])));
+              lineLength = number(solid.Depth);
+            }
             if (profile?.type === WebIFC.IFCRECTANGLEPROFILEDEF && number(profile.XDim) != null && number(profile.YDim) != null && number(solid.Depth) != null) {
               const a = number(profile.XDim), b = number(profile.YDim), depth = number(solid.Depth);
               if (type === "column") { dimensions.sectionWidth ??= Math.min(a!, b!); dimensions.sectionHeight ??= Math.max(a!, b!); dimensions.height ??= depth; }
@@ -161,10 +180,8 @@ export async function readIfcModel(bytes: Uint8Array, options: IfcModelOptions =
             }
           }
         }
-        const direction = transform && (type === "wall" || type === "beam") ? (type === "wall" ? transform.x : transform.z) : null;
-        const planLength = direction && dimensions.length;
-        const start = transform?.origin.map(n => round(n * mm));
-        const end = start && direction && planLength ? start.map((n, i) => round(n + direction[i] * planLength)) : null;
+        const start = lineTransform?.origin.map(n => round(n * mm));
+        const end = start && direction && lineLength && lineLength > 0 ? start.map((n, i) => round(n + direction![i] * lineLength!)) : null;
         const rawMark = pickText("bommark", "bomnumber", "parttag", "mark", "марка", "tag", "positionnumber") || text(entity.Tag);
         const name = text(entity.Name);
         const mark = rawMark || (name && /^[A-ZА-Я]{1,8}[-._/]?\d[A-ZА-Я0-9._/-]{0,35}$/iu.test(name) ? name : null);

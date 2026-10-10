@@ -45,6 +45,12 @@ jobs:
       - name: Install functions dependencies
         run: npm ci --prefix functions
 
+      - name: Setup Java for isolated Firestore tests
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
       - name: Install browser
         run: npx playwright install --with-deps chromium
 
@@ -65,3 +71,6 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Firestore integration (synthetic demo project only)
+        run: npm run test:integration

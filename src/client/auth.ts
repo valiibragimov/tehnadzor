@@ -8,7 +8,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   getAdditionalUserInfo
-} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+} from "./infrastructure/firebase/auth.js";
 import { showAlert } from "./utils.js";
 
 const PENDING_WELCOME_KEY = "pending_welcome_message";

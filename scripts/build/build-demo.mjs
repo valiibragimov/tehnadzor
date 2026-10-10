@@ -1,3 +1,4 @@
+import "./build-index-html.mjs";
 import { cp, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, extname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,6 +15,7 @@ const outputRoot = resolve(projectRoot, "dist-demo");
 const demoAdapterPlugin = {
   name: "tehnadzor-demo-adapters",
   setup(buildContext) {
+    buildContext.onResolve({ filter: /bim-repository\.js$/ }, () => ({ path: resolve(sourceRoot, "repositories", "bim-repository.ts") }));
     buildContext.onResolve({ filter: /firestore-repository\.js$/ }, () => ({
       path: resolve(sourceRoot, "repositories", "app-repository.ts")
     }));
@@ -23,13 +25,13 @@ const demoAdapterPlugin = {
     buildContext.onResolve({ filter: /ui\/lazy-libs\.js$/ }, () => ({
       path: resolve(sourceRoot, "lazy-libs-shim.ts")
     }));
-    buildContext.onResolve({ filter: /^https:\/\/www\.gstatic\.com\/firebasejs\/[^/]+\/firebase-auth\.js$/ }, () => ({
+    buildContext.onResolve({ filter: /infrastructure\/firebase\/auth\.js$/ }, () => ({
       path: resolve(sourceRoot, "firebase-auth-shim.ts")
     }));
-    buildContext.onResolve({ filter: /^https:\/\/www\.gstatic\.com\/firebasejs\/[^/]+\/firebase-firestore\.js$/ }, () => ({
+    buildContext.onResolve({ filter: /infrastructure\/firebase\/firestore\.js$/ }, () => ({
       path: resolve(sourceRoot, "firebase-firestore-shim.ts")
     }));
-    buildContext.onResolve({ filter: /^https:\/\/www\.gstatic\.com\/firebasejs\/[^/]+\/firebase-app\.js$/ }, () => ({
+    buildContext.onResolve({ filter: /infrastructure\/firebase\/app\.js$/ }, () => ({
       path: resolve(sourceRoot, "firebase-shim.ts")
     }));
     buildContext.onResolve({ filter: /^(?:\.\.\/|\.\/)+firebase\.js$/ }, () => ({

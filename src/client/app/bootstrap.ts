@@ -1,4 +1,4 @@
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { onAuthStateChanged } from "../infrastructure/firebase/auth.js";
 
 import { logoutUser } from "../auth.js";
 

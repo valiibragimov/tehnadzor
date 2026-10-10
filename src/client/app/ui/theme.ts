@@ -1,8 +1,8 @@
 import { setGlobalScrollLock } from "../../utils.js";
 
 const STORAGE_KEY = "app_theme";
-const SUN = "☀️";
-const MOON = "🌙";
+const SUN = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
+const MOON = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg>`;
 
 function normalizeTheme(theme) {
   return theme === "light" ? "light" : "dark";
@@ -30,7 +30,7 @@ function syncThemeRadio(theme) {
   }
 }
 
-function applyTheme(theme, animate = false) {
+function applyTheme(theme) {
   const normalizedTheme = normalizeTheme(theme);
   const isLight = normalizedTheme === "light";
   const btn = document.getElementById("themeToggleBtn");
@@ -41,31 +41,14 @@ function applyTheme(theme, animate = false) {
 
   if (!icon) return;
 
-  if (!animate) {
-    icon.textContent = isLight ? SUN : MOON;
-    return;
-  }
-
-  btn.classList.add("animating");
-
-  setTimeout(() => {
-    icon.textContent = isLight ? SUN : MOON;
-  }, 200);
-
-  btn.addEventListener(
-    "animationend",
-    () => {
-      btn.classList.remove("animating");
-    },
-    { once: true }
-  );
+  icon.innerHTML = isLight ? SUN : MOON;
 }
 
 function initThemeControls() {
   const btn = document.getElementById("themeToggleBtn");
   const savedTheme = getSavedTheme();
 
-  applyTheme(savedTheme, false);
+  applyTheme(savedTheme);
   localStorage.setItem(STORAGE_KEY, savedTheme);
 
   if (btn) {
@@ -73,7 +56,7 @@ function initThemeControls() {
       const currentlyLight = document.body.classList.contains("theme-light");
       const nextTheme = currentlyLight ? "dark" : "light";
       localStorage.setItem(STORAGE_KEY, nextTheme);
-      applyTheme(nextTheme, false);
+      applyTheme(nextTheme);
     });
   }
 
@@ -81,7 +64,7 @@ function initThemeControls() {
     input.addEventListener("change", () => {
       const nextTheme = normalizeTheme(input.value);
       localStorage.setItem(STORAGE_KEY, nextTheme);
-      applyTheme(nextTheme, false);
+      applyTheme(nextTheme);
     });
   });
 }
