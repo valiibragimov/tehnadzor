@@ -1,3 +1,4 @@
+import { taskLabel, taskStatus, rowStatus, actionLabel } from "../../features/control-plan/index.js";
 import type { WorkspaceContext } from "../workspace-context.js";
 let workspace: Pick<WorkspaceContext, "getProjectId" | "getEngineerName" | "projectSelector" | "construction" | "dateInput" | "nodes" | "geometryChecks">;
 let resetJournalFilters: (module?: string | null, construction?: string | null) => unknown;
@@ -1159,10 +1160,10 @@ function buildSummaryReportText() {
     lines.push(`Нельзя принимать: ${model.controlPlan.summary.blockedRows}`);
     lines.push(`Невыполненных обязательных проверок: ${model.controlPlan.summary.missingTasks}`);
     model.controlPlan.rows.slice(0, 12).forEach((row, index) => {
-      lines.push(`${index + 1}. ${row.displayName}: ${row.statusLabel}, прогресс ${row.progressDone}/${row.progressTotal}`);
+      lines.push(`${index + 1}. ${row.displayName}: ${rowStatus(row)}, прогресс ${row.progressDone}/${row.progressTotal}`);
       const blockers = row.tasks
         .filter((task) => task.status === "required" || task.status === "deviation" || task.status === "issue_open")
-        .map((task) => `${task.label}: ${task.statusLabel}`);
+        .map((task) => `${taskLabel(task)}: ${taskStatus(task)}`);
       if (blockers.length > 0) {
         lines.push(`  Требует внимания: ${blockers.join("; ")}`);
       }
@@ -1760,7 +1761,7 @@ function initSummaryHandlers() {
           drawTableRow(["N", "Конструкция", "Готовность", "Прогресс", "Следующее действие"], itpWidths, true);
           if (itpRows.length) {
             itpRows.forEach((row, index) => {
-              drawTableRow([index + 1, row.displayName, row.statusLabel, `${row.progressDone}/${row.progressTotal}`, row.nextActionLabel], itpWidths);
+              drawTableRow([index + 1, row.displayName, rowStatus(row), `${row.progressDone}/${row.progressTotal}`, actionLabel(row)], itpWidths);
             });
           } else {
             drawTableRow(["—", "Блокирующих позиций ITP нет", "—", "—", "Дополнительные действия не требуются"], itpWidths);

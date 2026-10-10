@@ -85,25 +85,7 @@ function initKnowledgeBase() {
     });
   }
 
-  // Кнопка "Все статьи"
-  const btnAllArticles = document.getElementById('btnAllArticles');
-  if (btnAllArticles) {
-    // Удаляем все старые обработчики, заменяя кнопку
-    const newBtnAllArticles = btnAllArticles.cloneNode(true);
-    btnAllArticles.parentNode.replaceChild(newBtnAllArticles, btnAllArticles);
-    
-    // Устанавливаем новый обработчик
-    const finalBtnAllArticles = document.getElementById('btnAllArticles');
-    if (finalBtnAllArticles) {
-      finalBtnAllArticles.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log('Кнопка "Все статьи" нажата');
-      showAllArticles();
-        return false;
-    });
-    }
-  }
+  document.getElementById("btnAllArticles")?.addEventListener("click", showAllArticles);
 
   // Загрузка статей (синхронно, так как они в коде)
   loadKnowledgeArticles();
@@ -848,12 +830,9 @@ function openArticle(articleId) {
       finalBtnBack.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Кнопка "Назад к статьям" нажата');
         if (currentKnowledgeSubcategory) {
-          console.log('Возврат к подкатегории:', currentKnowledgeSubcategory);
           showKnowledgeCategoryPage();
         } else {
-          console.log('Возврат к главной странице');
           showKnowledgeMainPage();
         }
         return false;
@@ -863,7 +842,6 @@ function openArticle(articleId) {
 }
 
 function showKnowledgeCategoryPage() {
-  console.log('showKnowledgeCategoryPage вызвана, подкатегория:', currentKnowledgeSubcategory);
   const mainPage = document.getElementById('knowledgeMainPage');
   const categoryPage = document.getElementById('knowledgeCategoryPage');
   const articlePage = document.getElementById('knowledgeArticlePage');
@@ -879,14 +857,11 @@ function showKnowledgeCategoryPage() {
       ? getKnowledgeConstructionCard(currentKnowledgeSubcategoryKey)
       : null;
     const constructionName = constructionCard?.title || null;
-    console.log('Загрузка статей для подкатегории:', currentKnowledgeSubcategory, 'конструкция:', constructionName);
     loadArticlesForCategory(currentKnowledgeSubcategory, constructionName, currentKnowledgeSubcategoryKey);
   } else {
     // Если нет подкатегории, показываем все статьи
-    console.log('Нет подкатегории, показываем все статьи');
     loadAllArticles();
   }
-  console.log('showKnowledgeCategoryPage завершена');
 }
 
 // Функция удалена - просмотры больше не отслеживаются
@@ -4558,13 +4533,6 @@ interface KnowledgeBreadcrumbItem {
 export function initKnowledgeModule() {
   if (knowledgeInitialized) return;
   knowledgeInitialized = true;
-
-  // Экспорт функций для использования в HTML
-  window.openKnowledgeSubcategory = openKnowledgeSubcategory;
-  window.showKnowledgeMainPage = showKnowledgeMainPage;
-  window.showKnowledgeCategoryPage = showKnowledgeCategoryPage;
-  window.showAllArticles = showAllArticles;
-  window.openArticle = openArticle;
 
   if (document.getElementById("knowledgeMainPage")) {
     initKnowledgeBase();

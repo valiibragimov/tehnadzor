@@ -1,5 +1,5 @@
 // Service Worker для Tehnadzor
-const CACHE_NAME = "tehnadzor-c8f78f96ed0e";
+const CACHE_NAME = "tehnadzor-22bc3ce6e8e5";
 const OFFLINE_URL = "index.html";
 const MANIFEST_URL = "manifest.json";
 const BYPASS_CACHE_EXTENSIONS = [".css", ".js", ".html"];
@@ -29,6 +29,8 @@ const STATIC_ASSETS = [
     "dist/app/modules/knowledge.js",
     "dist/app/modules/journal.js",
     "dist/app/services/ifc-import-worker.js",
+    "dist/app/vendor/ifc-model.bundle.js",
+    "dist/app/vendor/web-ifc.wasm",
     "dist/auth.js",
     "dist/config.js",
     "dist/utils.js",

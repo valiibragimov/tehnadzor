@@ -7,13 +7,14 @@
       <button type="button" class="module-help-toggle" data-help-target="reinfHelpContent" aria-label="Показать описание"></button>
     </div>
     <div class="subtitle module-help-content" id="reinfHelpContent" hidden>
-      Проверка защитного слоя, шага и диаметра стержней, расположения закладных элементов. 
+      Проверка защитного слоя, шага и диаметра стержней, расположения закладных элементов.
       Диаметр арматуры должен строго соответствовать проектному. Фактические значения сравниваются с проектными с учётом действующих требований и проектной документации: шаг ±20 мм (<a id="linkGOSTR57997" href="#" target="_blank" style="color: #3b82f6;">ГОСТ Р 57997-2017</a>), защитный слой ±5 мм (<a id="linkSP70Reinf" href="#" target="_blank" style="color: #3b82f6;">СП 70.13330.2012</a>).
     </div>
 
-    <div class="card geo-bim-card">
+    <details class="card geo-bim-card bim-selection">
+      <summary><span data-i18n="chooseFromModel">Выбрать элемент из модели</span><span class="bim-binding-indicator" data-i18n="bimLinked">BIM привязан</span></summary>
       <div class="geo-bim-header">
-        <h3 class="card-title">BIM-элемент</h3>
+
         <div class="geo-bim-filter">
           <label for="reinfBimTypeFilter">Тип BIM-элемента</label>
           <select id="reinfBimTypeFilter" class="ui-select">
@@ -112,7 +113,7 @@
           <input type="text" id="reinfBimAxes" placeholder="Подставляются из BIM при наличии" />
         </div>
       </div>
-    </div>
+    </details>
 
     <div class="wizard-header">
       <div class="wizard-progress" data-wizard-progress>Шаг 1 из 2</div>
@@ -133,7 +134,7 @@
         <div class="card">
           <h3 class="card-title">Сохранённые проверки армирования</h3>
           <div class="nodes" id="reinfChecksList"></div>
-          
+
           <!-- Кнопки управления -->
           <div class="actions">
             <div class="row">
@@ -214,9 +215,9 @@
           <div class="wizard-sheet-trigger-row mt8">
             <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="reinfColumnsSheet">Колонны: ввод параметров</button>
           </div>
-          <div class="wizard-sheet" id="reinfColumnsSheet" data-sheet aria-hidden="true">
-            <div class="wizard-sheet-overlay" data-sheet-close></div>
-            <div class="wizard-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="reinfColumnsSheetTitle">
+          <dialog class="wizard-sheet" id="reinfColumnsSheet" data-sheet aria-labelledby="reinfColumnsSheetTitle">
+
+            <div class="wizard-sheet-panel">
               <div class="wizard-sheet-header">
                 <h3 id="reinfColumnsSheetTitle">Колонны</h3>
                 <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
@@ -236,7 +237,7 @@
                 <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
               </div>
             </div>
-          </div>
+          </dialog>
           <hr class="sep mt8" />
         </div>
 
@@ -249,9 +250,9 @@
           <div class="wizard-sheet-trigger-row mt8">
             <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="reinfBeamsSheet">Балки: ввод параметров</button>
           </div>
-          <div class="wizard-sheet" id="reinfBeamsSheet" data-sheet aria-hidden="true">
-            <div class="wizard-sheet-overlay" data-sheet-close></div>
-            <div class="wizard-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="reinfBeamsSheetTitle">
+          <dialog class="wizard-sheet" id="reinfBeamsSheet" data-sheet aria-labelledby="reinfBeamsSheetTitle">
+
+            <div class="wizard-sheet-panel">
               <div class="wizard-sheet-header">
                 <h3 id="reinfBeamsSheetTitle">Балки</h3>
                 <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
@@ -271,7 +272,7 @@
                 <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
               </div>
             </div>
-          </div>
+          </dialog>
           <hr class="sep mt8" />
         </div>
 
@@ -284,9 +285,9 @@
           <div class="wizard-sheet-trigger-row mt8">
             <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="reinfWallsSheet">Стены: ввод параметров</button>
           </div>
-          <div class="wizard-sheet" id="reinfWallsSheet" data-sheet aria-hidden="true">
-            <div class="wizard-sheet-overlay" data-sheet-close></div>
-            <div class="wizard-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="reinfWallsSheetTitle">
+          <dialog class="wizard-sheet" id="reinfWallsSheet" data-sheet aria-labelledby="reinfWallsSheetTitle">
+
+            <div class="wizard-sheet-panel">
               <div class="wizard-sheet-header">
                 <h3 id="reinfWallsSheetTitle">Стены</h3>
                 <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
@@ -307,16 +308,16 @@
                 <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
               </div>
             </div>
-          </div>
+          </dialog>
           <hr class="sep" style="margin-top: 8px; margin-bottom: 8px;" />
         </div>
 
         <div class="wizard-sheet-trigger-row mt8">
           <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="reinfNumbersSheet">Параметры арматуры</button>
         </div>
-        <div class="wizard-sheet" id="reinfNumbersSheet" data-sheet aria-hidden="true">
-          <div class="wizard-sheet-overlay" data-sheet-close></div>
-          <div class="wizard-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="reinfNumbersSheetTitle">
+        <dialog class="wizard-sheet" id="reinfNumbersSheet" data-sheet aria-labelledby="reinfNumbersSheetTitle">
+
+          <div class="wizard-sheet-panel">
             <div class="wizard-sheet-header">
               <h3 id="reinfNumbersSheetTitle">Параметры арматуры</h3>
               <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
@@ -361,7 +362,7 @@
               <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
             </div>
           </div>
-        </div>
+        </dialog>
 
         <div id="reinforcementResult" class="result"></div>
       </div>

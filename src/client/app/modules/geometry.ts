@@ -2979,8 +2979,6 @@ function renderGeomChecks() {
 function loadGeomCheck(id) {
   const d = geomChecks.get(id);
   if (!d) return;
-  setCurrentGeomCheckId(id);
-
     if (geometryContext.setConstruction) {
       geometryContext.setConstruction(d.construction || d.constructionType || "", d.constructionSubtype || "", d.constructionPileElement || "");
     } else if (construction && d.constructionType) {
@@ -3123,6 +3121,9 @@ function loadGeomCheck(id) {
 }
 
   syncGeomBimSelectionFromCheck(d);
+  // Restoring construction emits change and clears edit IDs; restore identity last.
+  setCurrentGeomCheckId(id);
+  document.querySelector<HTMLButtonElement>('#geometry [data-wizard-step="2"]')?.click();
 }
 async function saveGeomCheck({ skipJournalOnce = false } = {}) {
   if (!validateProject(getCurrentProjectId())) return;

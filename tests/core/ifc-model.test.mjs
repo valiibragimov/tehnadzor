@@ -118,3 +118,12 @@ test("worker rejects oversized input before scheduling CPU work", async () => {
     else process.env.IFC_WORKER_MAX_BYTES = previous;
   }
 });
+
+
+test("valid unsupported grid placements preserve elements with unknown coordinates", async () => {
+  const source = new TextDecoder().decode(modelFixture()).replace("#8=IFCLOCALPLACEMENT($,#4);", "#8=IFCGRIDPLACEMENT(#30,$);\n#30=IFCVIRTUALGRIDINTERSECTION((#31,#32),(0.,0.));\n#31=IFCGRIDAXIS('A',#33,.T.);\n#32=IFCGRIDAXIS('1',#33,.T.);\n#33=IFCPOLYLINE((#5,#14));");
+  const element = (await readIfcModel(new TextEncoder().encode(source))).elements[0];
+  assert.deepEqual([element.projectX, element.projectY, element.projectH], [null, null, null]);
+  assert.equal(element.sectionWidth, 300);
+  assert.equal(element.axes, "A-1");
+});

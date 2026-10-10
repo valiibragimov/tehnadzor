@@ -1,3 +1,5 @@
+import { taskLabel, taskStatus, rowStatus, actionLabel } from "./presentation.js";
+import { t } from "../../shared/i18n/index.js";
 import type { WorkspaceContext } from "../../app/workspace-context.js";
 let workspace: Pick<WorkspaceContext, "getProjectId" | "getEngineerName" | "projectSelector" | "construction">;
 export function configureControlPlanWorkspace(context: typeof workspace) { workspace = context; }
@@ -82,8 +84,8 @@ function getFilteredRows(plan: ControlPlanResult) {
       row.constructionLabel,
       row.constructionCategoryLabel,
       row.context,
-      row.statusLabel,
-      row.nextActionLabel
+      rowStatus(row),
+      actionLabel(row)
     ].some((value) => String(value || "").toLocaleLowerCase("ru").includes(query));
   });
 }
@@ -129,7 +131,7 @@ function csvCell(value: unknown) {
 
 function getTaskExportLabel(row: ControlPlanRow, moduleKey: string) {
   const task = getTaskByModule(row.tasks, moduleKey);
-  return task ? task.statusLabel : "Не требуется";
+  return task ? taskStatus(task) : "Не требуется";
 }
 
 function getExportFileDate() {
@@ -170,9 +172,9 @@ export function exportControlPlanCsv() {
   const lines = rows.map((row) => [
     row.displayName,
     row.constructionCategoryLabel,
-    row.statusLabel,
+    rowStatus(row),
     `${row.progressDone}/${row.progressTotal}`,
-    row.nextActionLabel,
+    actionLabel(row),
     getTaskExportLabel(row, "geo"),
     getTaskExportLabel(row, "reinforcement"),
     getTaskExportLabel(row, "geometry"),
@@ -190,9 +192,9 @@ function getTaskPdfStatus(row: ControlPlanRow, moduleKey: string) {
   const task = getTaskByModule(row.tasks, moduleKey);
   if (!task) return "—";
   if (task.checksCount > 0 || task.exceededCount > 0) {
-    return `${task.statusLabel}; ${task.checksCount}/${task.exceededCount}`;
+    return `${taskStatus(task)}; ${task.checksCount}/${task.exceededCount}`;
   }
-  return task.statusLabel;
+  return taskStatus(task);
 }
 
 function getControlPlanActionRows(rows: ControlPlanRow[]) {
@@ -201,7 +203,7 @@ function getControlPlanActionRows(rows: ControlPlanRow[]) {
     .map((row) => {
       const blockers = row.tasks
         .filter((task) => attentionStatuses.has(task.status))
-        .map((task) => task.label);
+        .map((task) => taskLabel(task));
       return {
         row,
         blockers: blockers.length ? blockers.join(", ") : "—"
@@ -419,13 +421,13 @@ export async function exportControlPlanPdf() {
         [
           index + 1,
           row.displayName,
-          row.constructionCategoryLabel || "Конструкция",
+          row.constructionCategoryLabel || t("construction"),
           getTaskPdfStatus(row, "geo"),
           getTaskPdfStatus(row, "reinforcement"),
           getTaskPdfStatus(row, "geometry"),
           getTaskPdfStatus(row, "strength"),
-          `${row.statusLabel}; ${row.progressDone}/${row.progressTotal}`,
-          row.nextActionLabel
+          `${rowStatus(row)}; ${row.progressDone}/${row.progressTotal}`,
+          actionLabel(row)
         ],
         matrixWidths
       );
@@ -438,7 +440,7 @@ export async function exportControlPlanPdf() {
     if (actionRows.length) {
       actionRows.forEach((item, index) => {
         drawTableRow(
-          [index + 1, item.row.displayName, item.row.statusLabel, item.blockers, item.row.nextActionLabel],
+          [index + 1, item.row.displayName, rowStatus(item.row), item.blockers, actionLabel(item.row)],
           actionWidths
         );
       });
@@ -476,7 +478,7 @@ function renderTaskCell(task: ControlPlanTask | null) {
       data-control-plan-target="${safeValue(task.actionTarget || getModuleTarget(task.moduleKey))}"
       title="${safeValue(task.normativeBasis)}"
     >
-      ${safeValue(task.statusLabel)}
+      ${safeValue(taskStatus(task))}
     </button>
   `;
 }
@@ -485,14 +487,14 @@ function renderTaskDetails(task: ControlPlanTask) {
   return `
     <div class="control-plan-task-detail control-plan-task-detail--${safeValue(task.status)}">
       <div class="control-plan-task-detail__head">
-        <strong>${safeValue(task.label)}</strong>
-        <span>${safeValue(task.statusLabel)}</span>
+        <strong>${safeValue(taskLabel(task))}</strong>
+        <span>${safeValue(taskStatus(task))}</span>
       </div>
       <div class="control-plan-task-detail__meta">
-        <span>Этап: ${safeValue(task.stage)}</span>
-        <span>Проверок: ${task.checksCount}</span>
-        <span>Отклонений: ${task.exceededCount}</span>
-        <span>Последняя: ${safeValue(formatDate(task.latestAt))}</span>
+        <span>${t("stage")}: ${safeValue(t(`planStage_${task.moduleKey}`))}</span>
+        <span>${t("checksCount")}: ${task.checksCount}</span>
+        <span>${t("deviations")}: ${task.exceededCount}</span>
+        <span>${t("latest")}: ${safeValue(formatDate(task.latestAt))}</span>
       </div>
       <div class="control-plan-task-detail__basis">${safeValue(task.normativeBasis)}</div>
       ${task.latestDetails ? `<div class="control-plan-task-detail__details">${safeValue(task.latestDetails)}</div>` : ""}
@@ -523,7 +525,7 @@ function renderControlPlan(plan: ControlPlanResult) {
 
   if (!plan.rows.length) {
     emptyEl.hidden = false;
-    emptyEl.textContent = "Выберите объект или выполните первую проверку, чтобы сформировать план контроля.";
+    emptyEl.textContent = t("planEmpty");
     wrapEl.hidden = true;
     tableBody.innerHTML = "";
     return;
@@ -532,7 +534,7 @@ function renderControlPlan(plan: ControlPlanResult) {
   const rows = getFilteredRows(plan);
   if (!rows.length) {
     emptyEl.hidden = false;
-    emptyEl.textContent = "Нет конструкций под выбранные фильтры.";
+    emptyEl.textContent = t("planNoMatches");
     wrapEl.hidden = true;
     tableBody.innerHTML = "";
     return;
@@ -553,18 +555,18 @@ function renderControlPlan(plan: ControlPlanResult) {
           <details>
             <summary>
               <strong>${safeValue(row.displayName)}</strong>
-              <span>${safeValue(row.constructionCategoryLabel || "Конструкция")}</span>
+              <span>${safeValue(row.constructionCategoryLabel || t("construction"))}</span>
             </summary>
             <div class="control-plan-row-details">
-              ${details || '<div class="control-plan-task-detail">Нет обязательных проверок для выбранной конструкции.</div>'}
+              ${details || `<div class="control-plan-task-detail">${t("noRequiredTasks")}</div>`}
             </div>
           </details>
         </td>
         <td>
-          <span class="control-plan-status control-plan-status--${safeValue(row.status)}">${safeValue(row.statusLabel)}</span>
+          <span class="control-plan-status control-plan-status--${safeValue(row.status)}">${safeValue(rowStatus(row))}</span>
         </td>
         <td>
-          <span class="control-plan-progress">${row.progressDone}/${row.progressTotal}</span>
+          <span class="control-plan-progress-label">${t("progress")}: </span><span class="control-plan-progress">${row.progressDone}/${row.progressTotal}</span>
         </td>
         <td>
           <button
@@ -572,7 +574,7 @@ function renderControlPlan(plan: ControlPlanResult) {
             class="control-plan-next-action"
             data-control-plan-target="${safeValue(row.nextActionTarget)}"
           >
-            ${safeValue(row.nextActionLabel)}
+            ${safeValue(actionLabel(row))}
           </button>
         </td>
         <td>${renderTaskCell(geoTask)}</td>
@@ -650,6 +652,8 @@ export function initControlPlanModule() {
     controlPlanSearchQuery = searchInput.value || "";
     renderControlPlan(lastControlPlan || getEmptyControlPlan());
   });
+
+  document.addEventListener("app:language-changed", () => { if (lastControlPlan) renderControlPlan(lastControlPlan); });
 
   bindControlPlanNavigation();
 

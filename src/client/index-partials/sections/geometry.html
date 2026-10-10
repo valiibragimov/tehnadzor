@@ -8,9 +8,10 @@
     </div>
     <div class="subtitle module-help-content" id="geomHelpContent" hidden>Проверка сечения/толщины и отклонений по вертикали.</div>
 
-    <div class="card geo-bim-card">
+    <details class="card geo-bim-card bim-selection">
+      <summary><span data-i18n="chooseFromModel">Выбрать элемент из модели</span><span class="bim-binding-indicator" data-i18n="bimLinked">BIM привязан</span></summary>
       <div class="geo-bim-header">
-        <h3 class="card-title">BIM-элемент</h3>
+
         <div class="geo-bim-filter">
           <label for="geomBimTypeFilter">Тип BIM-элемента</label>
           <select id="geomBimTypeFilter" class="ui-select">
@@ -113,7 +114,7 @@
           <input type="text" id="geomBimAxes" placeholder="Подставляются из BIM при наличии" />
         </div>
       </div>
-    </div>
+    </details>
     <div class="wizard-header">
       <div class="wizard-progress" data-wizard-progress>Шаг 1 из 2</div>
       <div class="wizard-steps-nav" role="tablist" aria-label="Шаги геометрии">
@@ -133,7 +134,7 @@
         <div class="card">
           <h3 class="card-title">Сохранённые проверки геометрии</h3>
           <div class="nodes" id="geomChecksList"></div>
-          
+
           <!-- Кнопки управления -->
           <div class="actions">
             <div class="row">
@@ -233,7 +234,7 @@
           <label>Этаж </label>
           <input type="text" id="geomFloor" placeholder="Напр.: 1, 2, 3..." required />
         </div>
-        
+
         <!-- Поля для плиты: оси -->
         <div id="geomPlateFields" style="display: none;">
           <hr class="sep mt8" />
@@ -274,9 +275,9 @@
           <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="geomNumbersSheet">Размеры и отклонения</button>
         </div>
 
-        <div class="wizard-sheet" id="geomElementsSheet" data-sheet aria-hidden="true">
-          <div class="wizard-sheet-overlay" data-sheet-close></div>
-          <div class="wizard-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="geomElementsSheetTitle">
+        <dialog class="wizard-sheet" id="geomElementsSheet" data-sheet aria-labelledby="geomElementsSheetTitle">
+
+          <div class="wizard-sheet-panel">
             <div class="wizard-sheet-header">
               <h3 id="geomElementsSheetTitle">Элементы конструкции</h3>
               <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
@@ -293,7 +294,7 @@
                 </div>
                 <div id="geomColumnsList" class="mt8 scroll-list"></div>
               </div>
-              
+
               <!-- Поля для стены: привязка по осям, толщина и вертикаль -->
               <div id="geomWallFields" style="display: none;">
                 <hr class="sep mt8" />
@@ -306,7 +307,7 @@
                 </div>
                 <div id="geomWallsList" class="mt8 scroll-list"></div>
               </div>
-              
+
               <!-- Поля для лестницы: привязка по осям, маркировка, ступени -->
               <div id="geomStairFields" style="display: none;">
                 <hr class="sep mt8" />
@@ -322,7 +323,7 @@
                 </div>
                 <div id="geomStairsList" class="mt8 scroll-list"></div>
               </div>
-              
+
               <!-- Поля для балки: маркировка, ширина и высота -->
               <div id="geomBeamFields" style="display: none;">
                 <hr class="sep mt8" />
@@ -339,11 +340,11 @@
               <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
             </div>
           </div>
-        </div>
+        </dialog>
 
-        <div class="wizard-sheet" id="geomNumbersSheet" data-sheet aria-hidden="true">
-          <div class="wizard-sheet-overlay" data-sheet-close></div>
-          <div class="wizard-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="geomNumbersSheetTitle">
+        <dialog class="wizard-sheet" id="geomNumbersSheet" data-sheet aria-labelledby="geomNumbersSheetTitle">
+
+          <div class="wizard-sheet-panel">
             <div class="wizard-sheet-header">
               <h3 id="geomNumbersSheetTitle">Размеры и отклонения</h3>
               <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
@@ -387,7 +388,7 @@
                   Указывайте каждый проём в формате Ш×В через запятую. Порядок проёмов в проекте и факте должен совпадать.
                 </div>
               </div>
-                
+
               <!-- Общие поля (скрыты по умолчанию) -->
               <div id="geomCommonFields" style="display: none;">
                 <hr class="sep mt8" />
@@ -415,7 +416,7 @@
               <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
             </div>
           </div>
-        </div>
+        </dialog>
 
         <div id="geometryResult" class="result"></div>
       </div>

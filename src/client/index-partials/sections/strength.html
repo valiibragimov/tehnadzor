@@ -11,9 +11,10 @@
     </div>
     <div id="strengthUnsupportedOnlyMessage" class="geo-manual-note" hidden></div>
 
-    <div class="card geo-bim-card">
+    <details class="card geo-bim-card bim-selection">
+      <summary><span data-i18n="chooseFromModel">Выбрать элемент из модели</span><span class="bim-binding-indicator" data-i18n="bimLinked">BIM привязан</span></summary>
       <div class="geo-bim-header">
-        <h3 class="card-title">BIM-элемент</h3>
+
         <div class="geo-bim-filter">
           <label for="strengthBimTypeFilter">Тип BIM-элемента</label>
           <select id="strengthBimTypeFilter" class="ui-select">
@@ -112,7 +113,7 @@
           <input type="text" id="strengthBimAxes" placeholder="Подставляются из BIM при наличии" />
         </div>
       </div>
-    </div>
+    </details>
 
     <div class="wizard-header">
       <div class="wizard-progress" data-wizard-progress>Шаг 1 из 2</div>
@@ -133,7 +134,7 @@
         <div class="card">
           <h3 class="card-title">Сохранённые проверки прочности</h3>
           <div class="nodes" id="strengthChecksList"></div>
-          
+
           <!-- Кнопки управления -->
           <div class="actions">
             <div class="row">
@@ -170,7 +171,7 @@
           <label>Этаж </label>
           <input type="text" id="strengthFloor" placeholder="Напр.: 1, 2, 3..." required />
         </div>
-        
+
         <!-- Поля для плиты и лестницы: две буквенные и две цифровые оси -->
         <div id="strengthLocationFields" style="display: none;">
           <hr class="sep mt8" />
@@ -197,7 +198,7 @@
             <input type="text" id="strengthLocation" placeholder="Автоматически: В-Г, 6-7" readonly disabled />
           </div>
         </div>
-        
+
         <!-- Поля для колонн и балок: буквенно-цифровая маркировка -->
         <div id="strengthMarkingFields" style="display: none;">
           <hr class="sep mt8" />
@@ -206,7 +207,7 @@
             <input type="text" id="strengthMarking" placeholder="Напр.: К 1.12 или БМ 1" required />
           </div>
         </div>
-        
+
         <!-- Поля для стен: одна буквенная и две цифровые или одна цифровая и две буквенные -->
         <div id="strengthWallFields" style="display: none;">
           <hr class="sep mt8" />
@@ -250,9 +251,9 @@
         <div class="wizard-sheet-trigger-row mt8">
           <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="strengthNumbersSheet">Параметры прочности</button>
         </div>
-        <div class="wizard-sheet" id="strengthNumbersSheet" data-sheet aria-hidden="true">
-          <div class="wizard-sheet-overlay" data-sheet-close></div>
-          <div class="wizard-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="strengthNumbersSheetTitle">
+        <dialog class="wizard-sheet" id="strengthNumbersSheet" data-sheet aria-labelledby="strengthNumbersSheetTitle">
+
+          <div class="wizard-sheet-panel">
             <div class="wizard-sheet-header">
               <h3 id="strengthNumbersSheetTitle">Параметры прочности</h3>
               <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
@@ -277,7 +278,7 @@
               <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
             </div>
           </div>
-        </div>
+        </dialog>
 
         <div class="caption">Примечание: кривая — приближённая модель.</div>
         <div id="strengthResult" class="result"></div>

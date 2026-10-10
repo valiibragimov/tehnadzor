@@ -88,15 +88,19 @@ export async function readIfcModel(bytes: Uint8Array, options: IfcModelOptions =
       const offset = rotate(parent, vector(axis.Location, "Coordinates", [0, 0, 0]));
       return { origin: parent.origin.map((n, i) => n + offset[i]) as Vector, x: rotate(parent, x), y: rotate(parent, y), z: rotate(parent, z) };
     };
-    const placements = new Map<number, Transform>();
-    const placement = (ref: any, active = new Set<number>()): Transform => {
+    const placements = new Map<number, Transform | null>();
+    const placement = (ref: any, active = new Set<number>()): Transform | null => {
       if (!ref) return identity();
       const entry = read(ref);
+      if (!entry) throw new InvalidIfcModelError("Missing IFC placement reference");
+      if (!entry) throw new InvalidIfcModelError("Missing IFC placement reference");
       if (placements.has(entry.expressID)) return placements.get(entry.expressID)!;
       if (active.size > 128 || active.has(entry.expressID)) throw new InvalidIfcModelError("Cyclic or excessive IFC placement depth");
-      if (entry.type !== WebIFC.IFCLOCALPLACEMENT) throw new InvalidIfcModelError("Unsupported IFC placement; engineering coordinates cannot be inferred safely");
+      if (entry.type !== WebIFC.IFCLOCALPLACEMENT) return null;
       active.add(entry.expressID);
       const parent = placement(entry.PlacementRelTo, active);
+      if (!parent) return null;
+      if (!parent) return null;
       const axis = read(entry.RelativePlacement);
       const result = axisTransform(parent, axis);
       placements.set(entry.expressID, result);

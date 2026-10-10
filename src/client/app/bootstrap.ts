@@ -1,3 +1,4 @@
+import { initInspectionWorkspace } from "./ui/inspection-workspace.js";
 import { onAuthStateChanged } from "../infrastructure/firebase/auth.js";
 
 import { logoutUser } from "../auth.js";
@@ -89,6 +90,12 @@ export function initAuthBootstrap({
 }
 
 export function initStaticBootstrap({ regulatoryDocs, showNotification }: StaticBootstrapOptions) {
+  document.querySelector("header")?.classList.remove("header-hidden");
+  initInspectionWorkspace();
+  document.querySelector("[data-workspace-home]")?.addEventListener("click", () => {
+    document.querySelector<HTMLButtonElement>('.tab[data-target="overview"]')?.click();
+    window.scrollTo({ top: 0, behavior: "instant" });
+  });
   const bindStaticUi = () => {
     const linkSP70 = document.getElementById("linkSP70") as HTMLAnchorElement | null;
     const linkSP126 = document.getElementById("linkSP126") as HTMLAnchorElement | null;

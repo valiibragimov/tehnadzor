@@ -33,5 +33,13 @@ await build({
   logLevel: "info"
 });
 
+// Keep the worker's local module graph in one precached entry; WASM stays lazy and shared.
+await build({
+  entryPoints: [resolve(projectRoot, "src/client/app/services/ifc-import-worker.ts")],
+  outfile: resolve(projectRoot, "dist/app/services/ifc-import-worker.js"),
+  bundle: true, format: "esm", platform: "browser", target: ["es2022"],
+  minify: true, logLevel: "info"
+});
+
 await copyFile(wasmSource, resolve(outDir, "web-ifc.wasm"));
 await copyFile(ifcLiteWasmSource, resolve(outDir, "ifc-lite_bg.wasm"));

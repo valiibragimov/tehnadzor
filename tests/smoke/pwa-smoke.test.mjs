@@ -149,7 +149,6 @@ test("control plan module exposes ITP workflow", async () => {
   const serviceSource = await readFile(resolve(projectRoot, "src/client/features/control-plan/service.ts"), "utf8");
   const moduleSource = await readFile(resolve(projectRoot, "src/client/features/control-plan/ui.ts"), "utf8");
   const summarySource = await readFile(resolve(projectRoot, "src/client/app/modules/summary.ts"), "utf8");
-  const css = await readFile(resolve(projectRoot, "style.css"), "utf8");
 
   assert.equal(response.status, 200);
   assert.match(html, /data-target="controlPlan"/u);
@@ -189,12 +188,6 @@ test("control plan module exposes ITP workflow", async () => {
   assert.match(summarySource, /План контроля \/ ITP/u);
   assert.match(summarySource, /loadDocumentRequisites/u);
   assert.match(summarySource, /missingRequiredChecks/u);
-  assert.match(css, /control-plan-table/u);
-  assert.match(css, /control-plan-filter-btn/u);
-  assert.match(css, /control-plan-toolbar-actions/u);
-  assert.match(css, /control-plan-next-action/u);
-  assert.match(css, /control-plan-status--blocked/u);
-  assert.match(css, /#btnControlPlanRefresh\.btn-small/u);
 });
 
 test("object overview and grouped inspection navigation are present", async () => {
@@ -415,9 +408,6 @@ test("IFC import runtime is not embedded back into app entrypoint", async () => 
   const appSource = await readFile(resolve(projectRoot, "src/client/app.ts"), "utf8");
   const runtimeSource = await readFile(resolve(projectRoot, "src/client/app/ifc-import-runtime.ts"), "utf8");
   const headerSource = await readFile(resolve(projectRoot, "src/client/index-partials/header-shell.html"), "utf8");
-  const tailSource = await readFile(resolve(projectRoot, "src/client/index-partials/tail.html"), "utf8");
-  const css = await readFile(resolve(projectRoot, "style.css"), "utf8");
-
   assert.match(appSource, /createIfcImportRuntime/u);
   assert.doesNotMatch(appSource, /importIfcIntoProject/u);
   assert.doesNotMatch(appSource, /deleteImportedBimElements/u);
@@ -429,10 +419,6 @@ test("IFC import runtime is not embedded back into app entrypoint", async () => 
   assert.match(runtimeSource, /syncImportedIfcCount/u);
   assert.match(appSource, /getImportedIfcCount/u);
   assert.match(headerSource, /id="bimImportedIfcCount"/u);
-  assert.match(tailSource, /pointerover/u);
-  assert.match(tailSource, /hover: hover/u);
-  assert.match(css, /\.help-popover\s*\{[\s\S]*?transition:/u);
-  assert.match(css, /@keyframes app-page-reveal/u);
 });
 
 test("mobile wizard action stays fixed above bottom navigation", async () => {

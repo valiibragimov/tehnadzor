@@ -29,6 +29,8 @@ const STATIC_ASSETS = [
   "dist/app/modules/knowledge.js",
   "dist/app/modules/journal.js",
   "dist/app/services/ifc-import-worker.js",
+  "dist/app/vendor/ifc-model.bundle.js",
+  "dist/app/vendor/web-ifc.wasm",
   "dist/auth.js",
   "dist/config.js",
   "dist/utils.js",

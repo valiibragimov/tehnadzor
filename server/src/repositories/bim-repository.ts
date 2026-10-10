@@ -1,6 +1,6 @@
-import { getFirestore } from "firebase-admin/firestore";
+import { FieldPath, FieldValue, getFirestore } from "firebase-admin/firestore";
 import { randomUUID } from "node:crypto";
-import { publishBimModel, hideBimModels, type BimStore } from "../../../src/shared/bim/publication";
+import { publishBimModel, hideBimModels, collectBimGenerations, type BimStore } from "../../../src/shared/bim/publication";
 import type { IfcModelData } from "../../../src/shared/bim/types";
 
 export async function ensureProjectAccess(projectId: string, uid: string) {
@@ -16,13 +16,26 @@ export function createAdminBimStore(projectId: string): BimStore {
   const document = (path: string) => root.collection(path.split("/")[0]).doc(path.split("/")[1]);
   return {
     id: randomUUID,
+    timestamp: () => FieldValue.serverTimestamp(),
+    async page(name, options) {
+      let request = root.collection(name).orderBy(FieldPath.documentId()).limit(options.limit);
+      if (options.filter) request = request.where(options.filter.field, "==", options.filter.value);
+      if (options.after) request = request.startAfter(options.after);
+      return (await request.get()).docs.map(doc => ({ id: doc.id, data: doc.data() }));
+    },
     async get(path) { return (await document(path).get()).data() || null; },
     async list(name, filter) {
-      const collection = root.collection(name);
-      const snapshot = await (filter ? collection.where(filter.field, "==", filter.value) : collection).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, data: doc.data() }));
+      const documents = [];
+      let after: string | undefined;
+      for (;;) {
+        const page = await this.page(name, { filter, after, limit: 200 });
+        documents.push(...page);
+        if (page.length < 200) return documents;
+        after = page[page.length - 1].id;
+      }
     },
-    async batch(documents) {
+    async batch(documents, guard) {
+      if (guard) return this.transaction(async tx => { await guard(tx); for (const entry of documents) tx.set(entry.path, entry.data); });
       const batch = database.batch();
       for (const entry of documents) batch.set(document(entry.path), entry.data);
       await batch.commit();
@@ -31,7 +44,8 @@ export function createAdminBimStore(projectId: string): BimStore {
       if (!(await transaction.get(root)).exists) throw Object.assign(new Error("Project not found"), { status: 404 });
       return action({
         async get(path) { return (await transaction.get(document(path))).data() || null; },
-        set(path, data) { transaction.set(document(path), data); }
+        set(path, data) { transaction.set(document(path), data); },
+        delete(path) { transaction.delete(document(path)); }
       });
     })
   };
@@ -42,4 +56,8 @@ export function publishProjectBimModel(projectId: string, model: IfcModelData) {
 }
 export function clearProjectElements(projectId: string, sourceModelId?: string) {
   return hideBimModels(createAdminBimStore(projectId), sourceModelId);
+}
+
+export function collectProjectBimGenerations(projectId: string) {
+  return collectBimGenerations(createAdminBimStore(projectId));
 }

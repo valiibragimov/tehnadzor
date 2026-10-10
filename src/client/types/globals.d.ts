@@ -64,11 +64,6 @@ declare global {
     clients?: Clients;
     skipWaiting?: () => Promise<void> | void;
     chartJsWarningShown?: boolean;
-    openKnowledgeSubcategory?: (...args: unknown[]) => unknown;
-    showKnowledgeMainPage?: (...args: unknown[]) => unknown;
-    showKnowledgeCategoryPage?: (...args: unknown[]) => unknown;
-    showAllArticles?: (...args: unknown[]) => unknown;
-    openArticle?: (...args: unknown[]) => unknown;
   }
 
 }

@@ -6,7 +6,7 @@
        HEADER
        ======================= -->
   <header>
-    <div class="brand" role="button" tabindex="0" onclick="document.querySelector('.tab[data-target=\'overview\']').click(); window.scrollTo({ top: 0, behavior: 'smooth' });" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); this.click(); }">
+    <button class="brand" type="button" data-workspace-home data-i18n-aria="overview">
       <svg width="24" height="24" viewBox="0 0 40 30" class="brand-icon">
         <!-- Кирпичи - первый ряд -->
         <rect x="2" y="2" width="12" height="6" class="brand-brick brand-brick-1" rx="1" />
@@ -26,8 +26,8 @@
         <rect x="9" y="26" width="12" height="4" class="brand-brick brand-brick-9" rx="1" />
         <rect x="23" y="26" width="12" height="4" class="brand-brick brand-brick-10" rx="1" />
       </svg>
-        <h1>Tehnadzor</h1>
-    </div>
+        <span class="brand-title">Tehnadzor</span>
+    </button>
 
 
     <!-- Правая панель: дата и профиль -->

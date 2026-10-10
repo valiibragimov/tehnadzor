@@ -8,7 +8,7 @@ User data and inspection correctness take precedence over visual changes. Never 
 
 ## Boundaries
 
-- `src/shared/bim/publication.ts`: common atomic publication policy. Stage immutable generations before publishing the manifest; preserve revision/epoch checks. Never delete superseded generations without a reader-safe retention policy. Client declarations are generated with `npm run shared:generate`; CI/build rejects drift.
+- `src/shared/bim/publication.ts`: common atomic publication policy. Stage immutable generations before publishing the manifest; preserve revision/epoch checks. Use the fenced generation registry, cursor pages and renewable reader leases. GC must transactionally validate the coordination revision and relevant leases after scanning readers, fence staging writers before deleting chunks, and preserve active manifests. Never collect unregistered legacy generations without quiescing old writers and verifying receipts. Retain immutable engineering snapshots across concurrent catalog changes. Client declarations are generated with `npm run shared:generate`; CI/build rejects drift.
 - `src/shared/bim/types.ts`: vendor-independent engineering data, in millimetres.
 - `src/shared/bim/ifc-model.ts`: the sole IFC import adapter (WebIFC). STEP grammar belongs to the library, not regular expressions. Keep unknown measurements null. Never use rendered bounding boxes as authoritative design dimensions.
 - `server/src/application`: application policy and injected ports. No Express, Firebase, browser APIs or concrete worker implementations.

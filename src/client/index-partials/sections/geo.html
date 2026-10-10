@@ -224,9 +224,9 @@
               <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="geoCoordinatesSheet">Координаты X/Y/H</button>
             </div>
 
-            <div class="wizard-sheet" id="geoElementsSheet" data-sheet aria-hidden="true">
-              <div class="wizard-sheet-overlay" data-sheet-close></div>
-              <div class="wizard-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="geoElementsSheetTitle">
+            <dialog class="wizard-sheet" id="geoElementsSheet" data-sheet aria-labelledby="geoElementsSheetTitle">
+
+              <div class="wizard-sheet-panel">
                 <div class="wizard-sheet-header">
                   <h3 id="geoElementsSheetTitle">Элементы конструкции</h3>
                   <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
@@ -276,11 +276,11 @@
                   <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
                 </div>
               </div>
-            </div>
+            </dialog>
 
-            <div class="wizard-sheet" id="geoCoordinatesSheet" data-sheet aria-hidden="true">
-              <div class="wizard-sheet-overlay" data-sheet-close></div>
-              <div class="wizard-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="geoCoordinatesSheetTitle">
+            <dialog class="wizard-sheet" id="geoCoordinatesSheet" data-sheet aria-labelledby="geoCoordinatesSheetTitle">
+
+              <div class="wizard-sheet-panel">
                 <div class="wizard-sheet-header">
                   <h3 id="geoCoordinatesSheetTitle">Координаты</h3>
                   <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
@@ -377,7 +377,7 @@
                   <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
                 </div>
               </div>
-            </div>
+            </dialog>
 
             <div id="geoResult" class="result"></div>
           </div>

@@ -25,8 +25,75 @@ service cloud.firestore {
       allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
       allow read, update, delete: if isProjectOwner(projectId);
 
+      function stateRevision() {
+        let path = /databases/$(database)/documents/projects/$(projectId)/bimState/current;
+        return exists(path) ? get(path).data.get("revision", 0) : 0;
+      }
+      function catalogAdvanced() {
+        return getAfter(/databases/$(database)/documents/projects/$(projectId)/bimState/current).data.revision == stateRevision() + 1;
+      }
+      function generationAfter(id) {
+        return getAfter(/databases/$(database)/documents/projects/$(projectId)/bimGenerations/$(id)).data;
+      }
+      match /elements/{id} {
+        // Legacy BIM is immutable during the generation migration. Admin backfills are explicit.
+        allow read: if isProjectOwner(projectId);
+      }
+      match /bimState/{id} {
+        allow read: if isProjectOwner(projectId);
+        allow create, update: if isProjectOwner(projectId) && id == "current"
+          && request.resource.data.schemaVersion == 1 && catalogAdvanced();
+      }
+      match /bimGenerations/{id} {
+        allow read: if isProjectOwner(projectId);
+        allow create: if isProjectOwner(projectId)
+          && request.resource.data.keys().hasOnly(["sourceModelId", "status", "updatedAt"])
+          && request.resource.data.sourceModelId is string
+          && request.resource.data.status == "staging" && request.resource.data.updatedAt == request.time;
+        allow update: if isProjectOwner(projectId) && (
+          (resource.data.status == "staging" && request.resource.data.updatedAt == request.time
+            && request.resource.data.sourceModelId == resource.data.sourceModelId
+            && (request.resource.data.status == "staging" ||
+              (request.resource.data.status == "ready" && catalogAdvanced()
+                && getAfter(/databases/$(database)/documents/projects/$(projectId)/bimModels/$(resource.data.sourceModelId)).data.generation == id)))
+          || (resource.data.status == "ready" && request.resource.data.status == "ready"
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["retiredAt"])
+            && request.resource.data.retiredAt == request.time && catalogAdvanced())
+        );
+      }
+      match /bimElements/{id} {
+        allow read: if isProjectOwner(projectId);
+        allow create: if isProjectOwner(projectId)
+          && generationAfter(request.resource.data.bimGeneration).status == "staging"
+          && generationAfter(request.resource.data.bimGeneration).updatedAt == request.time
+          && generationAfter(request.resource.data.bimGeneration).sourceModelId == request.resource.data.sourceModelId;
+      }
+      match /bimModels/{id} {
+        allow read: if isProjectOwner(projectId);
+        allow create, update: if isProjectOwner(projectId) && catalogAdvanced()
+          && request.resource.data.schemaVersion == 1 && request.resource.data.sourceModelId == id
+          && (request.resource.data.deleted == true ||
+            (generationAfter(request.resource.data.generation).status == "ready"
+              && generationAfter(request.resource.data.generation).sourceModelId == id));
+      }
+      match /bimPublications/{id} {
+        allow read: if isProjectOwner(projectId);
+        allow create: if isProjectOwner(projectId) && catalogAdvanced()
+          && request.resource.data.generation == id
+          && getAfter(/databases/$(database)/documents/projects/$(projectId)/bimModels/$(request.resource.data.sourceModelId)).data == request.resource.data;
+      }
+      match /bimReaders/{id} {
+        allow read, delete: if isProjectOwner(projectId);
+        allow create: if isProjectOwner(projectId) && catalogAdvanced()
+          && request.resource.data.keys().hasOnly(["generations", "updatedAt"])
+          && request.resource.data.generations is list && request.resource.data.updatedAt == request.time;
+        allow update: if isProjectOwner(projectId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["updatedAt"])
+          && request.resource.data.updatedAt == request.time;
+      }
       match /{subCollection}/{docId} {
-        allow read, write: if isProjectOwner(projectId);
+        allow read, write: if isProjectOwner(projectId)
+          && !(subCollection in ["elements", "bimState", "bimGenerations", "bimElements", "bimModels", "bimPublications", "bimReaders"]);
       }
     }
 

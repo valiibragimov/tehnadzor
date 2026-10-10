@@ -17,3 +17,5 @@ export type {
   ControlPlanTask,
   ControlPlanTaskStatus
 } from "./service.js";
+
+export { taskLabel, taskStatus, rowStatus, actionLabel } from "./presentation.js";

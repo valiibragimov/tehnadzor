@@ -41,6 +41,7 @@
     "test:ui": "node --test tests/ui/*.test.mjs",
     "shared:generate": "node scripts/build/generate-shared.mjs",
     "shared:check": "node scripts/build/generate-shared.mjs --check",
+    "bim:gc": "node ./server/dist/server/src/maintenance/bim-gc.js",
     "test:integration": "npm run build:server:ts && npx --yes firebase-tools@15.33.0 emulators:exec --only firestore --project demo-tehnadzor-test --config firebase.emulator.json \"node --test tests/integration/*.test.mjs\""
   },
   "dependencies": {

@@ -5,12 +5,20 @@ import { startStaticServer } from "../smoke/helpers/static-server.mjs";
 import { resolve } from "node:path";
 import { modelFixture } from "../fixtures/ifc.mjs";
 
-test("real browser worker loads local WebIFC WASM and returns engineering data", async () => {
+test("first offline IFC import uses precached parser and WASM", { timeout: 60000 }, async () => {
   const server = await startStaticServer(resolve("."));
   const browser = await chromium.launch({ headless: true, ...(process.platform === "win32" ? { channel: "chrome" } : {}) });
   try {
     const page = await browser.newPage();
     await page.goto(`${server.url}/dist-demo/demo.html`);
+    await page.evaluate(async () => {
+      await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+      await navigator.serviceWorker.ready;
+      if (!navigator.serviceWorker.controller) await new Promise(resolve => navigator.serviceWorker.addEventListener("controllerchange", resolve, { once: true }));
+    });
+    const cached = await page.evaluate(async () => Promise.all(["/dist/app/vendor/ifc-model.bundle.js", "/dist/app/vendor/web-ifc.wasm"].map(async path => !!await caches.match(path))));
+    assert.deepEqual(cached, [true, true]);
+    await page.context().setOffline(true);
     const result = await page.evaluate(({ bytes, url }) => new Promise((resolve, reject) => {
       const worker = new Worker(url, { type: "module" });
       const timeout = setTimeout(() => { worker.terminate(); reject(new Error("IFC worker timed out")); }, 15000);
