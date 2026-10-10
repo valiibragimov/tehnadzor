@@ -93,15 +93,14 @@ export async function readIfcModel(bytes: Uint8Array, options: IfcModelOptions =
       if (!ref) return identity();
       const entry = read(ref);
       if (!entry) throw new InvalidIfcModelError("Missing IFC placement reference");
-      if (!entry) throw new InvalidIfcModelError("Missing IFC placement reference");
       if (placements.has(entry.expressID)) return placements.get(entry.expressID)!;
       if (active.size > 128 || active.has(entry.expressID)) throw new InvalidIfcModelError("Cyclic or excessive IFC placement depth");
       if (entry.type !== WebIFC.IFCLOCALPLACEMENT) return null;
       active.add(entry.expressID);
       const parent = placement(entry.PlacementRelTo, active);
-      if (!parent) return null;
-      if (!parent) return null;
+      if (!parent) { placements.set(entry.expressID, null); active.delete(entry.expressID); return null; }
       const axis = read(entry.RelativePlacement);
+      if (!axis) throw new InvalidIfcModelError("Missing IFC relative placement");
       const result = axisTransform(parent, axis);
       placements.set(entry.expressID, result);
       active.delete(entry.expressID);
@@ -158,7 +157,11 @@ export async function readIfcModel(bytes: Uint8Array, options: IfcModelOptions =
           sectionHeight: dimension("sectionheight", "concreteprofheight", "dimheight")
         };
         const representation = read(entity.Representation);
-        const items = (representation?.Representations || []).flatMap((ref: any) => read(ref)?.Items || []);
+        const representations = (representation?.Representations || []).map(read);
+        // Exporters commonly include Axis/Box/FootPrint alongside Body. These are not extra solids.
+        const bodies = representations.filter((entry: any) => text(entry?.RepresentationIdentifier)?.toLowerCase() === "body");
+        const items = (bodies.length ? bodies : representations.filter((entry: any) => !text(entry?.RepresentationIdentifier)))
+          .flatMap((entry: any) => entry?.Items || []);
         let lineTransform: Transform | null = null;
         let direction: Vector | null = null;
         let lineLength: number | null = null;

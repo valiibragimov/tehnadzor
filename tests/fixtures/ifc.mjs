@@ -31,3 +31,16 @@ DATA;
 ENDSEC;
 END-ISO-10303-21;`);
 }
+
+// Exporter-shaped cases: multiple representations, nested placements, mapped and CSG bodies.
+export function engineeringFixtures() {
+  const base = new TextDecoder().decode(modelFixture());
+  const encode = source => new TextEncoder().encode(source);
+  const append = (source, lines) => source.replace("ENDSEC;\nEND-ISO", `${lines}\nENDSEC;\nEND-ISO`);
+  return {
+    bodyAndAxis: encode(append(base.replace("(#19));", "(#30,#19));"), "#30=IFCSHAPEREPRESENTATION(#2,'Axis','Curve3D',(#31));\n#31=IFCPOLYLINE((#5,#14));")),
+    nestedRotation: encode(append(base.replace("#8=IFCLOCALPLACEMENT($,#4)", "#8=IFCLOCALPLACEMENT(#30,#4)"), "#30=IFCLOCALPLACEMENT($,#31);\n#31=IFCAXIS2PLACEMENT3D(#32,#33,#34);\n#32=IFCCARTESIANPOINT((4000000.,5000000.,100.));\n#33=IFCDIRECTION((0.,0.,1.));\n#34=IFCDIRECTION((0.,1.,0.));")),
+    mappedBody: encode(append(base.replace("'SweptSolid',(#16)", "'MappedRepresentation',(#30)"), "#30=IFCMAPPEDITEM(#31,#32);\n#31=IFCREPRESENTATIONMAP(#15,#33);\n#32=IFCCARTESIANTRANSFORMATIONOPERATOR3D($,$,#14,1.,$);\n#33=IFCSHAPEREPRESENTATION(#2,'Body','SweptSolid',(#16));")),
+    booleanBody: encode(append(base.replace("'SweptSolid',(#16)", "'CSG',(#30)"), "#30=IFCBOOLEANRESULT(.DIFFERENCE.,#16,#31);\n#31=IFCEXTRUDEDAREASOLID(#12,#32,#13,1.);\n#32=IFCAXIS2PLACEMENT3D(#33,$,$);\n#33=IFCCARTESIANPOINT((0.1,0.1,1.));"))
+  };
+}

@@ -84,7 +84,7 @@ const demoHtml = productionHtml
   .replace(/<body class="home-page">/i, '<body class="home-page theme-dark">')
   .replace(
     /<meta name="viewport"([^>]+)>/i,
-    `<meta name="viewport"$1>\n  <meta name="robots" content="noindex,nofollow">\n  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'none'; form-action 'self'; object-src 'none'">`
+    `<meta name="viewport"$1>\n  <meta name="robots" content="noindex,nofollow">\n  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; base-uri 'none'; form-action 'self'; object-src 'none'">`
   )
   .replace(/<link rel="stylesheet" href="style\.css\?v=\d+"\s*\/?>/i, '<link rel="stylesheet" href="./style.css">')
   .replace(/<link rel="stylesheet" href="liquid-glass\.css\?v=\d+"\s*\/?>/i, '<link rel="stylesheet" href="./liquid-glass.css">')
@@ -93,6 +93,12 @@ const demoHtml = productionHtml
 
 await writeFile(resolve(outputRoot, "demo.html"), demoHtml, "utf8");
 await cp(resolve(projectRoot, "style.css"), resolve(outputRoot, "style.css"));
+// Real import path and vendor WASM are exercised in the isolated demo as well.
+await mkdir(resolve(outputRoot, "dist/app/services"), { recursive: true });
+await mkdir(resolve(outputRoot, "dist/app/vendor"), { recursive: true });
+await cp(resolve(projectRoot, "dist/app/services/ifc-import-worker.js"), resolve(outputRoot, "dist/app/services/ifc-import-worker.js"));
+for (const file of ["ifc-model.bundle.js", "web-ifc.wasm"]) await cp(resolve(projectRoot, "dist/app/vendor", file), resolve(outputRoot, "dist/app/vendor", file));
+
 await cp(resolve(projectRoot, "liquid-glass.css"), resolve(outputRoot, "liquid-glass.css"));
 await cp(
   resolve(projectRoot, "src", "client", "app", "modules", "summary", "analytics-block.html"),

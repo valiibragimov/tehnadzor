@@ -1,14 +1,14 @@
     <section class="section" id="reinforcement">
   <div class="wizard" data-wizard="reinforcement" data-steps="2">
     <div class="module-title-row">
-      <h2>
+      <h2 data-i18n="form_reinforcement_inspection">
         Контроль армирования
       </h2>
-      <button type="button" class="module-help-toggle" data-help-target="reinfHelpContent" aria-label="Показать описание"></button>
+      <button type="button" class="module-help-toggle" data-help-target="reinfHelpContent" aria-label="Показать описание" data-i18n-aria="form_show_help"></button>
     </div>
-    <div class="subtitle module-help-content" id="reinfHelpContent" hidden>
+    <div class="subtitle module-help-content" id="reinfHelpContent" hidden><span data-i18n="form_inspect_concrete_cover_bar_spacing_diameter_and_embedded_items_bar_dia">
       Проверка защитного слоя, шага и диаметра стержней, расположения закладных элементов.
-      Диаметр арматуры должен строго соответствовать проектному. Фактические значения сравниваются с проектными с учётом действующих требований и проектной документации: шаг ±20 мм (<a id="linkGOSTR57997" href="#" target="_blank" style="color: #3b82f6;">ГОСТ Р 57997-2017</a>), защитный слой ±5 мм (<a id="linkSP70Reinf" href="#" target="_blank" style="color: #3b82f6;">СП 70.13330.2012</a>).
+      Диаметр арматуры должен строго соответствовать проектному. Фактические значения сравниваются с проектными с учётом действующих требований и проектной документации: шаг ±20 мм (</span><a id="linkGOSTR57997" href="#" target="_blank" style="color: #3b82f6;">ГОСТ Р 57997-2017</a>), защитный слой ±5 мм (<a id="linkSP70Reinf" href="#" target="_blank" style="color: #3b82f6;">СП 70.13330.2012</a>).
     </div>
 
     <details class="card geo-bim-card bim-selection">
@@ -16,30 +16,29 @@
       <div class="geo-bim-header">
 
         <div class="geo-bim-filter">
-          <label for="reinfBimTypeFilter">Тип BIM-элемента</label>
+          <label for="reinfBimTypeFilter" data-i18n="form_bim_element_type">Тип BIM-элемента</label>
           <select id="reinfBimTypeFilter" class="ui-select">
-            <option value="all">Все типы</option>
+            <option value="all" data-i18n="form_all_types">Все типы</option>
           </select>
         </div>
         <div class="geo-bim-filter">
-          <label for="reinfBimAxesFilter">Фильтр по осям</label>
+          <label for="reinfBimAxesFilter" data-i18n="form_filter_by_grid_axes">Фильтр по осям</label>
           <select id="reinfBimAxesFilter" class="ui-select">
-            <option value="all">Все оси</option>
+            <option value="all" data-i18n="form_all_grid_axes">Все оси</option>
           </select>
         </div>
         <div class="geo-bim-filter geo-bim-filter--search">
-          <label for="reinfBimSearchInput">Поиск по BIM</label>
+          <label for="reinfBimSearchInput" data-i18n="form_search_bim">Поиск по BIM</label>
           <input
             type="search"
             id="reinfBimSearchInput"
-            placeholder="Марка, оси, этаж, GUID или ID элемента"
+            placeholder="Марка, оси, этаж, GUID или ID элемента" data-i18n-placeholder="form_mark_grid_axes_floor_guid_or_element_id"
             autocomplete="off"
           />
         </div>
         <div class="bim-viewer-action-stack">
           <button type="button" id="btnClearReinfBimSelection" class="btn-small btn-secondary lg-btn lg-btn--pill bim-import-action">
-            <span class="lg-btn__label">Сбросить BIM</span>
-            <span class="lg-btn__glow" aria-hidden="true"></span>
+            <span class="lg-btn__label" data-i18n="form_clear_bim_selection">Сбросить BIM</span>
           </button>
           <div class="bim-viewer-launcher-slot" data-bim-viewer-slot="reinforcement">
             <div class="bim-viewer-launcher bim-viewer-launcher--placeholder" aria-hidden="true">
@@ -47,10 +46,9 @@
                 type="button"
                 class="btn-small btn-secondary lg-btn lg-btn--pill bim-viewer-launcher__button"
                 tabindex="-1"
-                title="Открыть BIM-viewer"
+                title="Открыть BIM-viewer" data-i18n-title="form_open_bim_viewer"
               >
-                <span class="lg-btn__label">Открыть BIM-viewer</span>
-                <span class="lg-btn__glow" aria-hidden="true"></span>
+                <span class="lg-btn__label" data-i18n="form_open_bim_viewer">Открыть BIM-viewer</span>
               </button>
             </div>
           </div>
@@ -58,73 +56,71 @@
       </div>
       <div class="geo-bim-mainrow mt8">
         <div>
-          <label>Выбор элемента из BIM</label>
+          <label data-i18n="form_select_bim_element">Выбор элемента из BIM</label>
           <select id="reinfBimElementSelect" class="ui-select">
-            <option value="">Ручной ввод без BIM</option>
+            <option value="" data-i18n="form_manual_entry_without_bim">Ручной ввод без BIM</option>
           </select>
         </div>
         <div class="geo-bim-status-field" hidden>
-          <label>Статус BIM-привязки</label>
+          <label data-i18n="form_bim_binding_status">Статус BIM-привязки</label>
           <div id="reinfBimElementStatus" class="subtitle geo-bim-status" hidden data-empty="1"></div>
         </div>
       </div>
       <div id="reinfBimSourceCard" class="geo-bim-source bim-panel-redundant mt8" hidden>
         <div class="geo-bim-source__header">
           <div class="geo-bim-source__heading">
-            <div class="geo-bim-source__eyebrow">Источник BIM</div>
-            <div id="reinfBimSourceTitle" class="geo-bim-source__title">BIM-элемент не выбран</div>
+            <div class="geo-bim-source__eyebrow" data-i18n="form_bim_source">Источник BIM</div>
+            <div id="reinfBimSourceTitle" class="geo-bim-source__title" data-i18n="form_no_bim_element_selected">BIM-элемент не выбран</div>
           </div>
           <div id="reinfBimSourceState" class="geo-bim-source__state"></div>
         </div>
         <div id="reinfBimSourceMeta" class="geo-bim-source__meta"></div>
         <div class="geo-bim-source__grid mt8">
           <div class="geo-bim-source__chip">
-            <span>Тип конструкции</span>
-            <strong id="reinfBimAppliedType">Нет данных</strong>
+            <span data-i18n="form_structure_type">Тип конструкции</span>
+            <strong id="reinfBimAppliedType" data-i18n="form_no_data">Нет данных</strong>
           </div>
           <div class="geo-bim-source__chip">
-            <span>Этаж</span>
-            <strong id="reinfBimAppliedFloor">Нет данных</strong>
+            <span data-i18n="form_floor">Этаж</span>
+            <strong id="reinfBimAppliedFloor" data-i18n="form_no_data">Нет данных</strong>
           </div>
           <div class="geo-bim-source__chip">
-            <span>Марка</span>
-            <strong id="reinfBimAppliedMark">Нет данных</strong>
+            <span data-i18n="form_mark">Марка</span>
+            <strong id="reinfBimAppliedMark" data-i18n="form_no_data">Нет данных</strong>
           </div>
           <div class="geo-bim-source__chip">
-            <span>Оси</span>
-            <strong id="reinfBimAppliedAxes">Нет данных</strong>
+            <span data-i18n="form_grid_axes">Оси</span>
+            <strong id="reinfBimAppliedAxes" data-i18n="form_no_data">Нет данных</strong>
           </div>
           <div class="geo-bim-source__chip">
-            <span>Армирование из BIM</span>
-            <strong id="reinfBimAppliedRebar">Пока ручной ввод</strong>
+            <span data-i18n="form_bim_reinforcement">Армирование из BIM</span>
+            <strong id="reinfBimAppliedRebar" data-i18n="form_manual_entry">Пока ручной ввод</strong>
           </div>
         </div>
-        <div id="reinfBimSourceHint" class="geo-bim-source__hint">
+        <div id="reinfBimSourceHint" class="geo-bim-source__hint" data-i18n="form_bim_supplies_type_floor_grid_axes_and_column_beam_marks_enter_bar_diam">
           Из текущего BIM-MVP в армирование надёжно приходят тип, этаж, BIM-оси и марка для колонн/балок. Диаметр, шаг и защитный слой пока вводятся вручную.
         </div>
       </div>
       <div class="geo-bim-meta-row bim-panel-redundant mt8">
         <div>
-          <label>Марка BIM</label>
-          <input type="text" id="reinfBimMark" placeholder="Подставляется из BIM при выборе элемента" />
+          <label data-i18n="form_bim_mark">Марка BIM</label>
+          <input type="text" id="reinfBimMark" placeholder="Подставляется из BIM при выборе элемента" data-i18n-placeholder="form_filled_from_the_selected_bim_element" />
         </div>
         <div>
-          <label>Оси BIM</label>
-          <input type="text" id="reinfBimAxes" placeholder="Подставляются из BIM при наличии" />
+          <label data-i18n="form_bim_axes">Оси BIM</label>
+          <input type="text" id="reinfBimAxes" placeholder="Подставляются из BIM при наличии" data-i18n-placeholder="form_filled_from_bim_when_available" />
         </div>
       </div>
     </details>
 
     <div class="wizard-header">
-      <div class="wizard-progress" data-wizard-progress>Шаг 1 из 2</div>
+      <div class="wizard-progress" data-wizard-progress data-i18n="form_step_1_of_2">Шаг 1 из 2</div>
       <div class="wizard-steps-nav" role="tablist" aria-label="Шаги армирования">
         <button type="button" class="wizard-step-btn is-active btn-small btn-secondary lg-btn lg-btn--pill" data-wizard-step="1">
-          <span class="lg-btn__label">Проверки</span>
-          <span class="lg-btn__glow" aria-hidden="true"></span>
+          <span class="lg-btn__label" data-i18n="form_inspections">Проверки</span>
         </button>
         <button type="button" class="wizard-step-btn btn-small btn-secondary lg-btn lg-btn--pill" data-wizard-step="2">
-          <span class="lg-btn__label">Параметры</span>
-          <span class="lg-btn__glow" aria-hidden="true"></span>
+          <span class="lg-btn__label" data-i18n="form_parameters">Параметры</span>
         </button>
       </div>
     </div>
@@ -132,30 +128,27 @@
     <div class="split wizard-steps">
       <div class="col wizard-step" data-step="1">
         <div class="card">
-          <h3 class="card-title">Сохранённые проверки армирования</h3>
+          <h3 class="card-title" data-i18n="form_saved_reinforcement_inspections">Сохранённые проверки армирования</h3>
           <div class="nodes" id="reinfChecksList"></div>
 
           <!-- Кнопки управления -->
           <div class="actions">
             <div class="row">
               <button id="btnReinf" class="btn-primary lg-btn lg-btn--pill wizard-hide-mobile" data-ignore-lock="1">
-                <span class="lg-btn__label">Проверить и сохранить</span>
-                <span class="lg-btn__glow" aria-hidden="true"></span>
+                <span class="lg-btn__label" data-i18n="form_inspect_and_save">Проверить и сохранить</span>
               </button>
             </div>
             <div class="row">
               <button id="btnClearReinfForm" class="btn-small btn-secondary lg-btn lg-btn--pill">
-                <span class="lg-btn__label">Очистить форму</span>
-                <span class="lg-btn__glow" aria-hidden="true"></span>
+                <span class="lg-btn__label" data-i18n="form_reset_form">Очистить форму</span>
               </button>
             </div>
             <div class="row">
               <button id="btnClearReinfChecks" class="btn-small btn-secondary lg-btn lg-btn--pill">
-                <span class="lg-btn__label">Очистить проверки</span>
-                <span class="lg-btn__glow" aria-hidden="true"></span>
+                <span class="lg-btn__label" data-i18n="form_clear_inspections">Очистить проверки</span>
               </button>
             </div>
-            <button id="btnSaveReinfCheck" class="btn-small" style="display:none;">💾 Сохранить проверку</button>
+            <button id="btnSaveReinfCheck" class="btn-small" style="display:none;" data-i18n="form_save_inspection">💾 Сохранить проверку</button>
           </div>
         </div>
       </div>
@@ -167,41 +160,41 @@
         <div id="reinfLocationFields" style="display: none;">
           <!-- Поле наименования для лестницы -->
           <div id="reinfStairNameField" style="display: none;">
-            <label>Наименование лестницы</label>
-            <input type="text" id="reinfStairName" placeholder="Напр.: Лестница Л3" />
+            <label data-i18n="form_stair_name">Наименование лестницы</label>
+            <input type="text" id="reinfStairName" placeholder="Напр.: Лестница Л3" data-i18n-placeholder="form_e_g_stair_3" />
           </div>
           <div>
-            <label>Этаж </label>
-            <input type="text" id="reinfFloor" placeholder="Напр.: 1, 2, 3..." required />
+            <label data-i18n="form_floor">Этаж </label>
+            <input type="text" id="reinfFloor" placeholder="Напр.: 1, 2, 3..." data-i18n-placeholder="form_e_g_1_2_3" required />
           </div>
           <div id="reinfStripAxisModeField" class="mt8" style="display: none;">
-            <label>Режим осей</label>
+            <label data-i18n="form_grid_mode">Режим осей</label>
             <select id="reinfStripAxisMode" class="ui-select">
-              <option value="letter_numbers">Одна цифровая + две буквенные</option>
-              <option value="number_letters">Две цифровые + одна буквенная</option>
+              <option value="letter_numbers" data-i18n="form_one_number_axis_and_two_letter_axes">Одна цифровая + две буквенные</option>
+              <option value="number_letters" data-i18n="form_two_number_axes_and_one_letter_axis">Две цифровые + одна буквенная</option>
             </select>
           </div>
           <div class="grid-4 mt8">
             <div id="reinfAxisLetterFromField">
-              <label id="reinfAxisLetterFromLabel">От буквенной оси</label>
+              <label id="reinfAxisLetterFromLabel" data-i18n="form_from_letter_grid_axis">От буквенной оси</label>
               <select id="reinfAxisLetterFrom" class="ui-select"></select>
             </div>
             <div id="reinfAxisLetterToField">
-              <label id="reinfAxisLetterToLabel">До буквенной оси</label>
+              <label id="reinfAxisLetterToLabel" data-i18n="form_to_letter_grid_axis">До буквенной оси</label>
               <select id="reinfAxisLetterTo" class="ui-select"></select>
             </div>
             <div id="reinfAxisNumberFromField">
-              <label id="reinfAxisNumberFromLabel">От цифровой оси</label>
+              <label id="reinfAxisNumberFromLabel" data-i18n="form_from_number_grid_axis">От цифровой оси</label>
               <select id="reinfAxisNumberFrom" class="ui-select"></select>
             </div>
             <div id="reinfAxisNumberToField">
-              <label id="reinfAxisNumberToLabel">До цифровой оси</label>
+              <label id="reinfAxisNumberToLabel" data-i18n="form_to_number_grid_axis">До цифровой оси</label>
               <select id="reinfAxisNumberTo" class="ui-select"></select>
             </div>
           </div>
           <div class="mt8">
-            <label>Местоположение</label>
-            <input type="text" id="reinfLocation" placeholder="Автоматически: В-Г, 6-7" readonly disabled />
+            <label data-i18n="form_location">Местоположение</label>
+            <input type="text" id="reinfLocation" placeholder="Автоматически: В-Г, 6-7" data-i18n-placeholder="form_auto_6_7" readonly disabled />
           </div>
           <hr class="sep mt8" />
         </div>
@@ -209,32 +202,31 @@
         <!-- Поля для колонн: этаж и маркировка -->
         <div id="reinfColumnFields" style="display: none;">
           <div>
-            <label>Этаж </label>
-            <input type="text" id="reinfColumnFloor" placeholder="Напр.: 1, 2, 3..." required />
+            <label data-i18n="form_floor">Этаж </label>
+            <input type="text" id="reinfColumnFloor" placeholder="Напр.: 1, 2, 3..." data-i18n-placeholder="form_e_g_1_2_3" required />
           </div>
           <div class="wizard-sheet-trigger-row mt8">
-            <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="reinfColumnsSheet">Колонны: ввод параметров</button>
+            <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="reinfColumnsSheet" data-i18n="form_column_parameters">Колонны: ввод параметров</button>
           </div>
           <dialog class="wizard-sheet" id="reinfColumnsSheet" data-sheet aria-labelledby="reinfColumnsSheetTitle">
 
             <div class="wizard-sheet-panel">
               <div class="wizard-sheet-header">
-                <h3 id="reinfColumnsSheetTitle">Колонны</h3>
-                <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
+                <h3 id="reinfColumnsSheetTitle" data-i18n="form_columns">Колонны</h3>
+                <button type="button" class="wizard-sheet-close" data-sheet-close data-i18n="form_close">Закрыть</button>
               </div>
               <div class="wizard-sheet-body">
                 <div id="reinfColumnsBlock">
                   <div class="add-btn-row">
                     <button type="button" id="btnAddReinfColumn" class="btn-small btn-secondary lg-btn lg-btn--pill lg-btn--compact">
-                      <span class="lg-btn__label">+ Добавить колонну</span>
-                      <span class="lg-btn__glow" aria-hidden="true"></span>
+                      <span class="lg-btn__label" data-i18n="form_add_column">+ Добавить колонну</span>
                     </button>
                   </div>
                   <div id="reinfColumnsList" class="scroll-list"></div>
                 </div>
               </div>
               <div class="wizard-sheet-footer">
-                <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
+                <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close data-i18n="form_done">Готово</button>
               </div>
             </div>
           </dialog>
@@ -244,32 +236,31 @@
         <!-- Поля для балок: этаж и маркировка -->
         <div id="reinfBeamFields" style="display: none;">
           <div>
-          <label>Этаж </label>
-          <input type="text" id="reinfBeamFloor" placeholder="Напр.: 1, 2, 3..." required />
+          <label data-i18n="form_floor">Этаж </label>
+          <input type="text" id="reinfBeamFloor" placeholder="Напр.: 1, 2, 3..." data-i18n-placeholder="form_e_g_1_2_3" required />
           </div>
           <div class="wizard-sheet-trigger-row mt8">
-            <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="reinfBeamsSheet">Балки: ввод параметров</button>
+            <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="reinfBeamsSheet" data-i18n="form_beam_parameters">Балки: ввод параметров</button>
           </div>
           <dialog class="wizard-sheet" id="reinfBeamsSheet" data-sheet aria-labelledby="reinfBeamsSheetTitle">
 
             <div class="wizard-sheet-panel">
               <div class="wizard-sheet-header">
-                <h3 id="reinfBeamsSheetTitle">Балки</h3>
-                <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
+                <h3 id="reinfBeamsSheetTitle" data-i18n="form_beams">Балки</h3>
+                <button type="button" class="wizard-sheet-close" data-sheet-close data-i18n="form_close">Закрыть</button>
               </div>
               <div class="wizard-sheet-body">
                 <div id="reinfBeamsBlock">
                   <div class="add-btn-row" style="margin-bottom: 8px;">
                     <button type="button" id="btnAddReinfBeam" class="btn-small btn-secondary lg-btn lg-btn--pill lg-btn--compact">
-                      <span class="lg-btn__label">+ Добавить балку</span>
-                      <span class="lg-btn__glow" aria-hidden="true"></span>
+                      <span class="lg-btn__label" data-i18n="form_add_beam">+ Добавить балку</span>
                     </button>
                   </div>
                   <div id="reinfBeamsList" class="scroll-list"></div>
                 </div>
               </div>
               <div class="wizard-sheet-footer">
-                <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
+                <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close data-i18n="form_done">Готово</button>
               </div>
             </div>
           </dialog>
@@ -279,33 +270,32 @@
         <!-- Поля для стены: этаж и привязка -->
         <div id="reinfWallFields" style="display: none;">
           <div style="margin-bottom: 8px;">
-          <label>Этаж </label>
-          <input type="text" id="reinfWallFloor" placeholder="Напр.: 1, 2, 3..." required />
+          <label data-i18n="form_floor">Этаж </label>
+          <input type="text" id="reinfWallFloor" placeholder="Напр.: 1, 2, 3..." data-i18n-placeholder="form_e_g_1_2_3" required />
           </div>
           <div class="wizard-sheet-trigger-row mt8">
-            <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="reinfWallsSheet">Стены: ввод параметров</button>
+            <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="reinfWallsSheet" data-i18n="form_wall_parameters">Стены: ввод параметров</button>
           </div>
           <dialog class="wizard-sheet" id="reinfWallsSheet" data-sheet aria-labelledby="reinfWallsSheetTitle">
 
             <div class="wizard-sheet-panel">
               <div class="wizard-sheet-header">
-                <h3 id="reinfWallsSheetTitle">Стены</h3>
-                <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
+                <h3 id="reinfWallsSheetTitle" data-i18n="form_walls">Стены</h3>
+                <button type="button" class="wizard-sheet-close" data-sheet-close data-i18n="form_close">Закрыть</button>
               </div>
               <div class="wizard-sheet-body">
                 <div id="reinfWallsBlock" style="margin-top: 6px;">
                   <div class="add-btn-row add-btn-row--between">
                     <label><b id="reinfWallsLimitLabel">Стены</b></label>
                     <button type="button" id="btnAddReinfWall" class="btn-small btn-secondary lg-btn lg-btn--pill lg-btn--compact">
-                      <span class="lg-btn__label">+ Добавить стену</span>
-                      <span class="lg-btn__glow" aria-hidden="true"></span>
+                      <span class="lg-btn__label" data-i18n="form_add_wall">+ Добавить стену</span>
                     </button>
                   </div>
                   <div id="reinfWallsList" class="scroll-list"></div>
                 </div>
               </div>
               <div class="wizard-sheet-footer">
-                <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
+                <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close data-i18n="form_done">Готово</button>
               </div>
             </div>
           </dialog>
@@ -313,53 +303,53 @@
         </div>
 
         <div class="wizard-sheet-trigger-row mt8">
-          <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="reinfNumbersSheet">Параметры арматуры</button>
+          <button type="button" class="btn-small btn-secondary lg-btn lg-btn--pill" data-sheet-target="reinfNumbersSheet" data-i18n="form_reinforcement_parameters">Параметры арматуры</button>
         </div>
         <dialog class="wizard-sheet" id="reinfNumbersSheet" data-sheet aria-labelledby="reinfNumbersSheetTitle">
 
           <div class="wizard-sheet-panel">
             <div class="wizard-sheet-header">
-              <h3 id="reinfNumbersSheetTitle">Параметры арматуры</h3>
-              <button type="button" class="wizard-sheet-close" data-sheet-close>Закрыть</button>
+              <h3 id="reinfNumbersSheetTitle" data-i18n="form_reinforcement_parameters">Параметры арматуры</h3>
+              <button type="button" class="wizard-sheet-close" data-sheet-close data-i18n="form_close">Закрыть</button>
             </div>
             <div class="wizard-sheet-body">
               <div class="grid-2" id="reinfCommonFields">
                 <div>
-                    <label>Проектный диаметр арматуры</label>
-                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="projDia" placeholder="мм" />
+                    <label data-i18n="form_design_bar_diameter">Проектный диаметр арматуры</label>
+                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="projDia" placeholder="мм" data-i18n-placeholder="form_mm" />
                 </div>
                 <div>
-                    <label>Фактический диаметр арматуры</label>
-                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="factDia" placeholder="мм" />
+                    <label data-i18n="form_measured_bar_diameter">Фактический диаметр арматуры</label>
+                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="factDia" placeholder="мм" data-i18n-placeholder="form_mm" />
                 </div>
                 <div>
-                    <label>Проектный шаг арматуры</label>
-                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="projStep" placeholder="мм" />
+                    <label data-i18n="form_design_bar_spacing">Проектный шаг арматуры</label>
+                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="projStep" placeholder="мм" data-i18n-placeholder="form_mm" />
                 </div>
                 <div>
-                    <label>Фактический шаг арматуры</label>
-                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="factStep" placeholder="мм" />
+                    <label data-i18n="form_measured_bar_spacing">Фактический шаг арматуры</label>
+                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="factStep" placeholder="мм" data-i18n-placeholder="form_mm" />
                 </div>
                 <div>
-                    <label>Проектный защитный слой</label>
-                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="projCover" placeholder="мм" />
+                    <label data-i18n="form_design_concrete_cover">Проектный защитный слой</label>
+                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="projCover" placeholder="мм" data-i18n-placeholder="form_mm" />
                 </div>
                 <div>
-                    <label>Фактический защитный слой</label>
-                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="factCover" placeholder="мм" />
+                    <label data-i18n="form_measured_concrete_cover">Фактический защитный слой</label>
+                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="factCover" placeholder="мм" data-i18n-placeholder="form_mm" />
                 </div>
                 <div id="reinfProjHoopsStepField" style="display: none;">
-                  <label>Проектный шаг хомутов</label>
-                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="reinfProjHoopsStep" placeholder="мм" />
+                  <label data-i18n="form_design_stirrup_spacing">Проектный шаг хомутов</label>
+                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="reinfProjHoopsStep" placeholder="мм" data-i18n-placeholder="form_mm" />
                 </div>
                 <div id="reinfFactHoopsStepField" style="display: none;">
-                  <label>Фактический шаг хомутов</label>
-                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="reinfFactHoopsStep" placeholder="мм" />
+                  <label data-i18n="form_measured_stirrup_spacing">Фактический шаг хомутов</label>
+                  <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="reinfFactHoopsStep" placeholder="мм" data-i18n-placeholder="form_mm" />
                 </div>
               </div>
             </div>
             <div class="wizard-sheet-footer">
-              <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close>Готово</button>
+              <button type="button" class="btn-primary lg-btn lg-btn--pill" data-sheet-close data-i18n="form_done">Готово</button>
             </div>
           </div>
         </dialog>
@@ -369,7 +359,7 @@
     </div>
 
     <div class="wizard-footer" data-wizard-footer>
-      <button type="button" class="btn-primary lg-btn lg-btn--pill wizard-primary-btn" data-trigger="#btnReinf">Сохранить</button>
+      <button type="button" class="btn-primary lg-btn lg-btn--pill wizard-primary-btn" data-trigger="#btnReinf" data-i18n="form_save">Сохранить</button>
     </div>
   </div>
 </section>

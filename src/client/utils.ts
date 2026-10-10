@@ -1,3 +1,4 @@
+import { t } from "./shared/i18n/index.js";
 import { VALID_LETTER_AXES } from "./config.js";
 import {
   getConstructionModuleBehavior,
@@ -231,6 +232,7 @@ export function setButtonBusyState(
   const labelEl = button.querySelector(".lg-btn__label");
   const textTarget = labelEl || button;
   const defaultLabel = String(
+    (textTarget.getAttribute("data-i18n") ? t(textTarget.getAttribute("data-i18n")) : "") ||
     options.defaultLabel ||
     button.dataset.defaultLabel ||
     textTarget.textContent ||

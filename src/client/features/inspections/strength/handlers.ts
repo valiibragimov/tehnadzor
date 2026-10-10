@@ -238,10 +238,10 @@ export function createStrengthActions({
           : evaluateStrengthCheck(check);
       const statusTag =
         evaluation.status === "exceeded"
-          ? '<span class="tag bad">превышено</span>'
+          ? '<span class="tag bad" data-i18n="saved_exceeded">превышено</span>'
           : evaluation.status === "ok"
-            ? '<span class="tag ok">в норме</span>'
-            : '<span class="tag" style="background: #9ca3af; color: #1f2937; font-weight: 600;">не заполнено</span>';
+            ? '<span class="tag ok" data-i18n="saved_ok">в норме</span>'
+            : '<span class="tag" data-i18n="saved_empty">не заполнено</span>';
       const row = dom.document.createElement("div");
       row.className = "node node-enhanced node-card-compact";
       row.dataset.id = id;
@@ -252,7 +252,7 @@ export function createStrengthActions({
           <div class="node-header">
             <div class="node-title">
               <span class="node-icon">💪</span>
-              Проверка от ${formatDate(check.createdAt)}
+              <span data-i18n="saved_inspection_on">Проверка от</span> ${formatDate(check.createdAt)}
             </div>
             <div class="node-header-controls">
               ${statusTag}
@@ -261,20 +261,20 @@ export function createStrengthActions({
           </div>
           <div class="node-data">
             <div class="node-data-row">
-              <span class="node-label">Класс/Марка:</span>
+              <span class="node-label" data-i18n="saved_class">Класс/Марка:</span>
               <span class="node-values"><strong>${check.mark ? escapeHtml(check.mark) : "—"}</strong></span>
             </div>
             <div class="node-data-row">
-              <span class="node-label">Дней:</span>
+              <span class="node-label" data-i18n="saved_days">Дней:</span>
               <span class="node-values">${escapeHtml(check.days ?? "—")}</span>
             </div>
             <div class="node-data-row">
-              <span class="node-label">Факт. прочность:</span>
+              <span class="node-label" data-i18n="saved_actual_strength">Факт. прочность:</span>
               <span class="node-values"><strong>${formatNodeValue(check.actual, "МПа")}</strong></span>
             </div>
             ${
               check.floor
-                ? `<div class="node-data-row"><span class="node-label">Этаж:</span><span class="node-values">${escapeHtml(check.floor)}</span></div>`
+                ? `<div class="node-data-row"><span class="node-label" data-i18n="saved_floor">Этаж:</span><span class="node-values">${escapeHtml(check.floor)}</span></div>`
                 : ""
             }
           </div>
@@ -327,7 +327,7 @@ export function createStrengthActions({
       form.setUnsupportedState({ notify: true });
       return;
     }
-    if (!dom.floor?.value.trim()) {
+    if (flags.behavior.floorRequired !== false && !dom.floor?.value.trim()) {
       notify("Поле 'Этаж' обязательно для заполнения.", "error");
       dom.floor?.focus();
       return;

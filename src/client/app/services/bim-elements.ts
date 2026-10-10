@@ -1,3 +1,4 @@
+import { translateEngineeringLabel } from "../../shared/i18n/index.js";
 import type { BimElement, BimElementType, GeoPrefill } from "../../types/domain.js";
 
 const BIM_DISPLAY_LABELS = Object.freeze({
@@ -89,7 +90,8 @@ function normalizeIfcTextValue(value) {
 }
 
 function getDisplayTypeLabel(type) {
-  return BIM_DISPLAY_LABELS[String(type || "").trim().toLowerCase()] || null;
+  const label = BIM_DISPLAY_LABELS[String(type || "").trim().toLowerCase()];
+  return label || null;
 }
 
 function normalizeBimType(value: unknown): BimElementType | null {
@@ -207,7 +209,7 @@ export function getTehnadzorTypeByBimType(type) {
 }
 
 export function getBimTypeLabel(type) {
-  return getDisplayTypeLabel(type) || "Элемент";
+  return translateEngineeringLabel(getDisplayTypeLabel(type) || "Элемент");
 }
 
 export function buildGeoPrefillFromBimElement(element: Partial<BimElement> = {}): GeoPrefill {
@@ -232,17 +234,21 @@ export function buildGeoPrefillFromBimElement(element: Partial<BimElement> = {})
   };
 }
 
+const normalizedRecords = new WeakMap<object, BimElement>();
+
 export function normalizeProjectBimElement(
   docId,
   data: Partial<BimElement> & Record<string, unknown> = {}
 ): BimElement {
+  const cached = Object.isFrozen(data) ? normalizedRecords.get(data) : undefined;
+  if (cached?.id === docId) return cached;
   const name = normalizeIfcTextValue(data.name);
   const description = normalizeIfcTextValue(data.description);
   const objectType = normalizeIfcTextValue(data.objectType);
   const rawMark = normalizeIfcTextValue(data.mark);
   const type = normalizeBimType(data.type);
 
-  return {
+  const normalized: BimElement = {
     id: normalizeTextValue(docId),
     elementId: normalizeTextValue(data.elementId) || normalizeTextValue(docId),
     sourceModelId: normalizeTextValue(data.sourceModelId),
@@ -279,10 +285,12 @@ export function normalizeProjectBimElement(
     lineEndH: toFiniteNumber(data.lineEndH),
     resolvedAxes: normalizeIfcTextValue(data.resolvedAxes)
   };
+  if (Object.isFrozen(data)) { Object.freeze(normalized); normalizedRecords.set(data, normalized); }
+  return normalized;
 }
 
 export function formatBimElementLabel(element: Partial<BimElement> = {}) {
-  const typeLabel = getDisplayTypeLabel(element.type) || "Элемент IFC";
+  const typeLabel = translateEngineeringLabel(getDisplayTypeLabel(element.type) || "Элемент IFC");
   const identifier = pickBestBimIdentifier(element);
   return identifier ? `${typeLabel} ${identifier}` : typeLabel;
 }

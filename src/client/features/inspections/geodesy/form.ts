@@ -659,19 +659,19 @@ export function createGeodesyForm({
         </div>
         <div class="grid-2">
           <div>
-            <label>Проектная X</label>
+            <label data-i18n="form_design_x">Проектная X</label>
             <input type="number" inputmode="decimal" class="geo-opening-point-projX" data-id="${safeValue(point.id)}" placeholder="мм" value="${safeValue(point.projX)}" />
           </div>
           <div>
-            <label>Проектная Y</label>
+            <label data-i18n="form_design_y">Проектная Y</label>
             <input type="number" inputmode="decimal" class="geo-opening-point-projY" data-id="${safeValue(point.id)}" placeholder="мм" value="${safeValue(point.projY)}" />
           </div>
           <div>
-            <label>Фактическая X</label>
+            <label data-i18n="form_measured_x">Фактическая X</label>
             <input type="number" inputmode="decimal" class="geo-opening-point-factX" data-id="${safeValue(point.id)}" placeholder="мм" value="${safeValue(point.factX)}" />
           </div>
           <div>
-            <label>Фактическая Y</label>
+            <label data-i18n="form_measured_y">Фактическая Y</label>
             <input type="number" inputmode="decimal" class="geo-opening-point-factY" data-id="${safeValue(point.id)}" placeholder="мм" value="${safeValue(point.factY)}" />
           </div>
         </div>
@@ -910,19 +910,19 @@ export function createGeodesyForm({
         </div>
         <div class="grid-4">
           <div>
-            <label>Проектная X</label>
+            <label data-i18n="form_design_x">Проектная X</label>
             <input type="number" inputmode="decimal" class="col-projX" data-id="${safeValue(col.id)}" data-col-index="${index}" placeholder="мм" value="${safeValue(col.projX)}" />
           </div>
           <div>
-            <label>Фактическая X</label>
+            <label data-i18n="form_measured_x">Фактическая X</label>
             <input type="number" inputmode="decimal" class="col-factX" data-id="${safeValue(col.id)}" data-col-index="${index}" placeholder="мм" value="${safeValue(col.factX)}" />
           </div>
           <div>
-            <label>Проектная Y</label>
+            <label data-i18n="form_design_y">Проектная Y</label>
             <input type="number" inputmode="decimal" class="col-projY" data-id="${safeValue(col.id)}" data-col-index="${index}" placeholder="мм" value="${safeValue(col.projY)}" />
           </div>
           <div>
-            <label>Фактическая Y</label>
+            <label data-i18n="form_measured_y">Фактическая Y</label>
             <input type="number" inputmode="decimal" class="col-factY" data-id="${safeValue(col.id)}" data-col-index="${index}" placeholder="мм" value="${safeValue(col.factY)}" />
           </div>
         </div>
@@ -1072,21 +1072,21 @@ export function createGeodesyForm({
         axisFields = `
           <div class="grid-3" style="margin-bottom: 8px;">
             <div>
-              <label>Цифровая ось </label>
+              <label data-i18n="form_number_grid_axis">Цифровая ось </label>
               <select class="wall-number-axis" data-id="${safeWallId}" style="width: 100%;">
                 <option value="">-- Выберите --</option>
                 ${defaultNumbers.map(n => `<option value="${n}" ${wall.numberAxis === n ? "selected" : ""}>${n}</option>`).join("")}
               </select>
             </div>
             <div>
-              <label>Буквенная ось 1 </label>
+              <label data-i18n="form_letter_grid_axis_1">Буквенная ось 1 </label>
               <select class="wall-letter-axis1" data-id="${safeWallId}" style="width: 100%;">
                 <option value="">-- Выберите --</option>
                 ${defaultRusLetters.map(l => `<option value="${l}" ${wall.letterAxis1 === l ? "selected" : ""}>${l}</option>`).join("")}
               </select>
             </div>
             <div>
-              <label>Буквенная ось 2 </label>
+              <label data-i18n="form_letter_grid_axis_2">Буквенная ось 2 </label>
               <select class="wall-letter-axis2" data-id="${safeWallId}" style="width: 100%;">
                 <option value="">-- Выберите --</option>
                 ${defaultRusLetters.map(l => `<option value="${l}" ${wall.letterAxis2 === l ? "selected" : ""}>${l}</option>`).join("")}
@@ -1098,38 +1098,38 @@ export function createGeodesyForm({
           <div style="margin-bottom: 8px;"><b>Координаты для ${safeNumberAxis}, ${safeLetterAxis1}:</b></div>
           <div class="grid-4" style="margin-bottom: 8px;">
             <div>
-              <label>Проектная X</label>
+              <label data-i18n="form_design_x">Проектная X</label>
               <input type="number" inputmode="decimal" class="wall-projX-num-let1" data-id="${safeWallId}" data-wall-index="${index}" placeholder="мм" value="${safeValue(wall.projX_num_let1)}" />
             </div>
             <div>
-              <label>Фактическая X</label>
+              <label data-i18n="form_measured_x">Фактическая X</label>
               <input type="number" inputmode="decimal" class="wall-factX-num-let1" data-id="${safeWallId}" data-wall-index="${index}" placeholder="мм" value="${safeValue(wall.factX_num_let1)}" />
             </div>
             <div>
-              <label>Проектная Y</label>
+              <label data-i18n="form_design_y">Проектная Y</label>
               <input type="number" inputmode="decimal" class="wall-projY-num-let1" data-id="${safeWallId}" data-wall-index="${index}" placeholder="мм" value="${safeValue(wall.projY_num_let1)}" />
             </div>
             <div>
-              <label>Фактическая Y</label>
+              <label data-i18n="form_measured_y">Фактическая Y</label>
               <input type="number" inputmode="decimal" class="wall-factY-num-let1" data-id="${safeWallId}" data-wall-index="${index}" placeholder="мм" value="${safeValue(wall.factY_num_let1)}" />
             </div>
           </div>
           <div style="margin-bottom: 8px;"><b>Координаты для ${safeNumberAxis}, ${safeLetterAxis2}:</b></div>
           <div class="grid-4">
             <div>
-              <label>Проектная X</label>
+              <label data-i18n="form_design_x">Проектная X</label>
               <input type="number" inputmode="decimal" class="wall-projX-num-let2" data-id="${safeWallId}" data-wall-index="${index}" placeholder="мм" value="${safeValue(wall.projX_num_let2)}" />
             </div>
             <div>
-              <label>Фактическая X</label>
+              <label data-i18n="form_measured_x">Фактическая X</label>
               <input type="number" inputmode="decimal" class="wall-factX-num-let2" data-id="${safeWallId}" data-wall-index="${index}" placeholder="мм" value="${safeValue(wall.factX_num_let2)}" />
             </div>
             <div>
-              <label>Проектная Y</label>
+              <label data-i18n="form_design_y">Проектная Y</label>
               <input type="number" inputmode="decimal" class="wall-projY-num-let2" data-id="${safeWallId}" data-wall-index="${index}" placeholder="мм" value="${safeValue(wall.projY_num_let2)}" />
             </div>
             <div>
-              <label>Фактическая Y</label>
+              <label data-i18n="form_measured_y">Фактическая Y</label>
               <input type="number" inputmode="decimal" class="wall-factY-num-let2" data-id="${safeWallId}" data-wall-index="${index}" placeholder="мм" value="${safeValue(wall.factY_num_let2)}" />
             </div>
           </div>
@@ -1138,21 +1138,21 @@ export function createGeodesyForm({
         axisFields = `
           <div class="grid-3" style="margin-bottom: 8px;">
             <div>
-              <label>Буквенная ось </label>
+              <label data-i18n="form_letter_grid_axis">Буквенная ось </label>
               <select class="wall-letter-axis" data-id="${safeWallId}" style="width: 100%;">
                 <option value="">-- Выберите --</option>
                 ${defaultRusLetters.map(l => `<option value="${l}" ${wall.letterAxis === l ? "selected" : ""}>${l}</option>`).join("")}
               </select>
             </div>
             <div>
-              <label>Цифровая ось 1 </label>
+              <label data-i18n="form_number_grid_axis_1">Цифровая ось 1 </label>
               <select class="wall-number-axis1" data-id="${safeWallId}" style="width: 100%;">
                 <option value="">-- Выберите --</option>
                 ${defaultNumbers.map(n => `<option value="${n}" ${wall.numberAxis1 === n ? "selected" : ""}>${n}</option>`).join("")}
               </select>
             </div>
             <div>
-              <label>Цифровая ось 2 </label>
+              <label data-i18n="form_number_grid_axis_2">Цифровая ось 2 </label>
               <select class="wall-number-axis2" data-id="${safeWallId}" style="width: 100%;">
                 <option value="">-- Выберите --</option>
                 ${defaultNumbers.map(n => `<option value="${n}" ${wall.numberAxis2 === n ? "selected" : ""}>${n}</option>`).join("")}
@@ -1164,38 +1164,38 @@ export function createGeodesyForm({
           <div style="margin-bottom: 8px;"><b>Координаты для ${safeLetterAxis}, ${safeNumberAxis1}:</b></div>
           <div class="grid-4" style="margin-bottom: 8px;">
             <div>
-              <label>Проектная X</label>
+              <label data-i18n="form_design_x">Проектная X</label>
               <input type="number" inputmode="decimal" class="wall-projX-let-num1" data-id="${safeWallId}" data-wall-index="${index}" placeholder="мм" value="${safeValue(wall.projX_let_num1)}" />
             </div>
             <div>
-              <label>Фактическая X</label>
+              <label data-i18n="form_measured_x">Фактическая X</label>
               <input type="number" inputmode="decimal" class="wall-factX-let-num1" data-id="${safeWallId}" data-wall-index="${index}" placeholder="мм" value="${safeValue(wall.factX_let_num1)}" />
             </div>
             <div>
-              <label>Проектная Y</label>
+              <label data-i18n="form_design_y">Проектная Y</label>
               <input type="number" inputmode="decimal" class="wall-projY-let-num1" data-id="${safeWallId}" data-wall-index="${index}" placeholder="мм" value="${safeValue(wall.projY_let_num1)}" />
             </div>
             <div>
-              <label>Фактическая Y</label>
+              <label data-i18n="form_measured_y">Фактическая Y</label>
               <input type="number" inputmode="decimal" class="wall-factY-let-num1" data-id="${safeWallId}" data-wall-index="${index}" placeholder="мм" value="${safeValue(wall.factY_let_num1)}" />
             </div>
           </div>
           <div style="margin-bottom: 8px;"><b>Координаты для ${safeLetterAxis}, ${safeNumberAxis2}:</b></div>
           <div class="grid-4">
             <div>
-              <label>Проектная X</label>
+              <label data-i18n="form_design_x">Проектная X</label>
               <input type="number" inputmode="decimal" class="wall-projX-let-num2" data-id="${safeWallId}" data-wall-index="${index}" placeholder="X_${safeLetterAxis}_${safeNumberAxis2}, мм" value="${safeValue(wall.projX_let_num2)}" />
             </div>
             <div>
-              <label>Фактическая X</label>
+              <label data-i18n="form_measured_x">Фактическая X</label>
               <input type="number" inputmode="decimal" class="wall-factX-let-num2" data-id="${safeWallId}" data-wall-index="${index}" placeholder="X_${safeLetterAxis}_${safeNumberAxis2}, мм" value="${safeValue(wall.factX_let_num2)}" />
             </div>
             <div>
-              <label>Проектная Y</label>
+              <label data-i18n="form_design_y">Проектная Y</label>
               <input type="number" inputmode="decimal" class="wall-projY-let-num2" data-id="${safeWallId}" data-wall-index="${index}" placeholder="Y_${safeLetterAxis}_${safeNumberAxis2}, мм" value="${safeValue(wall.projY_let_num2)}" />
             </div>
             <div>
-              <label>Фактическая Y</label>
+              <label data-i18n="form_measured_y">Фактическая Y</label>
               <input type="number" inputmode="decimal" class="wall-factY-let-num2" data-id="${safeWallId}" data-wall-index="${index}" placeholder="Y_${safeLetterAxis}_${safeNumberAxis2}, мм" value="${safeValue(wall.factY_let_num2)}" />
             </div>
           </div>
@@ -1482,21 +1482,21 @@ export function createGeodesyForm({
         axisFields = `
           <div class="grid-3" style="margin-bottom: 8px;">
             <div>
-              <label>Цифровая ось </label>
+              <label data-i18n="form_number_grid_axis">Цифровая ось </label>
               <select class="beam-number-axis" data-id="${safeBeamId}" style="width: 100%;">
                 <option value="">-- Выберите --</option>
                 ${defaultNumbers.map(n => `<option value="${n}" ${beam.numberAxis === n ? "selected" : ""}>${n}</option>`).join("")}
               </select>
             </div>
             <div>
-              <label>Буквенная ось 1 </label>
+              <label data-i18n="form_letter_grid_axis_1">Буквенная ось 1 </label>
               <select class="beam-letter-axis1" data-id="${safeBeamId}" style="width: 100%;">
                 <option value="">-- Выберите --</option>
                 ${defaultRusLetters.map(l => `<option value="${l}" ${beam.letterAxis1 === l ? "selected" : ""}>${l}</option>`).join("")}
               </select>
             </div>
             <div>
-              <label>Буквенная ось 2 </label>
+              <label data-i18n="form_letter_grid_axis_2">Буквенная ось 2 </label>
               <select class="beam-letter-axis2" data-id="${safeBeamId}" style="width: 100%;">
                 <option value="">-- Выберите --</option>
                 ${defaultRusLetters.map(l => `<option value="${l}" ${beam.letterAxis2 === l ? "selected" : ""}>${l}</option>`).join("")}
@@ -1508,38 +1508,38 @@ export function createGeodesyForm({
           <div style="margin-bottom: 8px;"><b>Координаты для ${safeNumberAxis}, ${safeLetterAxis1}:</b></div>
           <div class="grid-4" style="margin-bottom: 8px;">
             <div>
-              <label>Проектная X</label>
+              <label data-i18n="form_design_x">Проектная X</label>
               <input type="number" inputmode="decimal" class="beam-projX-num-let1" data-id="${safeBeamId}" data-beam-index="${index}" placeholder="X_${safeNumberAxis}_${safeLetterAxis1}, мм" value="${safeValue(beam.projX_num_let1)}" />
             </div>
             <div>
-              <label>Фактическая X</label>
+              <label data-i18n="form_measured_x">Фактическая X</label>
               <input type="number" inputmode="decimal" class="beam-factX-num-let1" data-id="${safeBeamId}" data-beam-index="${index}" placeholder="X_${safeNumberAxis}_${safeLetterAxis1}, мм" value="${safeValue(beam.factX_num_let1)}" />
             </div>
             <div>
-              <label>Проектная Y</label>
+              <label data-i18n="form_design_y">Проектная Y</label>
               <input type="number" inputmode="decimal" class="beam-projY-num-let1" data-id="${safeBeamId}" data-beam-index="${index}" placeholder="Y_${safeNumberAxis}_${safeLetterAxis1}, мм" value="${safeValue(beam.projY_num_let1)}" />
             </div>
             <div>
-              <label>Фактическая Y</label>
+              <label data-i18n="form_measured_y">Фактическая Y</label>
               <input type="number" inputmode="decimal" class="beam-factY-num-let1" data-id="${safeBeamId}" data-beam-index="${index}" placeholder="Y_${safeNumberAxis}_${safeLetterAxis1}, мм" value="${safeValue(beam.factY_num_let1)}" />
             </div>
           </div>
           <div style="margin-bottom: 8px;"><b>Координаты для ${safeNumberAxis}, ${safeLetterAxis2}:</b></div>
           <div class="grid-4">
             <div>
-              <label>Проектная X</label>
+              <label data-i18n="form_design_x">Проектная X</label>
               <input type="number" inputmode="decimal" class="beam-projX-num-let2" data-id="${safeBeamId}" data-beam-index="${index}" placeholder="X_${safeNumberAxis}_${safeLetterAxis2}, мм" value="${safeValue(beam.projX_num_let2)}" />
             </div>
             <div>
-              <label>Фактическая X</label>
+              <label data-i18n="form_measured_x">Фактическая X</label>
               <input type="number" inputmode="decimal" class="beam-factX-num-let2" data-id="${safeBeamId}" data-beam-index="${index}" placeholder="X_${safeNumberAxis}_${safeLetterAxis2}, мм" value="${safeValue(beam.factX_num_let2)}" />
             </div>
             <div>
-              <label>Проектная Y</label>
+              <label data-i18n="form_design_y">Проектная Y</label>
               <input type="number" inputmode="decimal" class="beam-projY-num-let2" data-id="${safeBeamId}" data-beam-index="${index}" placeholder="Y_${safeNumberAxis}_${safeLetterAxis2}, мм" value="${safeValue(beam.projY_num_let2)}" />
             </div>
             <div>
-              <label>Фактическая Y</label>
+              <label data-i18n="form_measured_y">Фактическая Y</label>
               <input type="number" inputmode="decimal" class="beam-factY-num-let2" data-id="${safeBeamId}" data-beam-index="${index}" placeholder="Y_${safeNumberAxis}_${safeLetterAxis2}, мм" value="${safeValue(beam.factY_num_let2)}" />
             </div>
           </div>
@@ -1548,21 +1548,21 @@ export function createGeodesyForm({
         axisFields = `
           <div class="grid-3" style="margin-bottom: 8px;">
             <div>
-              <label>Буквенная ось </label>
+              <label data-i18n="form_letter_grid_axis">Буквенная ось </label>
               <select class="beam-letter-axis" data-id="${safeBeamId}" style="width: 100%;">
                 <option value="">-- Выберите --</option>
                 ${defaultRusLetters.map(l => `<option value="${l}" ${beam.letterAxis === l ? "selected" : ""}>${l}</option>`).join("")}
               </select>
             </div>
             <div>
-              <label>Цифровая ось 1 </label>
+              <label data-i18n="form_number_grid_axis_1">Цифровая ось 1 </label>
               <select class="beam-number-axis1" data-id="${safeBeamId}" style="width: 100%;">
                 <option value="">-- Выберите --</option>
                 ${defaultNumbers.map(n => `<option value="${n}" ${beam.numberAxis1 === n ? "selected" : ""}>${n}</option>`).join("")}
               </select>
             </div>
             <div>
-              <label>Цифровая ось 2 </label>
+              <label data-i18n="form_number_grid_axis_2">Цифровая ось 2 </label>
               <select class="beam-number-axis2" data-id="${safeBeamId}" style="width: 100%;">
                 <option value="">-- Выберите --</option>
                 ${defaultNumbers.map(n => `<option value="${n}" ${beam.numberAxis2 === n ? "selected" : ""}>${n}</option>`).join("")}
@@ -1574,38 +1574,38 @@ export function createGeodesyForm({
           <div style="margin-bottom: 8px;"><b>Координаты для ${safeLetterAxis}, ${safeNumberAxis1}:</b></div>
           <div class="grid-4" style="margin-bottom: 8px;">
             <div>
-              <label>Проектная X</label>
+              <label data-i18n="form_design_x">Проектная X</label>
               <input type="number" inputmode="decimal" class="beam-projX-let-num1" data-id="${safeBeamId}" data-beam-index="${index}" placeholder="X_${safeLetterAxis}_${safeNumberAxis1}, мм" value="${safeValue(beam.projX_let_num1)}" />
             </div>
             <div>
-              <label>Фактическая X</label>
+              <label data-i18n="form_measured_x">Фактическая X</label>
               <input type="number" inputmode="decimal" class="beam-factX-let-num1" data-id="${safeBeamId}" data-beam-index="${index}" placeholder="X_${safeLetterAxis}_${safeNumberAxis1}, мм" value="${safeValue(beam.factX_let_num1)}" />
             </div>
             <div>
-              <label>Проектная Y</label>
+              <label data-i18n="form_design_y">Проектная Y</label>
               <input type="number" inputmode="decimal" class="beam-projY-let-num1" data-id="${safeBeamId}" data-beam-index="${index}" placeholder="Y_${safeLetterAxis}_${safeNumberAxis1}, мм" value="${safeValue(beam.projY_let_num1)}" />
             </div>
             <div>
-              <label>Фактическая Y</label>
+              <label data-i18n="form_measured_y">Фактическая Y</label>
               <input type="number" inputmode="decimal" class="beam-factY-let-num1" data-id="${safeBeamId}" data-beam-index="${index}" placeholder="Y_${safeLetterAxis}_${safeNumberAxis1}, мм" value="${safeValue(beam.factY_let_num1)}" />
             </div>
           </div>
           <div style="margin-bottom: 8px;"><b>Координаты для ${safeLetterAxis}, ${safeNumberAxis2}:</b></div>
           <div class="grid-4">
             <div>
-              <label>Проектная X</label>
+              <label data-i18n="form_design_x">Проектная X</label>
               <input type="number" inputmode="decimal" class="beam-projX-let-num2" data-id="${safeBeamId}" data-beam-index="${index}" placeholder="X_${safeLetterAxis}_${safeNumberAxis2}, мм" value="${safeValue(beam.projX_let_num2)}" />
             </div>
             <div>
-              <label>Фактическая X</label>
+              <label data-i18n="form_measured_x">Фактическая X</label>
               <input type="number" inputmode="decimal" class="beam-factX-let-num2" data-id="${safeBeamId}" data-beam-index="${index}" placeholder="X_${safeLetterAxis}_${safeNumberAxis2}, мм" value="${safeValue(beam.factX_let_num2)}" />
             </div>
             <div>
-              <label>Проектная Y</label>
+              <label data-i18n="form_design_y">Проектная Y</label>
               <input type="number" inputmode="decimal" class="beam-projY-let-num2" data-id="${safeBeamId}" data-beam-index="${index}" placeholder="Y_${safeLetterAxis}_${safeNumberAxis2}, мм" value="${safeValue(beam.projY_let_num2)}" />
             </div>
             <div>
-              <label>Фактическая Y</label>
+              <label data-i18n="form_measured_y">Фактическая Y</label>
               <input type="number" inputmode="decimal" class="beam-factY-let-num2" data-id="${safeBeamId}" data-beam-index="${index}" placeholder="Y_${safeLetterAxis}_${safeNumberAxis2}, мм" value="${safeValue(beam.factY_let_num2)}" />
             </div>
           </div>

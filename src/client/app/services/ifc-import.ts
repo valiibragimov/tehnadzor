@@ -48,7 +48,7 @@ async function parseIfcFile(
   if (typeof Worker !== "function") throw new Error("IFC import requires a browser with Web Worker support");
 
   return new Promise<IfcImportSummaryResult>((resolve, reject) => {
-    const worker = new Worker(new URL("./ifc-import-worker.js", import.meta.url), {
+    const worker = new Worker(new URL("dist/app/services/ifc-import-worker.js", document.baseURI), {
       type: "module"
     });
 

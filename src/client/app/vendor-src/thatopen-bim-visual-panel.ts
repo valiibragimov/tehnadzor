@@ -641,7 +641,7 @@ export function ensureBimVisualPanel({
     } else {
       renderNonce += 1;
       currentIsolatedId = "";
-      void engine?.showAll?.();
+      void destroyEngine();
     }
   }
 

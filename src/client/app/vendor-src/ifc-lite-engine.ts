@@ -90,7 +90,6 @@ interface ModelEntry {
   box: THREE.Box3;
   lookupKeys: Set<string>;
   floorMaps: Map<string, ModelIdMap>;
-  dataStore: IfcDataStore | null;
   coordinateInfo: unknown;
   planAlignment: ModelPlanAlignment | null;
   getMergedBox: (localIds: number[]) => Promise<THREE.Box3 | null>;
@@ -1345,7 +1344,6 @@ export async function createIfcLiteEngine({
       },
       lookupKeys: new Set(),
       floorMaps: new Map(),
-      dataStore: null,
       coordinateInfo: null,
       planAlignment: null,
       async getMergedBox(localIds: number[]) {
@@ -1518,7 +1516,6 @@ export async function createIfcLiteEngine({
         }
 
         const modelEntry = ensureModelEntry(sourceModelId);
-        modelEntry.dataStore = dataStore;
 
         const floorLookup = buildIfcLiteFloorLookup(sourceModelId, dataStore);
         modelEntry.floorMaps = floorLookup.byViewId;
@@ -1581,6 +1578,10 @@ export async function createIfcLiteEngine({
       missingSources.push(sourceModelId);
     }
   }
+
+  // Parsed IFC and WASM state are not needed after meshes and floor metadata are built.
+  ifcLiteApi?.free();
+  ifcLiteApi = null;
 
   const diagnosticSummary = createViewerDiagnosticSummary(allElements, sourceDiagnosticSummaries);
 
@@ -2144,7 +2145,12 @@ export async function createIfcLiteEngine({
         });
       }
       disposeGrid(grid);
-      renderer.dispose();
+      orbitControls.dispose();
+      ifcLiteApi?.free(); ifcLiteApi = null;
+      pickableMeshes.length = 0; loadedModelIds.clear();
+      elementEntries.clear(); modelEntries.clear(); floorModelIdMaps.clear();
+      scene.clear(); renderer.renderLists.dispose();
+      renderer.dispose(); renderer.forceContextLoss();
       container.replaceChildren();
     }
   };

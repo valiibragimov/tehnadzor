@@ -1,3 +1,5 @@
+import { t, translateEngineeringLabel } from "../../shared/i18n/index.js";
+import { setBimResultHint } from "../ui/bim-result-hint.js";
 import type { WorkspaceContext } from "../workspace-context.js";
 import { APP_CONFIG, TOLERANCES, UI_TEXT } from "../../config.js";
 import {
@@ -994,10 +996,14 @@ function fillGeomBimFilterSelect(selectEl, options, defaultLabel, nextValue) {
 
   const defaultOption = document.createElement("option");
   defaultOption.value = "all";
-  defaultOption.textContent = defaultLabel;
+  defaultOption.textContent = translateEngineeringLabel(defaultLabel);
   selectEl.appendChild(defaultOption);
 
-  options.forEach((optionData) => {
+  const visibleOptions = options.slice(0, 100);
+  const activeOption = options.find(option => option.value === nextValue);
+  if (activeOption && !visibleOptions.includes(activeOption)) visibleOptions.unshift(activeOption);
+  setBimResultHint(selectEl, options.length);
+  visibleOptions.forEach((optionData) => {
     const option = document.createElement("option");
     option.value = optionData.value;
     option.textContent = optionData.label;
@@ -1027,13 +1033,13 @@ function renderGeomBimElementOptions(selectedId = selectedGeomBimElementId) {
 
   const previousValue = selectedId || "";
   const filteredElements = getFilteredGeomBimElements();
-  const visibleElements = [...filteredElements];
+  const visibleElements = filteredElements.slice(0, 100);
   const selectedElement = previousValue ? geomBimElementsById.get(previousValue) : null;
   geomBimElementSelect.innerHTML = "";
 
   const manualOption = document.createElement("option");
   manualOption.value = "";
-  manualOption.textContent = "Ручной ввод без BIM";
+  manualOption.textContent = t("form_manual_entry_without_bim");
   geomBimElementSelect.appendChild(manualOption);
 
   if (selectedElement) {
@@ -1043,6 +1049,8 @@ function renderGeomBimElementOptions(selectedId = selectedGeomBimElementId) {
       visibleElements.unshift(selectedElement);
     }
   }
+
+  setBimResultHint(geomBimElementSelect, filteredElements.length);
 
   visibleElements.forEach((element) => {
     const option = document.createElement("option");
@@ -1431,9 +1439,9 @@ function updateGeomFieldsVisibility() {
   if (geomPlateThickFields) geomPlateThickFields.style.display = showPlateNumbers ? "block" : "none";
   if (geomStripAxisModeField) geomStripAxisModeField.style.display = isStripFoundation && !isUnsupported ? "block" : "none";
   if (geomAxisLetterFromLabel) geomAxisLetterFromLabel.textContent = isStripFoundation ? "Буквенная ось" : "От буквенной оси";
-  if (geomAxisLetterToLabel) geomAxisLetterToLabel.textContent = "До буквенной оси";
+  if (geomAxisLetterToLabel) geomAxisLetterToLabel.textContent = t("form_to_letter_grid_axis");
   if (geomAxisNumberFromLabel) geomAxisNumberFromLabel.textContent = isStripFoundation ? "Цифровая ось" : "От цифровой оси";
-  if (geomAxisNumberToLabel) geomAxisNumberToLabel.textContent = "До цифровой оси";
+  if (geomAxisNumberToLabel) geomAxisNumberToLabel.textContent = t("form_to_number_grid_axis");
   const stripMode = geomStripAxisModeEl?.value || "letter_numbers";
   if (geomAxisLetterFromField) geomAxisLetterFromField.style.display = showRangeLocation && !isUnsupported ? "" : "none";
   if (geomAxisLetterToField) {
@@ -1994,7 +2002,7 @@ function renderGeomColumns() {
         </button>
       </div>
       <div class="${column.bimAutofilledMark ? "geo-bim-field--autofilled" : ""}">
-        <label>Маркировка колонны </label>
+        <label data-i18n="form_column_marking">Маркировка колонны </label>
         <input type="text" class="geom-col-marking ${column.bimAutofilledMark ? "geo-bim-input--autofilled" : ""}" data-id="${safeValue(column.id)}" placeholder="Напр.: К 1.12" value="${safeValue(column.marking || "")}" required />
       </div>
       <div class="grid-2 mt8">
@@ -2132,7 +2140,7 @@ function renderGeomWalls() {
         </button>
       </div>
       <div class="mt8">
-        <label>Тип привязки</label>
+        <label data-i18n="form_grid_binding">Тип привязки</label>
         <select class="geom-wall-binding-type ui-select" data-id="${safeValue(wall.id)}" style="width: 100%;">
           <option value="number_letters" ${isNumberLetters ? "selected" : ""}>Одна цифровая, две буквенные (например, 1, В-Г)</option>
           <option value="letter_numbers" ${!isNumberLetters ? "selected" : ""}>Одна буквенная, две цифровые (например, Г, 6-7)</option>
@@ -2141,19 +2149,19 @@ function renderGeomWalls() {
       ${isNumberLetters ? `
         <div class="grid-3 mt8">
           <div>
-            <label>Цифровая ось </label>
+            <label data-i18n="form_number_grid_axis">Цифровая ось </label>
             <select class="geom-wall-number-axis ui-select" data-id="${safeValue(wall.id)}" style="width: 100%;">
               ${defaultNumbers.map(n => `<option value="${n}" ${wall.numberAxis === n ? "selected" : ""}>${n}</option>`).join("")}
             </select>
           </div>
           <div>
-            <label>Буквенная ось 1 </label>
+            <label data-i18n="form_letter_grid_axis_1">Буквенная ось 1 </label>
             <select class="geom-wall-letter-axis1 ui-select" data-id="${safeValue(wall.id)}" style="width: 100%;">
               ${defaultRusLetters.map(l => `<option value="${l}" ${wall.letterAxis1 === l ? "selected" : ""}>${l}</option>`).join("")}
             </select>
           </div>
           <div>
-            <label>Буквенная ось 2 </label>
+            <label data-i18n="form_letter_grid_axis_2">Буквенная ось 2 </label>
             <select class="geom-wall-letter-axis2 ui-select" data-id="${safeValue(wall.id)}" style="width: 100%;">
               ${defaultRusLetters.map(l => `<option value="${l}" ${wall.letterAxis2 === l ? "selected" : ""}>${l}</option>`).join("")}
             </select>
@@ -2162,19 +2170,19 @@ function renderGeomWalls() {
       ` : `
         <div class="grid-3 mt8">
           <div>
-            <label>Буквенная ось </label>
+            <label data-i18n="form_letter_grid_axis">Буквенная ось </label>
             <select class="geom-wall-letter-axis ui-select" data-id="${safeValue(wall.id)}" style="width: 100%;">
               ${defaultRusLetters.map(l => `<option value="${l}" ${wall.letterAxis === l ? "selected" : ""}>${l}</option>`).join("")}
             </select>
           </div>
           <div>
-            <label>Цифровая ось 1 </label>
+            <label data-i18n="form_number_grid_axis_1">Цифровая ось 1 </label>
             <select class="geom-wall-number-axis1 ui-select" data-id="${safeValue(wall.id)}" style="width: 100%;">
               ${defaultNumbers.map(n => `<option value="${n}" ${wall.numberAxis1 === n ? "selected" : ""}>${n}</option>`).join("")}
             </select>
           </div>
           <div>
-            <label>Цифровая ось 2 </label>
+            <label data-i18n="form_number_grid_axis_2">Цифровая ось 2 </label>
             <select class="geom-wall-number-axis2 ui-select" data-id="${safeValue(wall.id)}" style="width: 100%;">
               ${defaultNumbers.map(n => `<option value="${n}" ${wall.numberAxis2 === n ? "selected" : ""}>${n}</option>`).join("")}
             </select>
@@ -2200,13 +2208,13 @@ function renderGeomWalls() {
         </div>
         <div>
           <div class="field-label-row">
-            <label for="geom-wall-projOpeningSizes-${safeValue(wall.id)}">Проектные размеры проёмов</label>
+            <label for="geom-wall-projOpeningSizes-${safeValue(wall.id)}" data-i18n="form_design_opening_dimensions">Проектные размеры проёмов</label>
             <button type="button" class="module-help-toggle" data-help-target="${openingSizesHelpId}" aria-label="Как заполнять размеры проёмов"></button>
           </div>
           <input type="text" id="geom-wall-projOpeningSizes-${safeValue(wall.id)}" class="geom-wall-projOpeningSizes" data-id="${safeValue(wall.id)}" placeholder="Ш×В, Ш×В" value="${safeValue(wall.projOpeningSizes || wall.openingSizes || "")}" />
         </div>
         <div>
-          <label for="geom-wall-factOpeningSizes-${safeValue(wall.id)}">Фактические размеры проёмов</label>
+          <label for="geom-wall-factOpeningSizes-${safeValue(wall.id)}" data-i18n="form_measured_opening_dimensions">Фактические размеры проёмов</label>
           <input type="text" id="geom-wall-factOpeningSizes-${safeValue(wall.id)}" class="geom-wall-factOpeningSizes" data-id="${safeValue(wall.id)}" placeholder="Ш×В, Ш×В" value="${safeValue(wall.factOpeningSizes || "")}" />
         </div>
         <div>
@@ -2418,7 +2426,7 @@ function renderGeomStairs() {
         </button>
       </div>
       <div class="mt8">
-        <label>Тип привязки</label>
+        <label data-i18n="form_grid_binding">Тип привязки</label>
         <select class="geom-stair-binding-type ui-select" data-id="${safeValue(stair.id)}" style="width: 100%;">
           <option value="number_letters" ${isNumberLetters ? "selected" : ""}>Одна цифровая, две буквенные (например, 1, В-Г)</option>
           <option value="letter_numbers" ${!isNumberLetters ? "selected" : ""}>Одна буквенная, две цифровые (например, Г, 6-7)</option>
@@ -2427,19 +2435,19 @@ function renderGeomStairs() {
       ${isNumberLetters ? `
         <div class="grid-3 mt8">
           <div>
-            <label>Цифровая ось </label>
+            <label data-i18n="form_number_grid_axis">Цифровая ось </label>
             <select class="geom-stair-number-axis ui-select" data-id="${safeValue(stair.id)}" style="width: 100%;">
               ${defaultNumbers.map(n => `<option value="${n}" ${stair.numberAxis === n ? "selected" : ""}>${n}</option>`).join("")}
             </select>
           </div>
           <div>
-            <label>Буквенная ось 1 </label>
+            <label data-i18n="form_letter_grid_axis_1">Буквенная ось 1 </label>
             <select class="geom-stair-letter-axis1 ui-select" data-id="${safeValue(stair.id)}" style="width: 100%;">
               ${defaultRusLetters.map(l => `<option value="${l}" ${stair.letterAxis1 === l ? "selected" : ""}>${l}</option>`).join("")}
             </select>
           </div>
           <div>
-            <label>Буквенная ось 2 </label>
+            <label data-i18n="form_letter_grid_axis_2">Буквенная ось 2 </label>
             <select class="geom-stair-letter-axis2 ui-select" data-id="${safeValue(stair.id)}" style="width: 100%;">
               ${defaultRusLetters.map(l => `<option value="${l}" ${stair.letterAxis2 === l ? "selected" : ""}>${l}</option>`).join("")}
             </select>
@@ -2448,19 +2456,19 @@ function renderGeomStairs() {
       ` : `
         <div class="grid-3 mt8">
           <div>
-            <label>Буквенная ось </label>
+            <label data-i18n="form_letter_grid_axis">Буквенная ось </label>
             <select class="geom-stair-letter-axis ui-select" data-id="${safeValue(stair.id)}" style="width: 100%;">
               ${defaultRusLetters.map(l => `<option value="${l}" ${stair.letterAxis === l ? "selected" : ""}>${l}</option>`).join("")}
             </select>
           </div>
           <div>
-            <label>Цифровая ось 1 </label>
+            <label data-i18n="form_number_grid_axis_1">Цифровая ось 1 </label>
             <select class="geom-stair-number-axis1 ui-select" data-id="${safeValue(stair.id)}" style="width: 100%;">
               ${defaultNumbers.map(n => `<option value="${n}" ${stair.numberAxis1 === n ? "selected" : ""}>${n}</option>`).join("")}
             </select>
           </div>
           <div>
-            <label>Цифровая ось 2 </label>
+            <label data-i18n="form_number_grid_axis_2">Цифровая ось 2 </label>
             <select class="geom-stair-number-axis2 ui-select" data-id="${safeValue(stair.id)}" style="width: 100%;">
               ${defaultNumbers.map(n => `<option value="${n}" ${stair.numberAxis2 === n ? "selected" : ""}>${n}</option>`).join("")}
             </select>
@@ -2806,7 +2814,7 @@ function renderGeomChecks() {
   list.innerHTML = "";
 
   if (!geomChecks.size) {
-    list.innerHTML = '<div class="caption" style="padding:10px">Пока нет сохранённых проверок геометрии.</div>';
+    list.innerHTML = '<div class="caption" data-i18n="saved_empty_geometry">Пока нет сохранённых проверок геометрии.</div>';
     return;
   }
 
@@ -2823,39 +2831,39 @@ function renderGeomChecks() {
 
     if (constructionProfile === "formwork") {
       icon = "📏";
-      dataRows += `<div class="node-data-row"><span class="node-label">Тип:</span><span class="node-values">${safeValue(formatFormworkSubtypeLabel(d.formworkType || d.constructionSubtype))}</span></div>`;
+      dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_type">Тип:</span><span class="node-values">${safeValue(formatFormworkSubtypeLabel(d.formworkType || d.constructionSubtype))}</span></div>`;
       if (d.formworkElementName) {
-        dataRows += `<div class="node-data-row"><span class="node-label">Элемент:</span><span class="node-values">${safeValue(d.formworkElementName)}</span></div>`;
+        dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_element">Элемент:</span><span class="node-values">${safeValue(d.formworkElementName)}</span></div>`;
       }
       if (d.formworkArea) {
-        dataRows += `<div class="node-data-row"><span class="node-label">Участок:</span><span class="node-values">${safeValue(d.formworkArea)}</span></div>`;
+        dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_area">Участок:</span><span class="node-values">${safeValue(d.formworkArea)}</span></div>`;
       }
       if (d.formworkVerticalDeviation != null || d.formworkVerticalTolerance != null) {
-        dataRows += `<div class="node-data-row"><span class="node-label">Вертикаль:</span><span class="node-values">${formatNodeValue(d.formworkVerticalDeviation)} / ${formatNodeValue(d.formworkVerticalTolerance)} мм</span></div>`;
+        dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_vertical">Вертикаль:</span><span class="node-values">${formatNodeValue(d.formworkVerticalDeviation)} / ${formatNodeValue(d.formworkVerticalTolerance)} мм</span></div>`;
       }
       if (d.formworkBasis) {
-        dataRows += `<div class="node-data-row"><span class="node-label">Основание:</span><span class="node-values">${safeValue(formatFormworkBasisLabel(d.formworkBasis))}</span></div>`;
+        dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_basis">Основание:</span><span class="node-values">${safeValue(formatFormworkBasisLabel(d.formworkBasis))}</span></div>`;
       }
     } else if (constructionProfile === "plate") {
       icon = "📐";
       if (d.location) {
-        dataRows += `<div class="node-data-row"><span class="node-label">Местоположение:</span><span class="node-values">${safeValue(d.location)}</span></div>`;
+        dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_location">Местоположение:</span><span class="node-values">${safeValue(d.location)}</span></div>`;
       }
       const plateOpeningsText = formatOpeningSizesForNode(d.projOpeningSizes ?? d.openingSizes, d.factOpeningSizes);
       if (plateOpeningsText) {
-        dataRows += `<div class="node-data-row"><span class="node-label">Проёмы:</span><span class="node-values">${safeValue(plateOpeningsText)}</span></div>`;
+        dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_openings">Проёмы:</span><span class="node-values">${safeValue(plateOpeningsText)}</span></div>`;
       }
       if (d.projPlateHeight != null && d.factPlateHeight != null) {
-        dataRows += `<div class="node-data-row"><span class="node-label">Толщина:</span><span class="node-values">${formatNodeValue(d.projPlateHeight)}/${formatNodeValue(d.factPlateHeight)} мм</span></div>`;
+        dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_thickness">Толщина:</span><span class="node-values">${formatNodeValue(d.projPlateHeight)}/${formatNodeValue(d.factPlateHeight)} мм</span></div>`;
       }
       if (d.factPlateFlatness != null) {
-        dataRows += `<div class="node-data-row"><span class="node-label">Плоскостность:</span><span class="node-values">${formatNodeValue(d.factPlateFlatness)} мм</span></div>`;
+        dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_flatness">Плоскостность:</span><span class="node-values">${formatNodeValue(d.factPlateFlatness)} мм</span></div>`;
       }
     } else if (constructionProfile === "column") {
       icon = "🏛️";
       const count = d.columns ? d.columns.length : 0;
       const markings = d.columns ? d.columns.map((c: GeometryColumnRecord) => safeValue(c.marking)).filter((m) => m).join(", ") : "";
-      dataRows += `<div class="node-data-row"><span class="node-label">Колонн:</span><span class="node-values"><strong>${count} шт.</strong>${markings ? ` (${markings})` : ""}</span></div>`;
+      dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_columns">Колонн:</span><span class="node-values"><strong>${count} шт.</strong>${markings ? ` (${markings})` : ""}</span></div>`;
     } else if (constructionProfile === "wall") {
       icon = "🧱";
       const count = d.walls ? d.walls.length : 0;
@@ -2867,7 +2875,7 @@ function renderGeomChecks() {
         }
         return "";
       }).filter(i => i).join("; ") : "";
-      dataRows += `<div class="node-data-row"><span class="node-label">Стен:</span><span class="node-values"><strong>${count} шт.</strong>${wallsInfo ? ` (${wallsInfo})` : ""}</span></div>`;
+      dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_walls">Стен:</span><span class="node-values"><strong>${count} шт.</strong>${wallsInfo ? ` (${wallsInfo})` : ""}</span></div>`;
       const openingWallsCount = d.walls ? d.walls.filter((wall: GeometryWallRecord) => {
         const projValue = wall.projOpeningSizes ?? wall.openingSizes;
         return String(projValue ?? "").trim() || String(wall.factOpeningSizes ?? "").trim();
@@ -2875,17 +2883,17 @@ function renderGeomChecks() {
       const openingHeightWallsCount = d.walls ? d.walls.filter((wall: GeometryWallRecord) => wall.projOpeningHeight != null || wall.factOpeningHeight != null).length : 0;
       const flatnessWallsCount = d.walls ? d.walls.filter((wall: GeometryWallRecord) => wall.factWallFlatness != null).length : 0;
       if (openingWallsCount > 0) {
-        dataRows += `<div class="node-data-row"><span class="node-label">Проёмы:</span><span class="node-values">заполнено для ${openingWallsCount} из ${count} стен</span></div>`;
+        dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_openings">Проёмы:</span><span class="node-values">заполнено для ${openingWallsCount} из ${count} стен</span></div>`;
       } else if (d.openingSizes) {
-        dataRows += `<div class="node-data-row"><span class="node-label">Проёмы:</span><span class="node-values">${safeValue(d.openingSizes)}</span></div>`;
+        dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_openings">Проёмы:</span><span class="node-values">${safeValue(d.openingSizes)}</span></div>`;
       }
       if (openingHeightWallsCount > 0) {
-        dataRows += `<div class="node-data-row"><span class="node-label">Высота проёмов:</span><span class="node-values">заполнено для ${openingHeightWallsCount} из ${count} стен</span></div>`;
+        dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_opening_height">Высота проёмов:</span><span class="node-values">заполнено для ${openingHeightWallsCount} из ${count} стен</span></div>`;
       }
       if (flatnessWallsCount > 0) {
-        dataRows += `<div class="node-data-row"><span class="node-label">Плоскостность:</span><span class="node-values">заполнено для ${flatnessWallsCount} из ${count} стен</span></div>`;
+        dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_flatness">Плоскостность:</span><span class="node-values">заполнено для ${flatnessWallsCount} из ${count} стен</span></div>`;
       } else if (d.factWallFlatness != null) {
-        dataRows += `<div class="node-data-row"><span class="node-label">Плоскостность:</span><span class="node-values">${formatNodeValue(d.factWallFlatness)} мм</span></div>`;
+        dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_flatness">Плоскостность:</span><span class="node-values">${formatNodeValue(d.factWallFlatness)} мм</span></div>`;
       }
     } else if (constructionProfile === "stair") {
       icon = "🪜";
@@ -2899,21 +2907,21 @@ function renderGeomChecks() {
         }
         return "";
       }).filter(i => i).join("; ") : "";
-      dataRows += `<div class="node-data-row"><span class="node-label">Лестниц:</span><span class="node-values"><strong>${count} шт.</strong>${stairNameInfo}${stairsInfo ? ` (${stairsInfo})` : ""}</span></div>`;
+      dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_stairs">Лестниц:</span><span class="node-values"><strong>${count} шт.</strong>${stairNameInfo}${stairsInfo ? ` (${stairsInfo})` : ""}</span></div>`;
     } else if (constructionProfile === "beam") {
       icon = "📏";
       const count = d.beams ? d.beams.length : 0;
       const markings = d.beams ? d.beams.map((b: GeometryBeamRecord) => safeValue(b.marking)).filter((m) => m).join(", ") : "";
-      dataRows += `<div class="node-data-row"><span class="node-label">Балок:</span><span class="node-values"><strong>${count} шт.</strong>${markings ? ` (${markings})` : ""}</span></div>`;
+      dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_beams">Балок:</span><span class="node-values"><strong>${count} шт.</strong>${markings ? ` (${markings})` : ""}</span></div>`;
     } else {
-      dataRows += `<div class="node-data-row"><span class="node-label">Толщина:</span><span class="node-values">${formatNodeValue(d.projThick)}/${formatNodeValue(d.factThick)} мм</span></div>`;
+      dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_thickness">Толщина:</span><span class="node-values">${formatNodeValue(d.projThick)}/${formatNodeValue(d.factThick)} мм</span></div>`;
       if (d.vertDev != null) {
-        dataRows += `<div class="node-data-row"><span class="node-label">Вертикаль:</span><span class="node-values">${formatNodeValue(d.vertDev)} мм</span></div>`;
+        dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_vertical">Вертикаль:</span><span class="node-values">${formatNodeValue(d.vertDev)} мм</span></div>`;
       }
     }
 
     if (d.floor) {
-      dataRows += `<div class="node-data-row"><span class="node-label">Этаж:</span><span class="node-values">${safeValue(d.floor)}</span></div>`;
+      dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_floor">Этаж:</span><span class="node-values">${safeValue(d.floor)}</span></div>`;
     }
 
     let evaluation;
@@ -2927,11 +2935,11 @@ function renderGeomChecks() {
 
     let statusTag = "";
     if (evaluation.status === "exceeded") {
-      statusTag = '<span class="tag bad">превышено</span>';
+      statusTag = '<span class="tag bad" data-i18n="saved_exceeded">превышено</span>';
     } else if (evaluation.status === "ok") {
-      statusTag = '<span class="tag ok">в норме</span>';
+      statusTag = '<span class="tag ok" data-i18n="saved_ok">в норме</span>';
     } else {
-      statusTag = '<span class="tag" style="background: #9ca3af; color: #1f2937; font-weight: 600;">не заполнено</span>';
+      statusTag = '<span class="tag" data-i18n="saved_empty">не заполнено</span>';
     }
 
     row.innerHTML = `
@@ -2939,7 +2947,7 @@ function renderGeomChecks() {
         <div class="node-header">
           <div class="node-title">
             <span class="node-icon">${icon}</span>
-            Проверка от ${fmtDate(d.createdAt || Date.now())}
+            <span data-i18n="saved_inspection_on">Проверка от</span> ${fmtDate(d.createdAt || Date.now())}
           </div>
           <div class="node-header-controls">
             ${statusTag}
@@ -4686,6 +4694,7 @@ function initGeometryHandlers() {
     });
   }
 
+  document.addEventListener("app:language-changed", () => { renderGeomBimFilterOptions(); renderGeomBimElementOptions(); });
   if (geomBimElementSelect) {
     geomBimElementSelect.addEventListener("change", (event) => {
       const nextId = event.target?.value || "";

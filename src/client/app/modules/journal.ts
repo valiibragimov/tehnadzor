@@ -328,7 +328,7 @@ function clearPendingRepeatControl(issueId = "") {
   }
 }
 
-function issueMatchesRepeatEntry(issue: IssueRecord, entry: JournalEntryRecord) {
+function issueMatchesRepeatEntry(issue: IssueRecord, entry: JournalEntryRecord, explicit = false) {
   if (!issue || getRuntimeIssueStatus(issue) === "closed") return false;
   if (hasIssueRepeatControl(issue)) return false;
   if (normalizeJournalStatus(entry?.status) !== "ok") return false;
@@ -341,8 +341,12 @@ function issueMatchesRepeatEntry(issue: IssueRecord, entry: JournalEntryRecord) 
 
   const issueModule = normalizeJournalMatchText(issue.module);
   const entryModule = normalizeJournalMatchText(entry.module);
+  const withoutFloor = (value: unknown) => String(value || "").replace(/^(?:этаж|floor)\s+[^,]+,\s*/iu, "");
   const issueContext = normalizeJournalMatchText(issue.context);
-  const entryContext = normalizeJournalMatchText(entry.context || entry.node);
+  // Only an explicitly selected legacy issue may omit the floor prefix. Automatic matching keeps floors distinct.
+  const context = explicit && !/^(?:этаж|floor)\s/iu.test(String(issue.context || ""))
+    ? withoutFloor(entry.context || entry.node) : entry.context || entry.node;
+  const entryContext = normalizeJournalMatchText(context);
   const constructionMatches = matchesConstructionValue(issue.construction, entry.construction);
 
   return Boolean(
@@ -360,7 +364,7 @@ function findIssueForRepeatControl(entry: JournalEntryRecord) {
   const pendingIssueId = getPendingRepeatControlIssueId();
   if (pendingIssueId) {
     const pendingIssue = issueRecords.find((issue) => issue.id === pendingIssueId);
-    if (pendingIssue && issueMatchesRepeatEntry(pendingIssue, entry)) return pendingIssue;
+    if (pendingIssue && issueMatchesRepeatEntry(pendingIssue, entry, true)) return pendingIssue;
   }
 
   return issueRecords.find((issue) => issueMatchesRepeatEntry(issue, entry)) || null;
@@ -414,7 +418,13 @@ function buildJournalEntryFromIssue(issue: IssueRecord): JournalEntryRecord {
 async function startRepeatControlForIssue(issue: IssueRecord) {
   if (!issue?.id) return;
   setPendingRepeatControl(issue);
-  await onJournalRowClick(buildJournalEntryFromIssue(issue));
+  const entry = buildJournalEntryFromIssue(issue);
+  if (!await onJournalRowClick(entry)) { clearPendingRepeatControl(issue.id); return; }
+  // A repeat inspection is a new measurement, never an edit of the source evidence.
+  if (entry.module === "Геометрия") workspace.geometryCheckId = null;
+  else if (entry.module === "Армирование") getReinforcementApi().setCurrentCheckId(null);
+  else if (entry.module === "Прочность") getStrengthApi().setCurrentCheckId(null);
+  else if (entry.module === "Геодезия") getGeodesyApi().resetCurrentNodeKeys();
   showNotification("Открыта исходная проверка. Выполните повторный контроль и сохраните результат.", "info");
 }
 
@@ -1591,6 +1601,7 @@ async function onJournalRowClick(entry) {
     } else {
       console.log("[Journal] Навигация успешно завершена");
     }
+    return found;
 
   } catch (error) {
     console.error("[Journal] Ошибка при навигации к записи:", error);

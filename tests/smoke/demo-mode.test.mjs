@@ -179,8 +179,13 @@ test("demo reuses production stylesheets verbatim and includes a production summ
 
 test("demo build retains the production UI instead of optimizing it into a mini app", async () => {
   const files = await listFiles(demoRoot);
-  let bytes = 0;
-  for (const file of files) bytes += (await stat(file)).size;
+  let bytes = 0, lazyIfcBytes = 0;
+  for (const file of files) {
+    const size = (await stat(file)).size;
+    if (file.includes(`${path.sep}dist${path.sep}app${path.sep}`)) lazyIfcBytes += size;
+    else bytes += size;
+  }
+  assert.ok(lazyIfcBytes < 6_000_000, `lazy IFC worker/WASM exceeds its budget: ${lazyIfcBytes}`);
   assert.ok(bytes > 1_000_000, `production UI bundle is unexpectedly small: ${bytes}`);
   assert.ok(bytes < 4_000_000, `demo build is unexpectedly large: ${bytes}`);
 });

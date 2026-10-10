@@ -55,10 +55,6 @@
   white-space: nowrap;
 }
 
-.bim-workspace__normalize .lg-btn__glow {
-  display: none;
-}
-
 .bim-workspace__normalized-badge {
   display: inline-flex;
   align-items: center;
@@ -1488,10 +1484,6 @@ body.theme-light .bim-import-status {
 button.is-busy,
 .menu-item.is-busy {
   cursor: wait;
-}
-
-button.is-busy .lg-btn__glow {
-  opacity: 0.65;
 }
 
 .summary-text-controls .summary-workspace-nav {
@@ -4475,10 +4467,6 @@ button.bim-visual-panel__toggle:active {
   white-space: nowrap;
 }
 
-.bim-visual-panel__fit .lg-btn__glow {
-  display: none;
-}
-
 .bim-visual-stage {
   margin-top: 0;
   flex: 1;
@@ -4965,10 +4953,6 @@ body.theme-light .bim-visual-focus {
   white-space: nowrap;
 }
 
-.bim-visual-panel__open-viewer .lg-btn__glow {
-  display: none;
-}
-
 .bim-viewer-action-stack {
   --bim-action-width: 220px;
   display: grid;
@@ -5198,10 +5182,6 @@ body.bim-workspace-open {
 .bim-workspace__action .lg-btn__label {
   font-size: 11px;
   white-space: nowrap;
-}
-
-.bim-workspace__action .lg-btn__glow {
-  display: none;
 }
 
 .bim-workspace__close {
@@ -5899,10 +5879,6 @@ body.theme-light #strengthResult::-webkit-scrollbar-thumb:hover {
   --lg-tilt-y: 0deg ;
 }
 
-.confirm-popover__button .lg-btn__glow {
-  display: none;
-}
-
 .confirm-popover__button--primary.lg-btn,
 .confirm-popover__button--primary.lg-btn--pill {
   background: rgba(239, 68, 68, 0.18);
@@ -5979,141 +5955,6 @@ body.theme-light .confirm-popover__button--primary.lg-btn--pill {
   background: rgba(255, 255, 255, 0.3);
 }
 
-.node {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 12px;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.node:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(96, 165, 250, 0.3);
-  transform: translateX(4px);
-}
-
-.node:nth-child(even) {
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.node-title {
-  font-weight: 600;
-  font-size: 14px;
-  color: #f1f5f9;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.node-meta {
-  font-size: 12px;
-  color: #94a3b8;
-  margin-top: 4px;
-  line-height: 1.4;
-}
-
-.node-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* Улучшенные стили для узлов */
-.node-enhanced {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
-  margin-bottom: 12px;
-  cursor: default;
-}
-
-.node-enhanced:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(96, 165, 250, 0.4);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.node-enhanced:nth-child(even) {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.node-content {
-  flex: 1;
-}
-
-.node-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.node-enhanced .node-title {
-  font-size: 15px;
-  gap: 8px;
-}
-
-.node-icon {
-  font-size: 18px;
-  opacity: 0.9;
-}
-
-.node-data {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  border-left: 3px solid #60a5fa;
-}
-
-.node-data-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.node-label {
-  color: #94a3b8;
-  font-weight: 500;
-  min-width: 100px;
-  flex-shrink: 0;
-}
-
-.node-values {
-  color: #cbd5e1;
-  flex: 1;
-}
-
-.node-values strong {
-  color: #f1f5f9;
-  font-weight: 600;
-}
-
-.node-enhanced .node-actions {
-  gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
 /* =========================
    Улучшения UI для блока "Узлы" в геодезии
    ========================= */
@@ -6160,96 +6001,6 @@ body.theme-light .confirm-popover__button--primary.lg-btn--pill {
   background: rgba(255, 255, 255, 0.4);
 }
 
-/* Улучшаем карточки узлов */
-#sectionGeo .node-enhanced {
-  padding: 20px;
-  gap: 16px;
-  margin-bottom: 0;
-}
-
-#sectionGeo .node-enhanced:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-}
-
-/* Улучшаем заголовок карточки */
-#sectionGeo .node-header {
-  margin-bottom: 16px;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: nowrap;
-}
-
-#sectionGeo .node-enhanced .node-title {
-  font-size: 16px;
-  line-height: 1.5;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-}
-
-#sectionGeo .node-icon {
-  font-size: 20px;
-  flex-shrink: 0;
-}
-
-/* Улучшаем данные узла */
-#sectionGeo .node-data {
-  padding: 16px;
-  gap: 12px;
-  border-radius: 10px;
-}
-
-#sectionGeo .node-data-row {
-  gap: 12px;
-  font-size: 14px;
-  line-height: 1.6;
-  align-items: baseline;
-}
-
-#sectionGeo .node-label {
-  min-width: 80px;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-#sectionGeo .node-values {
-  line-height: 1.6;
-  word-break: break-word;
-}
-
-#sectionGeo .node-values strong {
-  font-weight: 600;
-}
-
-/* Улучшаем кнопки действий */
-#sectionGeo .node-enhanced .node-actions {
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
-  padding-top: 12px;
-  margin-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-#sectionGeo .node-enhanced .node-actions .btn-small {
-  flex: 1;
-  min-width: 0;
-  padding: 10px 12px;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: auto;
-  line-height: 1.4;
-}
-
-#sectionGeo .node-enhanced .node-actions .btn-small span {
-  font-size: 16px;
-  flex-shrink: 0;
-}
-
 /* Светлая тема для геодезии */
 body.theme-light #sectionGeo .nodes::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.05);
@@ -6261,10 +6012,6 @@ body.theme-light #sectionGeo .nodes::-webkit-scrollbar-thumb {
 
 body.theme-light #sectionGeo .nodes::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
-}
-
-body.theme-light #sectionGeo .node-enhanced .node-actions {
-  border-top-color: #e5e7eb;
 }
 
 /* =========================
@@ -6520,122 +6267,6 @@ body.theme-light .menu-danger {
   background: rgba(255, 255, 255, 0.4);
 }
 
-/* Улучшаем карточки сохранённых проверок */
-#reinforcement .node-enhanced,
-#geometry .node-enhanced,
-#strength .node-enhanced {
-  padding: 20px;
-  gap: 16px;
-  margin-bottom: 0;
-}
-
-#reinforcement .node-enhanced:hover,
-#geometry .node-enhanced:hover,
-#strength .node-enhanced:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-}
-
-/* Улучшаем заголовок карточки */
-#reinforcement .node-header,
-#geometry .node-header,
-#strength .node-header {
-  margin-bottom: 16px;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: nowrap;
-}
-
-#reinforcement .node-enhanced .node-title,
-#geometry .node-enhanced .node-title,
-#strength .node-enhanced .node-title {
-  font-size: 16px;
-  line-height: 1.5;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-}
-
-#reinforcement .node-icon,
-#geometry .node-icon,
-#strength .node-icon {
-  font-size: 20px;
-  flex-shrink: 0;
-}
-
-/* Улучшаем данные проверки */
-#reinforcement .node-data,
-#geometry .node-data,
-#strength .node-data {
-  padding: 16px;
-  gap: 12px;
-  border-radius: 10px;
-}
-
-#reinforcement .node-data-row,
-#geometry .node-data-row,
-#strength .node-data-row {
-  gap: 12px;
-  font-size: 14px;
-  line-height: 1.6;
-  align-items: baseline;
-}
-
-#reinforcement .node-label,
-#geometry .node-label,
-#strength .node-label {
-  min-width: 80px;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-#reinforcement .node-values,
-#geometry .node-values,
-#strength .node-values {
-  line-height: 1.6;
-  word-break: break-word;
-}
-
-#reinforcement .node-values strong,
-#geometry .node-values strong,
-#strength .node-values strong {
-  font-weight: 600;
-}
-
-/* Улучшаем кнопки действий */
-#reinforcement .node-enhanced .node-actions,
-#geometry .node-enhanced .node-actions,
-#strength .node-enhanced .node-actions {
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
-  padding-top: 12px;
-  margin-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-#reinforcement .node-enhanced .node-actions .btn-small,
-#geometry .node-enhanced .node-actions .btn-small,
-#strength .node-enhanced .node-actions .btn-small {
-  flex: 1;
-  min-width: 0;
-  padding: 10px 12px;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: auto;
-  line-height: 1.4;
-}
-
-#reinforcement .node-enhanced .node-actions .btn-small span,
-#geometry .node-enhanced .node-actions .btn-small span,
-#strength .node-enhanced .node-actions .btn-small span {
-  font-size: 16px;
-  flex-shrink: 0;
-}
-
 /* Светлая тема */
 body.theme-light #reinforcement .nodes::-webkit-scrollbar-track,
 body.theme-light #geometry .nodes::-webkit-scrollbar-track,
@@ -6653,12 +6284,6 @@ body.theme-light #reinforcement .nodes::-webkit-scrollbar-thumb:hover,
 body.theme-light #geometry .nodes::-webkit-scrollbar-thumb:hover,
 body.theme-light #strength .nodes::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
-}
-
-body.theme-light #reinforcement .node-enhanced .node-actions,
-body.theme-light #geometry .node-enhanced .node-actions,
-body.theme-light #strength .node-enhanced .node-actions {
-  border-top-color: #e5e7eb;
 }
 
 /* Адаптивность для мобильных */
@@ -8143,27 +7768,6 @@ body.theme-light .result .reg-basis-source-fallback {
   color: #64748b;
 }
 
-/* узлы */
-
-body.theme-light .node {
-  background: #ffffff;
-  border-color: #e5e7eb;
-  color: #1f2937;
-}
-
-body.theme-light .node:hover {
-  background: #f9fafb;
-  border-color: #3b82f6;
-}
-
-body.theme-light .node-title {
-  color: #1f2937;
-}
-
-body.theme-light .node-meta {
-  color: #6b7280;
-}
-
 body.theme-light .tag {
   background: #f3f4f6;
   border-color: #d1d5db;
@@ -8607,48 +8211,6 @@ body.theme-light button.btn-danger {
 body.theme-light button.btn-danger:hover {
   background: #fca5a5;
   border-color: #fca5a5;
-}
-
-/* Узлы в светлой теме */
-body.theme-light .node-enhanced {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-body.theme-light .node-enhanced:hover {
-  background: #f9fafb;
-  border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-}
-
-body.theme-light .node-enhanced:nth-child(even) {
-  background: #f9fafb;
-}
-
-body.theme-light .node-enhanced .node-title {
-  color: #1f2937;
-}
-
-body.theme-light .node-data {
-  background: #f3f4f6;
-  border-left-color: #3b82f6;
-}
-
-body.theme-light .node-label {
-  color: #1e293b;
-}
-
-body.theme-light .node-values {
-  color: #1e293b;
-}
-
-body.theme-light .node-values strong {
-  color: #1e293b;
-}
-
-body.theme-light .node-enhanced .node-actions {
-  border-top-color: #e5e7eb;
 }
 
 /* модалка */
@@ -12689,12 +12251,6 @@ body.theme-light .knowledge-scroll-top-btn:hover {
   padding: 8px 12px;
 }
 
-#btnAllArticles:hover .lg-btn__glow,
-#btnKnowledgeSearch:hover .lg-btn__glow,
-#btnCategorySearch:hover .lg-btn__glow {
-  opacity: 1;
-}
-
 
 #btnAllArticles:hover,
 #btnKnowledgeSearch:hover,
@@ -12703,24 +12259,6 @@ body.theme-light .knowledge-scroll-top-btn:hover {
   border-color: rgba(255, 255, 255, 0.4);
   box-shadow: 0 6px 16px rgba(2, 6, 23, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   --lg-raise: -0.5px;
-}
-
-#btnAllArticles.lg-btn:hover::before,
-#btnKnowledgeSearch.lg-btn:hover::before,
-#btnCategorySearch.lg-btn:hover::before {
-  opacity: 1;
-}
-
-#btnAllArticles .lg-btn__glow,
-#btnKnowledgeSearch .lg-btn__glow,
-#btnCategorySearch .lg-btn__glow {
-  filter: blur(34px) url(#liquidGlass);
-}
-
-#btnAllArticles:hover .lg-btn__glow,
-#btnKnowledgeSearch:hover .lg-btn__glow,
-#btnCategorySearch:hover .lg-btn__glow {
-  transform: translate3d(var(--lg-glow-x), var(--lg-glow-y), 0) scale(1.15);
 }
 
 .knowledge-search-bar input,
@@ -14264,25 +13802,6 @@ body.theme-light .module-help-toggle {
   background: rgba(255, 255, 255, 0.04) ;
 }
 
-#sectionGeo .node:hover,
-#reinforcement .node:hover,
-#geometry .node:hover,
-#strength .node:hover {
-  background: rgba(255, 255, 255, 0.03) ;
-  border-color: rgba(255, 255, 255, 0.1) ;
-  transform: none ;
-}
-
-#sectionGeo .node-enhanced:hover,
-#reinforcement .node-enhanced:hover,
-#geometry .node-enhanced:hover,
-#strength .node-enhanced:hover {
-  background: rgba(255, 255, 255, 0.04) ;
-  border-color: rgba(255, 255, 255, 0.1) ;
-  transform: none ;
-  box-shadow: none ;
-}
-
 body.theme-light #sectionGeo .card:hover,
 body.theme-light #reinforcement .card:hover,
 body.theme-light #geometry .card:hover,
@@ -14291,25 +13810,6 @@ body.theme-light #strength .card:hover {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) ;
   transform: none ;
   background: #ffffff ;
-}
-
-body.theme-light #sectionGeo .node:hover,
-body.theme-light #reinforcement .node:hover,
-body.theme-light #geometry .node:hover,
-body.theme-light #strength .node:hover {
-  background: #ffffff ;
-  border-color: #e5e7eb ;
-  transform: none ;
-}
-
-body.theme-light #sectionGeo .node-enhanced:hover,
-body.theme-light #reinforcement .node-enhanced:hover,
-body.theme-light #geometry .node-enhanced:hover,
-body.theme-light #strength .node-enhanced:hover {
-  background: #ffffff ;
-  border-color: #e5e7eb ;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) ;
-  transform: none ;
 }
 
 /* =========================
@@ -14524,13 +14024,6 @@ body.theme-light .btn-small:disabled {
   color: #94a3b8 ;
   border-color: #cbd5e1 ;
   box-shadow: none ;
-}
-
-body.theme-light .node-label,
-body.theme-light .node-values,
-body.theme-light .node-values strong,
-body.theme-light .node-data {
-  color: #1e293b;
 }
 
 body.theme-light.profile-page .profile-main {
@@ -14780,24 +14273,6 @@ body.theme-light #btnStrength:hover {
   border-color: rgba(22, 163, 74, 0.6) ;
 }
 
-/* =========================
-   LIGHT THEME LEGIBILITY FIX (PRIORITY)
-   ========================= */
-
-/* 1) Карточки узлов: заголовки и строки Проект/Факт */
-body.theme-light .node-enhanced .node-title,
-body.theme-light #sectionGeo .node-enhanced .node-title,
-body.theme-light #reinforcement .node-enhanced .node-title,
-body.theme-light #geometry .node-enhanced .node-title,
-body.theme-light #strength .node-enhanced .node-title,
-body.theme-light .node-data,
-body.theme-light .node-data-row,
-body.theme-light .node-label,
-body.theme-light .node-values,
-body.theme-light .node-values strong {
-  color: #1e293b ;
-}
-
 /* 2) Кнопки Проверить/Очистить: контрастный фон */
 body.theme-light #btnGeo,
 body.theme-light #btnReinf,
@@ -14963,46 +14438,6 @@ body.theme-light #strength .split .card:last-child:hover {
     0 10px 24px rgba(15, 23, 42, 0.14),
     0 1px 0 rgba(255, 255, 255, 0.9) inset ;
   transform: none ;
-}
-
-/* Левые карточки списка узлов */
-body.theme-light #sectionGeo .node-enhanced,
-body.theme-light #reinforcement .node-enhanced,
-body.theme-light #geometry .node-enhanced,
-body.theme-light #strength .node-enhanced {
-  background: #ffffff ;
-  border: 1px solid #cbd5e1 ;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.1) ;
-}
-
-body.theme-light #sectionGeo .node-enhanced:hover,
-body.theme-light #reinforcement .node-enhanced:hover,
-body.theme-light #geometry .node-enhanced:hover,
-body.theme-light #strength .node-enhanced:hover {
-  background: #ffffff ;
-  border-color: #cbd5e1 ;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.1) ;
-  transform: none ;
-}
-
-/* Активная/выбранная карточка узла */
-body.theme-light #sectionGeo .node-enhanced.active,
-body.theme-light #sectionGeo .node-enhanced.is-active,
-body.theme-light #sectionGeo .node-enhanced.selected,
-body.theme-light #sectionGeo .node-enhanced[aria-selected="true"],
-body.theme-light #reinforcement .node-enhanced.active,
-body.theme-light #reinforcement .node-enhanced.is-active,
-body.theme-light #reinforcement .node-enhanced.selected,
-body.theme-light #reinforcement .node-enhanced[aria-selected="true"],
-body.theme-light #geometry .node-enhanced.active,
-body.theme-light #geometry .node-enhanced.is-active,
-body.theme-light #geometry .node-enhanced.selected,
-body.theme-light #geometry .node-enhanced[aria-selected="true"],
-body.theme-light #strength .node-enhanced.active,
-body.theme-light #strength .node-enhanced.is-active,
-body.theme-light #strength .node-enhanced.selected,
-body.theme-light #strength .node-enhanced[aria-selected="true"] {
-  border-left: 3px solid #2563eb ;
 }
 
 /* =========================
@@ -15184,85 +14619,6 @@ body.theme-light .tab.active {
 body.theme-light .tab.active .lg-btn__label {
   color: #ffffff ;
   font-weight: 700 ;
-}
-
-/* =========================
-   LIGHT THEME: NODE CARDS EMPHASIS
-   ========================= */
-body.theme-light #sectionGeo .node-enhanced,
-body.theme-light #reinforcement .node-enhanced,
-body.theme-light #geometry .node-enhanced,
-body.theme-light #strength .node-enhanced {
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) ;
-  border: 1px solid #b8c7d8 ;
-  box-shadow:
-    0 10px 22px rgba(15, 23, 42, 0.14),
-    0 1px 0 rgba(255, 255, 255, 0.95) inset ;
-}
-
-body.theme-light #sectionGeo .node-enhanced:hover,
-body.theme-light #reinforcement .node-enhanced:hover,
-body.theme-light #geometry .node-enhanced:hover,
-body.theme-light #strength .node-enhanced:hover {
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) ;
-  border-color: #b8c7d8 ;
-  box-shadow:
-    0 10px 22px rgba(15, 23, 42, 0.14),
-    0 1px 0 rgba(255, 255, 255, 0.95) inset ;
-  transform: none ;
-}
-
-body.theme-light #sectionGeo .node-enhanced .node-header,
-body.theme-light #reinforcement .node-enhanced .node-header,
-body.theme-light #geometry .node-enhanced .node-header,
-body.theme-light #strength .node-enhanced .node-header {
-  border-bottom: 1px solid #dbe4ef ;
-  padding-bottom: 10px ;
-  margin-bottom: 2px ;
-}
-
-body.theme-light #sectionGeo .node-enhanced .node-title,
-body.theme-light #reinforcement .node-enhanced .node-title,
-body.theme-light #geometry .node-enhanced .node-title,
-body.theme-light #strength .node-enhanced .node-title {
-  color: #1e293b ;
-  font-weight: 700 ;
-}
-
-body.theme-light #sectionGeo .node-enhanced .node-data,
-body.theme-light #reinforcement .node-enhanced .node-data,
-body.theme-light #geometry .node-enhanced .node-data,
-body.theme-light #strength .node-enhanced .node-data {
-  background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%) ;
-  border: 1px solid #d7e0eb ;
-  border-left: 4px solid #2563eb ;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9) ;
-}
-
-body.theme-light #sectionGeo .node-enhanced .node-label,
-body.theme-light #reinforcement .node-enhanced .node-label,
-body.theme-light #geometry .node-enhanced .node-label,
-body.theme-light #strength .node-enhanced .node-label {
-  color: #334155 ;
-  font-weight: 700 ;
-}
-
-body.theme-light #sectionGeo .node-enhanced .node-values,
-body.theme-light #reinforcement .node-enhanced .node-values,
-body.theme-light #geometry .node-enhanced .node-values,
-body.theme-light #strength .node-enhanced .node-values,
-body.theme-light #sectionGeo .node-enhanced .node-values strong,
-body.theme-light #reinforcement .node-enhanced .node-values strong,
-body.theme-light #geometry .node-enhanced .node-values strong,
-body.theme-light #strength .node-enhanced .node-values strong {
-  color: #1e293b ;
-}
-
-body.theme-light #sectionGeo .node-enhanced .node-actions,
-body.theme-light #reinforcement .node-enhanced .node-actions,
-body.theme-light #geometry .node-enhanced .node-actions,
-body.theme-light #strength .node-enhanced .node-actions {
-  border-top: 1px solid #dbe4ef ;
 }
 
 /* =========================
@@ -20863,10 +20219,6 @@ body.theme-light.profile-page .profile-edit-toggle:active .lg-btn__label {
   animation: none ;
 }
 
-body.theme-light.profile-page .profile-edit-toggle .lg-btn__glow {
-  display: none ;
-}
-
 body.theme-light.profile-page .profile-filter-tab.lg-btn--pill,
 body.theme-light.profile-page .profile-feed-tab.lg-btn--pill,
 body.theme-light.profile-page .profile-filter-tab .lg-btn__label,
@@ -21081,17 +20433,6 @@ body.profile-page #btnCreateProjectProfile:hover .lg-btn__label,
 body.profile-page #btnCreateProjectProfile:focus-visible .lg-btn__label,
 body.profile-page #btnCreateProjectProfile:active .lg-btn__label {
   color: #ffffff ;
-  transition: none ;
-  animation: none ;
-}
-
-body.profile-page #profileEditLink .lg-btn__glow,
-body.profile-page #btnCreateProjectProfile .lg-btn__glow,
-body.profile-page .profile-filter-tab .lg-btn__glow,
-body.profile-page .profile-feed-tab .lg-btn__glow {
-  display: none ;
-  opacity: 0 ;
-  transform: none ;
   transition: none ;
   animation: none ;
 }
@@ -22408,12 +21749,6 @@ body.theme-light.home-page #geometry #btnClearGeomBimSelection:is(:hover, :focus
   box-shadow: var(--home-action-blue-shadow) ;
 }
 
-body.theme-light.home-page #btnClearGeomBimSelection .lg-btn__glow,
-body.theme-light.home-page #geometry #btnClearGeomBimSelection .lg-btn__glow {
-  display: none ;
-  opacity: 0 ;
-}
-
 body:not(.theme-light).home-page :is(
   #btnClearGeoBimSelection,
   #btnClearGeoBimSelection.lg-btn,
@@ -22515,10 +21850,6 @@ body.home-page .geo-bim-header .bim-viewer-launcher__button .lg-btn__label {
 
 body.home-page .bim-viewer-launcher--placeholder {
   display: block ;
-}
-
-body.home-page .bim-viewer-launcher--placeholder .lg-btn__glow {
-  display: none ;
 }
 
 @media (max-width: 760px) {
@@ -24847,12 +24178,6 @@ body.home-page #sectionKnowledge .normative-assistant__articles button:hover {
   color: #eff6ff;
 }
 
-body.home-page #sectionKnowledge #btnAllArticles .lg-btn__glow,
-body.home-page #sectionKnowledge #btnKnowledgeSearch .lg-btn__glow,
-body.home-page #sectionKnowledge #btnCategorySearch .lg-btn__glow {
-  display: none;
-}
-
 body.home-page #sectionKnowledge .knowledge-category-label {
   margin: 0 0 36px;
   color: #8fa0b7;
@@ -26478,11 +25803,6 @@ body.home-page.scope-scroll-locked {
     transform: none ;
   }
 
-  .wizard-footer .wizard-primary-btn .lg-btn__glow {
-    display: none ;
-    opacity: 0 ;
-  }
-
   .wizard-footer .wizard-primary-btn .lg-btn__label {
     color: inherit ;
   }
@@ -27462,10 +26782,6 @@ body.home-page .btn-secondary,
 body.home-page .btn-small,
 body.home-page .lg-btn {
   min-height: var(--ui-control-height);
-}
-
-body.home-page .lg-btn__glow {
-  display: none ;
 }
 
 body.home-page .lg-btn,

@@ -57,19 +57,7 @@ export function mountDemoRuntimeControls() {
     window.location.reload();
   });
 
-  const fileInput = document.getElementById("ifcFileInput") as HTMLInputElement | null;
-  if (fileInput) fileInput.disabled = true;
-  const ifcState = document.getElementById("bimImportFileState");
-  const ifcStatus = document.getElementById("bimImportStatus");
-  if (ifcState) ifcState.textContent = "Синтетические BIM-метаданные";
-  if (ifcStatus) ifcStatus.textContent = "Загрузка IFC недоступна в демонстрационном режиме";
-
   [
-    "btnImportIfc",
-    "btnChooseAnotherIfc",
-    "btnClearIfcImport",
-    "btnResetSelectedIfc",
-    "btnIfcMoreActions",
     "headerProfileButton",
     "btnLogout",
     "btnSummaryGenerate",

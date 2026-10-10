@@ -1,5 +1,5 @@
 // Service Worker для Tehnadzor
-const CACHE_NAME = "tehnadzor-22bc3ce6e8e5";
+const CACHE_NAME = "tehnadzor-2acc5bf403ba";
 const OFFLINE_URL = "index.html";
 const MANIFEST_URL = "manifest.json";
 const BYPASS_CACHE_EXTENSIONS = [".css", ".js", ".html"];

@@ -1,6 +1,8 @@
+import { engineering } from "./engineering.js";
 export const resources = {
   "ru": {
     "translation": {
+      ...engineering.ru,
       "planTask_done": "Выполнено",
       "planTask_deviation": "Отклонение",
       "planTask_issue_open": "Замечание",
@@ -143,6 +145,7 @@ export const resources = {
   },
   "en": {
     "translation": {
+      ...engineering.en,
       "planTask_done": "Done",
       "planTask_deviation": "Deviation",
       "planTask_issue_open": "Open issue",

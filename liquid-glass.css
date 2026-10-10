@@ -81,6 +81,26 @@
     background: var(--surface); color: var(--text); border: 1px solid var(--border);
     border-radius: var(--radius); box-shadow: none; backdrop-filter: none;
   }
+  /* Saved inspections: one component for all engineering disciplines. */
+  .node { display: block; padding: 14px; margin: 0 0 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); box-shadow: none; transform: none; cursor: pointer; }
+  .node:hover { background: var(--surface-hover); }
+  .node-content, .node-main { min-width: 0; width: 100%; }
+  .node-header { display: flex; align-items: start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .node-title { color: var(--text); font-size: 13px; font-weight: 600; line-height: 1.5; min-width: 0; }
+  .node-icon { display: none; }
+  .node-header-controls { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+  .node-data { display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .node-data-row { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 12px; line-height: 1.5; }
+  .node-label { color: var(--text-muted); font-weight: 400; }
+  .node-values { color: var(--text); overflow-wrap: anywhere; }
+  .node-values strong { font-weight: 500; }
+  .node-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .node-delete-icon { display: grid; place-items: center; width: 30px; min-height: 30px; padding: 5px; color: var(--text-muted); }
+  .node-delete-icon svg { width: 15px; height: 15px; }
+  .node-delete-icon:hover { color: var(--danger); }
+  .node .tag, .node .status-tag { display: inline-flex; padding: 3px 7px; border: 1px solid var(--border); border-radius: 4px; font-size: 11px; white-space: nowrap; background: var(--surface-subtle); color: var(--text-muted); }
+  .node .bad, .node .status-bad { color: var(--danger); }
+  .node .ok, .node .status-ok { color: var(--success); }
   .object-overview { padding: 0; }
   .overview-dashboard { padding: 28px; }
   .overview-heading { margin-bottom: 24px; }
@@ -175,6 +195,7 @@
   .help-popover { position: fixed; inset: 20% auto auto 50%; translate: -50% 0; margin: 0; width: min(420px, calc(100vw - 32px)); max-height: 60dvh; padding: 20px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); box-shadow: 0 8px 24px #0002; }
   .help-popover:popover-open { pointer-events: auto; display: block; opacity: 1; visibility: visible; transform: none; }
   html:has(dialog.wizard-sheet:modal) { overflow: hidden; }
+  .bim-results-hint { margin: 8px 0 0; font-size: 12px; color: var(--text-muted); }
   .journal-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
   .journal-search { flex: 1 1 200px; max-width: 320px; }
   .journal-sessions { margin: 16px 0; color: var(--text-muted); font-size: 13px; }

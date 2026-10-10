@@ -1,3 +1,5 @@
+import { t, translateEngineeringLabel } from "../../../shared/i18n/index.js";
+import { setBimResultHint } from "../../../app/ui/bim-result-hint.js";
 import { getConstructionLabel } from "../../../app/construction.js";
 import {
   buildBimElementFilterOptions,
@@ -214,10 +216,14 @@ export function createStrengthBimSelectionRuntime({
 
     const defaultOption = dom.document.createElement("option");
     defaultOption.value = "all";
-    defaultOption.textContent = defaultLabel;
+    defaultOption.textContent = translateEngineeringLabel(defaultLabel);
     select.appendChild(defaultOption);
 
-    options.forEach((optionData) => {
+    const visibleOptions = options.slice(0, 100);
+  const activeOption = options.find(option => option.value === nextValue);
+  if (activeOption && !visibleOptions.includes(activeOption)) visibleOptions.unshift(activeOption);
+  setBimResultHint(select, options.length);
+  visibleOptions.forEach((optionData) => {
       const option = dom.document.createElement("option");
       option.value = optionData.value;
       option.textContent = optionData.label;
@@ -267,7 +273,7 @@ export function createStrengthBimSelectionRuntime({
 
     const previousValue = selectedId || "";
     const filteredElements = getFilteredElements();
-    const visibleElements = [...filteredElements];
+    const visibleElements = filteredElements.slice(0, 100);
     const selectedElement = previousValue
       ? elementsById.get(previousValue) || null
       : null;
@@ -275,7 +281,7 @@ export function createStrengthBimSelectionRuntime({
 
     const manualOption = dom.document.createElement("option");
     manualOption.value = "";
-    manualOption.textContent = "Ручной ввод без BIM";
+    manualOption.textContent = t("form_manual_entry_without_bim");
     dom.bimElementSelect.appendChild(manualOption);
 
     if (selectedElement) {
@@ -287,6 +293,8 @@ export function createStrengthBimSelectionRuntime({
       );
       if (!alreadyVisible) visibleElements.unshift(selectedElement);
     }
+
+  setBimResultHint(dom.bimElementSelect, filteredElements.length);
 
     visibleElements.forEach((element) => {
       const option = dom.document.createElement("option");
@@ -441,24 +449,24 @@ export function createStrengthBimSelectionRuntime({
 
     if (!hasLink) {
       if (dom.bimSourceTitle) {
-        dom.bimSourceTitle.textContent = "BIM-элемент не выбран";
+        dom.bimSourceTitle.textContent = t("form_no_bim_element_selected");
       }
       if (dom.bimSourceState) {
         dom.bimSourceState.textContent = BIM_MANUAL_MODE_MESSAGE;
       }
       if (dom.bimSourceMeta) dom.bimSourceMeta.textContent = "";
-      if (dom.bimAppliedType) dom.bimAppliedType.textContent = "Нет данных";
+      if (dom.bimAppliedType) dom.bimAppliedType.textContent = t("form_no_data");
       if (dom.bimAppliedFloor) {
-        dom.bimAppliedFloor.textContent = "Нет данных";
+        dom.bimAppliedFloor.textContent = t("form_no_data");
       }
-      if (dom.bimAppliedMark) dom.bimAppliedMark.textContent = "Нет данных";
-      if (dom.bimAppliedAxes) dom.bimAppliedAxes.textContent = "Нет данных";
+      if (dom.bimAppliedMark) dom.bimAppliedMark.textContent = t("form_no_data");
+      if (dom.bimAppliedAxes) dom.bimAppliedAxes.textContent = t("form_no_data");
       if (dom.bimAppliedStrength) {
-        dom.bimAppliedStrength.textContent = "Пока ручной ввод";
+        dom.bimAppliedStrength.textContent = t("form_manual_entry");
       }
       if (dom.bimSourceHint) {
         dom.bimSourceHint.textContent =
-          "Из текущего BIM-MVP в прочность надёжно приходят тип, этаж, BIM-оси и марка для колонн/балок. Класс бетона и количество дней пока вводятся вручную.";
+          t("form_bim_supplies_type_floor_grid_axes_and_column_beam_marks_enter_concrete");
       }
       clearStaticHighlights();
       return;
@@ -754,6 +762,7 @@ export function createStrengthBimSelectionRuntime({
   function initBindings() {
     if (bindingsInitialized) return;
     bindingsInitialized = true;
+    dom.document.addEventListener("app:language-changed", () => { renderFilterOptions(); renderElementOptions(); });
     renderFilterOptions();
     renderElementOptions("");
     renderBinding();

@@ -5,7 +5,7 @@ const require = createRequire(import.meta.url);
 const { readIfcModel } = require("../../server/dist/src/shared/bim/ifc-model.js");
 const { createIfcWorkerPool } = require("../../server/dist/server/src/services/ifc-worker-pool.js");
 
-import { modelFixture } from "../fixtures/ifc.mjs";
+import { modelFixture, engineeringFixtures } from "../fixtures/ifc.mjs";
 
 test("WebIFC preserves quoted STEP text, placements, declared geometry and properties", async () => {
   const model = await readIfcModel(modelFixture(), { sourceModelId: "model-a" });
@@ -126,4 +126,24 @@ test("valid unsupported grid placements preserve elements with unknown coordinat
   assert.deepEqual([element.projectX, element.projectY, element.projectH], [null, null, null]);
   assert.equal(element.sectionWidth, 300);
   assert.equal(element.axes, "A-1");
+});
+
+test("exporter-shaped bodies preserve engineering accuracy without mesh-bound guesses", async () => {
+  const fixtures = engineeringFixtures();
+  const body = (await readIfcModel(fixtures.bodyAndAxis)).elements[0];
+  assert.deepEqual([body.sectionWidth, body.sectionHeight, body.height], [300, 400, 3000]);
+  const nested = (await readIfcModel(fixtures.nestedRotation)).elements[0];
+  assert.deepEqual([nested.projectX, nested.projectY, nested.projectH], [3999998000, 5000001000, 103000]);
+  const pool = createIfcWorkerPool();
+  try {
+    for (const [name, bytes] of Object.entries(fixtures)) {
+      const direct = await readIfcModel(bytes, { sourceModelId: name.toLowerCase() });
+      assert.deepEqual(await pool.parse(bytes, { sourceModelId: name.toLowerCase() }), direct);
+      if (["mappedBody", "booleanBody"].includes(name)) {
+        assert.equal(direct.elements[0].sectionWidth, null, name);
+        assert.equal(direct.elements[0].lineEndX, null, name);
+        assert.equal(direct.elements[0].axes, "A-1");
+      }
+    }
+  } finally { await pool.close(); }
 });

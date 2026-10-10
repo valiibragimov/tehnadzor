@@ -1,3 +1,4 @@
+import { parseSimpleStrengthAxes } from "./bim-selection.js";
 import {
   APP_CONFIG,
   CONCRETE_STRENGTH_CLASSES,
@@ -437,7 +438,7 @@ export function createStrengthForm({
       ...bim.collectCheckData(),
       floor:
         behavior.floorVisible === false
-          ? null
+          ? existing?.floor ?? null
           : dom.floor?.value.trim() || null,
       location,
       marking,
@@ -480,22 +481,23 @@ export function createStrengthForm({
     const flags = getConstructionFlags(
       String(check.construction || check.constructionType || "")
     );
+    const legacyAxes = parseSimpleStrengthAxes(check.location);
     if (
       flags.isPlate ||
       flags.isStair ||
       flags.behavior.locationMode === "plate_range"
     ) {
-      if (dom.axisLetterFrom && check.axisLetterFrom) {
-        dom.axisLetterFrom.value = check.axisLetterFrom;
+      if (dom.axisLetterFrom && (check.axisLetterFrom ?? legacyAxes?.axisLetterFrom)) {
+        dom.axisLetterFrom.value = check.axisLetterFrom ?? legacyAxes?.axisLetterFrom;
       }
-      if (dom.axisLetterTo && check.axisLetterTo) {
-        dom.axisLetterTo.value = check.axisLetterTo;
+      if (dom.axisLetterTo && (check.axisLetterTo ?? legacyAxes?.axisLetterTo)) {
+        dom.axisLetterTo.value = check.axisLetterTo ?? legacyAxes?.axisLetterTo;
       }
-      if (dom.axisNumberFrom && check.axisNumberFrom) {
-        dom.axisNumberFrom.value = String(check.axisNumberFrom);
+      if (dom.axisNumberFrom && (check.axisNumberFrom ?? legacyAxes?.axisNumberFrom)) {
+        dom.axisNumberFrom.value = String(check.axisNumberFrom ?? legacyAxes?.axisNumberFrom);
       }
-      if (dom.axisNumberTo && check.axisNumberTo) {
-        dom.axisNumberTo.value = String(check.axisNumberTo);
+      if (dom.axisNumberTo && (check.axisNumberTo ?? legacyAxes?.axisNumberTo)) {
+        dom.axisNumberTo.value = String(check.axisNumberTo ?? legacyAxes?.axisNumberTo);
       }
       updateLocation();
       if (dom.location && check.location && !dom.location.value) {
@@ -537,7 +539,15 @@ export function createStrengthForm({
       }
     }
     if (dom.floor) dom.floor.value = check.floor || "";
-    if (dom.mark) dom.mark.value = check.mark || "";
+    if (dom.mark) {
+      const storedMark = check.mark || "";
+      // Older records may contain B25 rather than the current B25(M350) display value.
+      if (storedMark && parseConcreteStrengthValue(storedMark) != null && !Array.from(dom.mark.options).some(option => option.value === storedMark)) {
+        const option = dom.document.createElement("option");
+        option.value = storedMark; option.textContent = storedMark; dom.mark.appendChild(option);
+      }
+      dom.mark.value = storedMark;
+    }
     if (dom.days) dom.days.value = String(check.days ?? "");
     if (dom.actual) dom.actual.value = String(check.actual ?? "");
     if (dom.result) {
