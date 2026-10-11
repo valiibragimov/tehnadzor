@@ -1,3 +1,5 @@
+[Русский](README.ru.md) | [English](README.md)
+
 # Tehnadzor
 
 Tehnadzor is a web application for construction inspection. It helps field engineers and quality control teams record measurements, compare them with design values and tolerances, and follow up on defects within a project.

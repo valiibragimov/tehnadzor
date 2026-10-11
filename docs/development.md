@@ -1,3 +1,5 @@
+[Русский](development.ru.md) | [English](development.md)
+
 # Development
 
 All npm commands below run from the repository root unless stated otherwise. Use Node 22.12+ in the Node 22 release line (`.nvmrc`), and install each package from its lockfile:

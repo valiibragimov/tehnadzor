@@ -1,3 +1,5 @@
+[Русский](bim.ru.md) | [English](bim.md)
+
 # BIM and IFC
 
 IFC provides context for inspections, including element identity, location and available design values. Import and 3D rendering are separate paths: seeing a shape in the viewer does not mean its engineering dimensions can be extracted.

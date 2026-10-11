@@ -1,3 +1,5 @@
+[Русский](README.ru.md) | [English](README.md)
+
 # Client source
 
 [app.ts](app.ts) composes the workspace. Keep new feature behaviour in its owning feature rather than expanding the entrypoint.

@@ -1,3 +1,5 @@
+[Русский](README.ru.md) | [English](README.md)
+
 # Repository scripts
 
 Run scripts through the root [package.json](../package.json). Direct invocation is useful only when diagnosing a specific build step.
