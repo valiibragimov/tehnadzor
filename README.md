@@ -1,211 +1,89 @@
-[English](#english) | [Русский](#русский)
-
-<a id="english"></a>
-
 # Tehnadzor
 
-Tehnadzor is a proprietary web application for construction supervision, QA/QC workflows, and BIM/IFC-based inspection records.
+Tehnadzor is a web application for construction inspection. It helps field engineers and quality control teams record measurements, compare them with design values and tolerances, and follow up on defects within a project.
 
-Field engineers, technical clients, QA/QC teams, and BIM coordinators need one place to record checks, compare actual values against tolerances, keep inspection context, and prepare clearer reports.
+The work centres on four kinds of checks: survey coordinates and elevations, reinforcement, structural geometry, and concrete strength. IFC models provide element context and some design values alongside the measurements taken on site.
 
-## Status
+The project is under active development. Its engineering checks use Russian SP and GOST references; the interface supports Russian and English, with some results and report text still in Russian.
 
-Tehnadzor is in early active development. The full source code is maintained in a private repository.
+## What you can do
 
-## Live App
+- Create projects and organise checks by structure, floor and grid axes.
+- Record design and measured values, evaluate deviations, and revisit saved checks.
+- Track issues in the inspection register and record repeat inspections without replacing the original evidence.
+- Use a control plan to see which checks are required and where records are missing.
+- Import IFC elements, select them in inspection forms, and inspect a model in the 3D viewer.
+- Review project summaries and analytics, export register data as CSV or JSON, and prepare reports, including PDF output.
 
-A hosted version of Tehnadzor will be added here when the public demo is ready.
+IFC support is selective. Missing or unsupported design dimensions stay empty rather than being inferred from the rendered mesh. See [BIM and IFC](docs/bim.md) for supported data, coordinate handling and model-size limits.
 
-## What It Does
+## How it is built
 
-- Tracks construction inspection checks and findings.
-- Covers geodesy, reinforcement, geometry, and concrete strength checks.
-- Stores project and inspection data with Firebase.
-- Imports and works with BIM/IFC model data.
-- Helps prepare report text from structured inspection results.
-- Includes a local Node/Express API and Firebase Functions for server-side workflows.
+The browser application uses TypeScript, HTML and CSS, without a UI framework. Firebase Authentication handles sign-in; Firestore stores projects and inspection records.
 
-## Tech Stack
+An Express API provides server-side IFC import and report generation. IFC parsing uses a shared WebIFC adapter, running in a browser Worker or a bounded Piscina worker pool on the server. The 3D viewer uses Three.js and IFC-Lite. Report text is assembled from inspection data; it does not require an external AI model.
 
-- Frontend: HTML, CSS, TypeScript.
-- BIM/3D: Three.js, That Open Components, web-ifc, ifc-lite.
-- Backend: Node.js, Express, TypeScript.
-- Cloud: Firebase Hosting, Firestore, Authentication, Functions.
-- Tooling: npm, TypeScript, ESLint, Node test runner, esbuild.
+OpenAPI defines the HTTP contract. Generated types and route identifiers are used by the client through `openapi-fetch`. Presentation translations use i18next. A separate Firebase Function serves the profile news feed.
 
-## Local Development
+See [Architecture](ARCHITECTURE.md) for module boundaries and data consistency.
 
-This section is for developers and contributors who want to run the project locally.
+## Run locally
 
-Requirements: Node.js 20, npm, Python 3 or another static file server. If you
-use nvm, run `nvm use` in the project root.
+Use Node.js 22.12 or later in the Node 22 release line, npm, and Python 3 for the static server below. The pinned Node version is in [.nvmrc](.nvmrc).
 
-```bash
-npm install
-cd server && npm install
-cd ../functions && npm install
-cd ..
+```sh
+git clone https://github.com/valiibragimov/tehnadzor.git
+cd tehnadzor
+npm ci
+npm ci --prefix server
+npm ci --prefix functions
 ```
 
-Create local Firebase web configuration:
+Copy [.env.example](.env.example) to `.env` and fill all six `FIREBASE_WEB_*` values from a **development** Firebase project. Configure Authentication and Firestore for that project; a client build alone does not configure those services.
 
-```bash
-cp .env.example .env
-```
-
-Fill `FIREBASE_WEB_*` values in `.env` from Firebase Console -> Project settings -> General -> Your apps -> Web app. The client build fails if these values are missing, so placeholders are not shipped by mistake.
-
-Build and run the static client:
-
-```bash
+```sh
 npm run build:client
-python -m http.server 8000
+python -m http.server 8000 --bind 127.0.0.1
 ```
 
-Open `http://localhost:8000`.
+Open <http://127.0.0.1:8000/>. Rebuild the client after source changes.
 
-Run the local API in development mode:
+To explore the workspace without Firebase, follow the [isolated demo setup](docs/development.md#isolated-demo). It uses local sample data and supports IFC metadata import, but replaces charts and disables PDF export and the model viewer.
 
-```bash
-cd server
-cp .env.example .env
-npm run dev
-```
+The [development guide](docs/development.md) covers Firebase setup, the optional API, build outputs and test prerequisites.
 
-The command compiles TypeScript first, then watches the sources and
-automatically restarts the API at `http://localhost:5050`.
+## Development and tests
 
-Useful checks:
-
-```bash
-npm run lint
+```sh
+npm run api:check
+npm run shared:check
 npm run typecheck
+npm run lint
+npm run build
 npm test
+npm run test:integration
+npm run audit:all
 ```
 
-## Security
+`npm test` builds the client and demo, then runs smoke tests, core tests and Playwright browser scenarios. Windows browser tests use installed Google Chrome; Linux requires `npx playwright install --with-deps chromium`. Firestore integration tests require Java 21+ and use an isolated local emulator with synthetic data.
 
-Do not commit `.env`, service account files, private keys, tokens, real IFC/BIM models, personal data, object addresses, contracts, cost estimates, or closed project documentation.
+The [CI workflow](.github/workflows/ci.yml) runs these checks on pull requests to `main`. For changes to HTTP or shared BIM contracts, see [Contributing](CONTRIBUTING.md).
 
-Firebase web config is injected from local environment during build. Firebase Admin credentials must be kept in local files or secret storage only.
+## Current limits
 
-See [SECURITY.md](SECURITY.md) for the full policy.
+- Large models are read from Firestore in pages, but their metadata still occupies memory proportional to the number of elements. Geometry loading is not streamed.
+- IFC exporter coverage is incomplete, especially for advanced placements and georeferencing. Imported coordinates and dimensions need review against the source design.
+- Server imports run in a process-local queue. They are request-bound jobs, not a durable distributed job system.
+- English translation is incomplete. Switching language preserves stored engineering values and normative notation.
 
-## Contributing
+## Documentation
 
-Contributions are welcome, especially around inspection workflows, BIM/IFC handling, tests, documentation, and safe deployment practices.
-
-Because Tehnadzor deals with construction control, changes must preserve engineering accuracy: tolerances, checks, regulatory references, report logic, and BIM/IFC behavior should be treated carefully.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+- [Development](docs/development.md) — local setup, builds and verification.
+- [Architecture](ARCHITECTURE.md) — runtime responsibilities and source layout.
+- [BIM and IFC](docs/bim.md) — import, engineering data and safe model maintenance.
+- [Contributing](CONTRIBUTING.md) — change scope and review expectations.
+- [Security](SECURITY.md) — reporting vulnerabilities and handling sensitive data.
 
 ## License
 
-Tehnadzor is proprietary software. See [LICENSE](LICENSE). All rights reserved.
-
----
-
-[English](#english) | [Русский](#русский)
-
-<a id="русский"></a>
-
-# Tehnadzor
-
-Tehnadzor / Технадзор — закрытое веб-приложение для строительного контроля, технического надзора и BIM/IFC-сценариев проверки качества.
-
-Проект вырос из контекста Tehnadzor / Технадзор: инженерам на объекте, техническим заказчикам, QA/QC-командам и BIM-координаторам нужен единый инструмент, где можно фиксировать проверки, сравнивать фактические значения с допусками, сохранять контекст замечаний и готовить более понятные отчеты.
-
-## Статус
-
-Tehnadzor находится в ранней активной разработке. Полный исходный код хранится в приватном репозитории.
-
-## Онлайн-версия
-
-Публичная hosted-версия Tehnadzor будет добавлена здесь, когда демо будет готово.
-
-## Возможности
-
-- Ведение строительных проверок и замечаний.
-- Модули геодезии, армирования, геометрии и прочности бетона.
-- Хранение проектов и результатов проверок через Firebase.
-- Импорт и обработка BIM/IFC-данных.
-- Подготовка текста отчета на основе структурированных результатов.
-- Локальный Node/Express API и Firebase Functions для серверных сценариев.
-
-## Стек
-
-- Frontend: HTML, CSS, TypeScript.
-- BIM/3D: Three.js, That Open Components, web-ifc, ifc-lite.
-- Backend: Node.js, Express, TypeScript.
-- Cloud: Firebase Hosting, Firestore, Authentication, Functions.
-- Tooling: npm, TypeScript, ESLint, Node test runner, esbuild.
-
-## Локальная разработка
-
-Этот раздел нужен разработчикам и contributors, которые хотят запустить проект локально.
-
-Требования: Node.js 20, npm, Python 3 или другой статический сервер. При
-использовании nvm выполните `nvm use` в корне проекта.
-
-```bash
-npm install
-cd server && npm install
-cd ../functions && npm install
-cd ..
-```
-
-Создайте локальную конфигурацию Firebase web app:
-
-```bash
-cp .env.example .env
-```
-
-Заполните `FIREBASE_WEB_*` в `.env` значениями из Firebase Console -> Project settings -> General -> Your apps -> Web app. Если значения не заданы, сборка клиента завершится ошибкой, чтобы случайно не опубликовать placeholders.
-
-Сборка и запуск клиента:
-
-```bash
-npm run build:client
-python -m http.server 8000
-```
-
-Откройте `http://localhost:8000`.
-
-Запуск локального API в dev-режиме:
-
-```bash
-cd server
-cp .env.example .env
-npm run dev
-```
-
-Команда сначала компилирует TypeScript, затем следит за исходниками и
-автоматически перезапускает API на `http://localhost:5050`.
-
-Полезные проверки:
-
-```bash
-npm run lint
-npm run typecheck
-npm test
-```
-
-## Безопасность
-
-Не коммитьте `.env`, service account файлы, приватные ключи, токены, реальные IFC/BIM-модели, персональные данные, адреса объектов, договоры, сметы и закрытую проектную документацию.
-
-Firebase web config подставляется из локального окружения во время сборки. Firebase Admin credentials должны храниться только локально или в secret storage окружения.
-
-Полная политика описана в [SECURITY.ru.md](SECURITY.ru.md).
-
-## Участие
-
-Вклад приветствуется, особенно в части строительных проверок, BIM/IFC, тестов, документации и безопасного деплоя.
-
-Tehnadzor связан со строительным контролем, поэтому изменения должны сохранять инженерную точность: допуски, проверки, нормативные ссылки, логику отчетов и BIM/IFC-поведение нужно менять аккуратно.
-
-См. [CONTRIBUTING.ru.md](CONTRIBUTING.ru.md).
-
-## Лицензия
-
-Tehnadzor является закрытым программным обеспечением. См. [LICENSE](LICENSE). Все права защищены.
+Tehnadzor is proprietary software. Public source access does not grant permission to use, modify or distribute it. See [LICENSE](LICENSE) for the terms.
