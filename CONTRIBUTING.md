@@ -1,3 +1,5 @@
+[Русский](CONTRIBUTING.ru.md) | [English](CONTRIBUTING.md)
+
 # Contributing
 
 Describe the problem and the affected workflow in an issue or pull request. Keep changes focused and explain how you checked them. Documentation fixes are welcome; application changes need verification of the relevant inspection flow.
@@ -17,6 +19,10 @@ When changing an HTTP contract, run `npm run api:generate`. When changing shared
 Do not edit build outputs by hand: `dist/`, `dist-demo/`, `dist-hosting/`, `server/dist/`, `functions/dist/`, root `index.html` and root `sw.js`.
 
 Use synthetic fixtures. Never include credentials, local environment files, private models, personal details or confidential construction documents in commits, logs or screenshots. See [Security](SECURITY.md) for reporting sensitive issues.
+
+## Documentation languages
+
+Keep the English and Russian versions in sync when changing documented behaviour, setup or limitations. Each document links to its translation at the top; links within the documentation should stay in the selected language. Keep commands, configuration keys and source paths identical in both versions.
 
 ## Licensing
 

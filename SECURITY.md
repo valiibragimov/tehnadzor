@@ -1,3 +1,5 @@
+[Русский](SECURITY.ru.md) | [English](SECURITY.md)
+
 # Security policy
 
 Security fixes are accepted for the `main` branch. There is no separate supported release series.
