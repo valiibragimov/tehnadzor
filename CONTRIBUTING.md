@@ -1,161 +1,23 @@
-[English](#english) | [Русский](#русский)
-
-<a id="english"></a>
-
 # Contributing
 
-Thanks for your interest in Tehnadzor.
+Describe the problem and the affected workflow in an issue or pull request. Keep changes focused and explain how you checked them. Documentation fixes are welcome; application changes need verification of the relevant inspection flow.
 
-Tehnadzor is related to construction quality control, so changes should protect engineering accuracy: checks, tolerances, regulatory references, report logic, and BIM/IFC workflows must not be broken casually.
+Read [Development](docs/development.md) for setup and test commands, and [Architecture](ARCHITECTURE.md) for module boundaries. [AGENTS.md](AGENTS.md) contains the repository's engineering rules.
 
-## Proposing Changes
+## Before submitting
 
-- Open an issue or describe the change clearly in a pull request.
-- Keep pull requests focused.
-- Separate documentation, refactoring, and behavior changes when possible.
-- Explain what problem the change solves and how it was checked.
+- Preserve engineering units, tolerances, normative references and saved record identities.
+- Keep evaluation logic independent of UI and storage. Use existing feature APIs and shared contracts.
+- Add tests for changed behaviour, especially calculations, IFC mapping, report output, concurrency and data formats.
+- Run the checks in [README](README.md#development-and-tests). For documentation-only changes, verify commands and links; application tests are needed if behaviour changes.
+- Explain any schema change, migration and recovery path. Do not run migrations against live data during development.
 
-## Local Development
+When changing an HTTP contract, run `npm run api:generate`. When changing shared BIM publication declarations, run `npm run shared:generate`. Commit the generated contract files with their source changes.
 
-```bash
-npm install
-cd server && npm install
-cd ../functions && npm install
-cd ..
-```
+Do not edit build outputs by hand: `dist/`, `dist-demo/`, `dist-hosting/`, `server/dist/`, `functions/dist/`, root `index.html` and root `sw.js`.
 
-Create local Firebase web config:
+Use synthetic fixtures. Never include credentials, local environment files, private models, personal details or confidential construction documents in commits, logs or screenshots. See [Security](SECURITY.md) for reporting sensitive issues.
 
-```bash
-cp .env.example .env
-```
+## Licensing
 
-Fill `FIREBASE_WEB_*` values in `.env` before building the client.
-
-Run the client:
-
-```bash
-npm run build:client
-python -m http.server 8000
-```
-
-## Checks
-
-For code changes, run the relevant checks:
-
-```bash
-npm run lint
-npm run typecheck
-npm test
-```
-
-Add or update tests when behavior changes, especially around inspection calculations, IFC import, report output, server contracts, or data formats.
-
-## Code Quality
-
-- Follow the existing project style and structure.
-- Do not edit generated output by hand: `dist/**`, `server/dist/**`, `functions/dist/**`, or root `sw.js`.
-- Do not add parallel `.js` copies for active `.ts` source files.
-- Keep domain logic readable; future contributors should be able to review engineering assumptions.
-
-## Data Safety
-
-Do not commit:
-
-- `.env` files or local environment configs;
-- Firebase service account files;
-- private keys, tokens, cookies, OAuth secrets;
-- real IFC/BIM models from closed projects;
-- screenshots or samples with personal data, object addresses, contracts, cost estimates, or closed project documentation.
-
-Use `.example` files with empty or clearly fake values when configuration examples are needed.
-
-## Documentation PRs
-
-Documentation-only pull requests should not change application behavior. If the documentation depends on a code change, mention that explicitly or split the work into separate PRs.
-
-## Contribution License
-
-By contributing, you agree that your contribution may be incorporated into Tehnadzor as proprietary software. No license to the project is granted except through an explicit written agreement with the copyright holder.
-
----
-
-[English](#english) | [Русский](#русский)
-
-<a id="русский"></a>
-
-# Участие в проекте
-
-Спасибо за интерес к Tehnadzor.
-
-Проект связан со строительным контролем, поэтому изменения должны сохранять инженерную точность: проверки, допуски, нормативные ссылки, логику отчетов и BIM/IFC-сценарии нельзя ломать случайными правками.
-
-## Как предлагать изменения
-
-- Создайте issue или ясно опишите изменение в pull request.
-- Делайте pull request сфокусированным.
-- По возможности разделяйте документацию, рефакторинг и изменение поведения.
-- Объясняйте, какую проблему решает изменение и как оно проверено.
-
-## Локальная разработка
-
-```bash
-npm install
-cd server && npm install
-cd ../functions && npm install
-cd ..
-```
-
-Создайте локальный Firebase web config:
-
-```bash
-cp .env.example .env
-```
-
-Заполните `FIREBASE_WEB_*` в `.env` перед сборкой клиента.
-
-Запуск клиента:
-
-```bash
-npm run build:client
-python -m http.server 8000
-```
-
-## Проверки
-
-Для изменений кода запускайте релевантные проверки:
-
-```bash
-npm run lint
-npm run typecheck
-npm test
-```
-
-Добавляйте или обновляйте тесты, если меняется поведение, особенно в расчетах проверок, IFC import, формировании отчетов, серверных контрактах или форматах данных.
-
-## Качество кода
-
-- Следуйте существующему стилю и структуре проекта.
-- Не редактируйте вручную generated output: `dist/**`, `server/dist/**`, `functions/dist/**` и корневой `sw.js`.
-- Не добавляйте параллельные `.js`-копии для актуальных `.ts`-исходников.
-- Делайте доменную логику читаемой, чтобы инженерные допущения можно было проверить.
-
-## Безопасность данных
-
-Не коммитьте:
-
-- `.env` и локальные конфиги окружения;
-- Firebase service account файлы;
-- приватные ключи, токены, cookies, OAuth secrets;
-- реальные IFC/BIM-модели закрытых объектов;
-- скриншоты или примеры с персональными данными, адресами объектов, договорами, сметами или закрытой проектной документацией.
-
-Если нужен пример конфигурации, используйте `.example`-файлы с пустыми или явно тестовыми значениями.
-
-## Документационные PR
-
-Документационные pull requests не должны менять поведение приложения. Если документация зависит от изменения кода, укажите это явно или разделите работу на несколько PR.
-
-## Лицензирование вклада
-
-Предлагая изменения, вы соглашаетесь, что ваш вклад может быть включён в Tehnadzor как в закрытое программное обеспечение. Права на использование проекта предоставляются только по отдельному письменному соглашению с правообладателем.
+Tehnadzor is proprietary software under [LICENSE](LICENSE). Contributions may be incorporated into the proprietary project. Contributing does not grant a separate license to use the application; usage rights require the copyright holder's written permission.

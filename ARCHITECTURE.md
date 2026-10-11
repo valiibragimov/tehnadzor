@@ -1,37 +1,65 @@
 # Architecture
 
-Tehnadzor is a TypeScript modular monolith backed by Firebase Auth and Firestore. It preserves inspection records and stable BIM element IDs while replacing implementation details behind explicit boundaries.
+Tehnadzor is a TypeScript modular monolith. The browser, Express API and Firebase Function are separate runtimes; shared engineering and publication code has no dependency on their UI or storage implementations.
 
-## Runtime
+## Runtime responsibilities
 
-The client composes feature services and UI. Existing inspection calculation modules remain pure. The common HTTP transport uses openapi-fetch and generated OpenAPI types. Request validators live in `server/src/http-contract.ts`; `npm run api:generate` produces the specification, types and route identifiers. CI rejects generated-contract drift.
+| Area | Responsibility |
+| --- | --- |
+| [Client](src/client) | Workspace composition, inspection forms, project navigation and presentation |
+| [Inspection features](src/client/features/inspections) | Measurement evaluation, feature state and inspection use cases |
+| [Client repositories](src/client/app/repositories) | Firestore access and persistence contracts |
+| [Server application](server/src/application) | Import policy through injected parsing and storage ports |
+| [Server infrastructure](server/src/infrastructure) and [repositories](server/src/repositories) | Firebase Admin and persistence adapters |
+| [Server workers](server/src/workers) | CPU-bound IFC parsing, without Firestore writes |
+| [Shared BIM](src/shared/bim) | Engineering data, WebIFC mapping and model publication policy |
+| [Functions](functions/src) | Profile news feed HTTP function |
 
-IFC import uses one WebIFC adapter in `src/shared/bim/ifc-model.ts`. A browser Worker and a bounded Piscina Node pool consume it. WebIFC owns STEP decoding, schemas, entity values and references. The adapter maps typed entities into vendor-independent inspection data: project/property length units, local placement transforms, property sets, floors and declared dimensions. Unsupported dimensions remain null. Invalid coordinate tuples are rejected instead of heuristically rewriting decimal separators. The legacy cottage fixture contains malformed decimal-comma tuples and is retained for diagnosis; the viewer harness uses a valid synthetic fixture by default.
+Firebase Authentication supplies user identity. Browser Firestore access is governed by [rules](firestore.rules). The API verifies tokens and project ownership before using Admin access, which bypasses those rules.
 
-Interactive server imports use an in-memory bounded queue, not a durable distributed broker. CPU parsing runs off the event loop; Firestore writes remain asynchronous I/O. Limits are configurable (`IFC_WORKER_THREADS`, `IFC_WORKER_QUEUE`, `IFC_WORKER_TIMEOUT_MS`, `IFC_WORKER_MAX_BYTES`, `IFC_WORKER_HEAP_MB`); shutdown drains workers. The V8 heap limit does not cap native WASM memory, so input/entity bounds are also enforced. No GPU is needed for metadata import. Three.js/IFC-Lite remain the isolated rendering implementation, with on-demand rendering. The unused alternative renderer and unused That Open component dependencies have been removed. Stable bundle filenames remain public asset paths.
+The browser composes features through an explicit workspace context. Features own their mutable state and expose public APIs. Engineering evaluation should remain independent of DOM operations and Firebase. Some older modules still combine these responsibilities; they are not the pattern for new work.
 
-`server/src/application/import-ifc.ts` depends only on typed parse/save ports. Both Firebase adapters use `src/shared/bim/publication.ts`: imports stage immutable generations in bounded batches, then publish a manifest transactionally. Concurrent publishers compare revisions; deletion increments a model revision or project epoch so a delayed importer cannot resurrect deleted content. Readers verify manifest counts and preserve logical element IDs. Legacy `elements` remain readable until their model is replaced or explicitly hidden; no backfill runs automatically. Publication schema version 1 is explicit; unknown manifest versions fail closed. Each successful commit also records an immutable `bimPublications` receipt with its generation and expected count. New imports register `bimGenerations` with server timestamps and fenced staging writes. Cursor queries fetch at most 200 elements per page. Readers acquire a catalog revision and a five-minute renewable `bimReaders` lease that pins immutable generations. Publications, reader acquisition and GC claims coordinate through the root revision; collectors recheck it and relevant immutable leases transactionally after scanning readers. Renewals update only their own lease, avoiding a shared root write per page. Expired readers fail closed after collection. Cleanup marks a generation deleting before removing bounded chunks, so crashes can resume and delayed writers cannot resurrect it. The default policy retains replaced generations for 24 hours after retirement and staging imports for one hour after their last heartbeat. Publication receipts and purged registry tombstones remain for diagnosis; a purged receipt is not a recoverable snapshot. Rollback requires an operator to select a successful receipt, verify its complete generation and republish it; rolling back to the legacy reader requires projecting the selected snapshot into `elements` first. No automatic destructive rollback or live migration is performed. Maintenance is explicit and dry-run by default: after building, run `npm run bim:gc -- --firebase-project ID --project ID`, adding `--apply` only for an intended cleanup. No background schedule is deployed. Firestore rules reject in-place changes to immutable generations, unregistered staging writes and manifest updates without an atomic catalog advance. Browser reads require server results, never cached query fallbacks. Coordinate backend, rules and browser rollout: pre-protocol Admin writers must be quiesced because Admin bypasses rules. Old generations without registry metadata are deliberately retained: adopt them only after old deployed writers have been quiesced and successful receipts verified. Never infer that unregistered records are safe to delete.
+## HTTP contract
 
-Workspace composition passes a typed context to journal, overview, summary, geometry and control-plan modules. Features own their state; they no longer expose it through `window` or monkey-patch project selection. Firebase SDK facades are bundled locally with shared chunks so Auth and Firestore use one application registry. The browser test exercises this registry and IndexedDB initialization without external requests.
+Request validators live in [server/src/http-contract.ts](server/src/http-contract.ts). The generator composes [api/openapi.json](api/openapi.json), shared TypeScript declarations and route identifiers. The client uses `openapi-fetch` with these generated contracts.
+
+After a contract change:
+
+```sh
+npm run api:generate
+npm run api:check
+```
+
+Do not hand-edit generated API files. Client HTTP calls use authentication and deadlines. Report rendering lives in [server/src/presentation](server/src/presentation), separately from HTTP handlers and persistence; reports are assembled from structured inspection results.
+
+## IFC processing and persistence
+
+A single [WebIFC adapter](src/shared/bim/ifc-model.ts) maps IFC entities to shared engineering data. Browser Workers and a bounded Piscina Node pool run that adapter. Network and Firestore work stay outside parsing workers.
+
+The renderer is separate: Three.js and IFC-Lite produce the interactive scene. Rendered geometry is not an authoritative source of design dimensions. The viewer renders on demand and releases parser and WebGL resources when closed.
+
+Both storage adapters use [publication.ts](src/shared/bim/publication.ts). Imports stage immutable generations and publish a manifest transactionally. Cursor pages and renewable reader leases keep a catalog snapshot consistent during concurrent imports and cleanup. Legacy records remain readable until replaced or explicitly hidden; there is no automatic backfill.
+
+[BIM and IFC](docs/bim.md) documents the data model, concurrency rules, cleanup and coordinate limitations.
 
 ## Presentation
 
-The new design system uses semantic color/surface tokens and a higher-priority CSS cascade layer. Desktop navigation is a persistent sidebar; mobile retains compact bottom navigation. Buttons use native keyboard semantics. Inspection steps and parameter panels share one typed runtime in production and demo; mobile panels use native dialog focus/modality/Escape, and help uses the Popover API. Inline duplicate UI handlers were removed. Restoring a saved geometry check preserves its identity after construction-change handlers run, so re-saving updates the record. Explicit repeat control clears the edit identity and links a new check to the issue, preserving the original evidence. A legacy issue without a floor can accept the explicit repeat check with a floor; automatic matching still distinguishes floors. Restoring older reinforcement/strength records recovers grid axes from their location using the existing parsers, preserves hidden historical floors and accepts stored concrete class labels without rewriting them. Browser scenarios verify updates keep the original record identity. Blur, glow and cursor-motion handlers were removed. Saved-inspection cards now use one restrained design-layer component; 77 obsolete component rules were removed. Control-plan styles now belong entirely to the design layer, with a desktop matrix and mobile structure cards exposing details through native disclosure. Workspace scrolling uses the document. The large legacy component stylesheet remains in a lower-priority layer until individual feature layouts are migrated and checked.
+The UI uses native HTML controls with shared TypeScript bindings. Desktop navigation uses a sidebar; mobile uses bottom navigation. Inspection panels use native dialogs and help uses the Popover API.
 
-Workspace navigation, overview, control-plan status/actions and inspection-register controls use i18next with RU/EN dictionaries, persisted language choice and live updates. Engineering form text is translated separately from persisted construction values and normative notation; report wording and some result messages remain Russian. Control-plan business results carry status/action codes; a shared presentation formatter translates them for UI and reports. Engineering form headings, labels, placeholders and dynamic rows now use an explicit RU/EN catalog, including construction selectors. Stored construction values, BIM IDs and normative notation remain unchanged on language switches. Runtime result narratives and report wording still need localization; changing a display language must never rewrite stored domain values.
+[liquid-glass.css](liquid-glass.css) contains semantic tokens and shared components in the `design` cascade layer. The filename is a retained public asset path. [style.css](style.css) contains older layouts in the lower-priority `legacy` layer. Extend existing components rather than adding another override stylesheet.
 
-## Operational limits and remaining migration
+[i18next dictionaries](src/client/shared/i18n) hold presentation translations. Language changes must not rewrite saved construction values, identifiers, axes or normative notation. Some result narratives and report text remain Russian.
 
-- Firestore Emulator tests cover staging failure, concurrent publication, deletion races and owner isolation using synthetic fixtures. No live data was migrated. Representative production-scale fixtures are still needed.
-- Remaining feature-specific Firebase calls and legacy CSS should move by vertical use case, with behavior tests. Network reads are paged into one shared immutable project/catalog snapshot; normalization reuses frozen records instead of duplicating them for each engineering feature. Selectors render at most 100 matches and preserve the active selection, while searching the full catalog. The viewer releases its parsing store after construction and destroys its scene, controls, renderer and WebGL context on close. The metadata snapshot still retains O(N) elements; disk-backed indexing, geometry streaming and representative peak-memory measurements remain necessary for very large models. Legacy BIM documents are read-only for browser clients. Pre-migration clients must refresh; any Admin migration must respect the catalog protocol and be coordinated with maintenance.
-- Browser WebIFC and Node worker tests cover Body plus Axis representations, nested rotations with large coordinates, mapped geometry and boolean bodies. Unsupported mapped/boolean dimensions remain null rather than fabricated. Large/tessellated IFC design dimensions, IFC Grid/LinearPlacement, MapConversion and complex property structures still need representative exporter fixtures and adapter support before claiming complete format coverage.
-- A durable multi-instance job queue should follow measured background-job requirements and transactional model publication; the current request-bound pool is intentionally process-local.
-- Browser SDK persistence upgrades from older deployed clients require staging verification with representative pre-existing browser caches.
+## Source and generated files
 
-## References
+[Client layout](src/client/README.md) explains feature and transitional directories. [Build scripts](scripts/README.md) cover generated artifacts. [Development](docs/development.md) lists commands and runtime prerequisites.
 
-- [WebIFC](https://github.com/ThatOpen/engine_web-ifc) — MPL-2.0; imported through a small adapter.
-- [Piscina](https://github.com/piscinajs/piscina) — MIT; bounded worker pool.
-- [OpenAPI TypeScript](https://openapi-ts.dev/) — MIT; generated types and typed transport.
-- [i18next](https://www.i18next.com/) — MIT; presentation localization.
-- [shadcn sidebar patterns](https://ui.shadcn.com/docs/components/sidebar) — UX reference; no React migration or copied component implementation.
+Shared publication declarations are generated with `npm run shared:generate`; `npm run shared:check` rejects drift. API and shared checks run as part of the client build.
+
+## Known boundaries
+
+The server queue is process-local and request-bound. There is no durable job broker or cross-instance scheduling. Firestore reads are paged, but the client retains a complete metadata catalog; geometry is not streamed. Representative large models and exporter fixtures are still needed for memory and format coverage.
+
+Older feature-specific Firebase calls and CSS remain. Browser persistence upgrades also need staging verification against caches from older deployed clients. Changes in these areas should preserve saved records and be checked through the affected user flow.
+
+Engineering and contribution rules are in [AGENTS.md](AGENTS.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
