@@ -1,3 +1,5 @@
+import { parseSimpleReinforcementAxes } from "./bim-selection.js";
+import { t } from "../../../shared/i18n/index.js";
 import { APP_CONFIG, VALID_LETTER_AXES } from "../../../config.js";
 import {
   getConstructionCategoryKey,
@@ -293,6 +295,8 @@ export function isSameReinforcementCheckIdentity(
     "reinforcement"
   );
   if (profile === "plate" || profile === "stair") {
+    const currentAxes = parseSimpleReinforcementAxes(current.location);
+    const nextAxes = parseSimpleReinforcementAxes(next.location);
     return [
       "floor",
       "axisLetterFrom",
@@ -302,8 +306,8 @@ export function isSameReinforcementCheckIdentity(
       "location",
       "stairName"
     ].every((key) =>
-      normalizeIdentityValue(current[key]) ===
-        normalizeIdentityValue(next[key])
+      normalizeIdentityValue(current[key] ?? currentAxes?.[key]) ===
+        normalizeIdentityValue(next[key] ?? nextAxes?.[key])
     );
   }
 
@@ -575,14 +579,14 @@ export function createReinforcementForm(
         strip ? "Буквенная ось" : "От буквенной оси";
     }
     if (dom.reinfAxisLetterToLabel) {
-      dom.reinfAxisLetterToLabel.textContent = "До буквенной оси";
+      dom.reinfAxisLetterToLabel.textContent = t("form_to_letter_grid_axis");
     }
     if (dom.reinfAxisNumberFromLabel) {
       dom.reinfAxisNumberFromLabel.textContent =
         strip ? "Цифровая ось" : "От цифровой оси";
     }
     if (dom.reinfAxisNumberToLabel) {
-      dom.reinfAxisNumberToLabel.textContent = "До цифровой оси";
+      dom.reinfAxisNumberToLabel.textContent = t("form_to_number_grid_axis");
     }
     if (dom.reinfAxisLetterFromField) {
       dom.reinfAxisLetterFromField.style.display = "";
@@ -689,7 +693,7 @@ export function createReinforcementForm(
       (flags.isPlate || flags.isStair) &&
       !isBoredPileFoundation();
     const floor = behavior.floorVisible === false
-      ? null
+      ? existing?.floor ?? null
       : usesLocation
         ? dom.reinfFloorEl?.value.trim() || null
         : flags.isColumn
@@ -880,17 +884,18 @@ export function createReinforcementForm(
           ? "number_letters"
           : "letter_numbers";
     }
+    const legacyAxes = parseSimpleReinforcementAxes(check.location);
     if (dom.reinfAxisLetterFromEl) {
-      dom.reinfAxisLetterFromEl.value = formValue(check.axisLetterFrom);
+      dom.reinfAxisLetterFromEl.value = formValue(check.axisLetterFrom ?? legacyAxes?.axisLetterFrom);
     }
     if (dom.reinfAxisLetterToEl) {
-      dom.reinfAxisLetterToEl.value = formValue(check.axisLetterTo);
+      dom.reinfAxisLetterToEl.value = formValue(check.axisLetterTo ?? legacyAxes?.axisLetterTo);
     }
     if (dom.reinfAxisNumberFromEl) {
-      dom.reinfAxisNumberFromEl.value = formValue(check.axisNumberFrom);
+      dom.reinfAxisNumberFromEl.value = formValue(check.axisNumberFrom ?? legacyAxes?.axisNumberFrom);
     }
     if (dom.reinfAxisNumberToEl) {
-      dom.reinfAxisNumberToEl.value = formValue(check.axisNumberTo);
+      dom.reinfAxisNumberToEl.value = formValue(check.axisNumberTo ?? legacyAxes?.axisNumberTo);
     }
     if (dom.reinfLocationEl) {
       dom.reinfLocationEl.value = formValue(check.location);

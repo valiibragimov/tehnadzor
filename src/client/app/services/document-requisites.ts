@@ -23,14 +23,6 @@ function normalizeText(value: unknown, fallback = "—") {
   return text || fallback;
 }
 
-function getSelectedProjectName() {
-  const selector = globalThis.projectSelector;
-  const selectedOption = selector && selector.selectedIndex >= 0
-    ? selector.options[selector.selectedIndex]
-    : null;
-  return normalizeText(selectedOption?.textContent, "—");
-}
-
 function formatEngineerName(profile: Record<string, unknown>) {
   const explicit = normalizeText(profile.engineerName, "");
   if (explicit) return explicit;
@@ -75,7 +67,7 @@ export async function loadDocumentRequisites(
   }
 
   const documentDate = normalizeText(options.date, new Date().toISOString().slice(0, 10));
-  const projectName = normalizeText(projectData.name, normalizeText(options.projectNameFallback, getSelectedProjectName()));
+  const projectName = normalizeText(projectData.name, normalizeText(options.projectNameFallback));
   const engineerName = normalizeText(
     projectData.engineer,
     normalizeText(options.engineerFallback, formatEngineerName(userData))

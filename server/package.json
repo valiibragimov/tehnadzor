@@ -1,10 +1,10 @@
 {
   "name": "tehnadzor-report-server",
   "version": "1.0.0",
-  "description": "Локальный сервер для генерации ИИ-отчётов",
+  "description": "Local HTTP API for construction inspections, BIM imports and reports",
   "main": "dist/server/src/index.js",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "scripts": {
     "start": "node dist/server/src/index.js",
@@ -22,6 +22,8 @@
     "express-rate-limit": "^8.2.1",
     "firebase-admin": "^13.6.1",
     "helmet": "^8.1.0",
+    "piscina": "^5.3.2",
+    "web-ifc": "0.0.74",
     "zod": "^4.3.6"
   },
   "overrides": {

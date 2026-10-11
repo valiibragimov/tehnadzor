@@ -37,17 +37,12 @@ export type ControlPlanConstructionStatus =
 export interface ControlPlanModuleDefinition {
   key: string;
   inspectionModule: InspectionModule;
-  label: string;
-  stage: string;
 }
 
 export interface ControlPlanTask {
   id: string;
   moduleKey: string;
-  label: string;
-  stage: string;
   status: ControlPlanTaskStatus;
-  statusLabel: string;
   inspectionStatus: InspectionStatus;
   normativeBasis: string;
   latestAt: number | null;
@@ -69,12 +64,12 @@ export interface ControlPlanRow {
   context: string;
   displayName: string;
   status: ControlPlanConstructionStatus;
-  statusLabel: string;
   progressDone: number;
   progressTotal: number;
   openIssues: number;
   overdueIssues: number;
-  nextActionLabel: string;
+  nextAction: "accept" | "open_issue" | "deviation" | "documents" | "inspect" | "no_data";
+  nextActionModule: string;
   nextActionTarget: string;
   tasks: ControlPlanTask[];
 }
@@ -101,26 +96,18 @@ const CONTROL_PLAN_MODULES: readonly ControlPlanModuleDefinition[] = Object.free
   {
     key: "geo",
     inspectionModule: "geodesy",
-    label: "Геодезическая привязка",
-    stage: "До начала работ / разбивка"
   },
   {
     key: "reinforcement",
     inspectionModule: "reinforcement",
-    label: "Армирование",
-    stage: "До бетонирования"
   },
   {
     key: "geometry",
     inspectionModule: "geometry",
-    label: "Геометрия",
-    stage: "До приёмки конструкции"
   },
   {
     key: "strength",
     inspectionModule: "strength",
-    label: "Прочность бетона",
-    stage: "После бетонирования / по сроку"
   }
 ]);
 
@@ -342,43 +329,9 @@ function formatNormativeBasis(constructionKey: string, module: ControlPlanModule
     .join("; ");
 }
 
-function getTaskStatusLabel(status: ControlPlanTaskStatus) {
-  switch (status) {
-    case "done":
-      return "Выполнено";
-    case "deviation":
-      return "Отклонение";
-    case "issue_open":
-      return "Замечание";
-    case "resolved":
-      return "Устранено";
-    case "factory_control":
-      return "Документы";
-    case "required":
-    default:
-      return "Требуется";
-  }
-}
-
 function getTaskActionTarget(status: ControlPlanTaskStatus, moduleKey: string) {
   if (status === "deviation" || status === "issue_open") return "journal";
   return moduleKey === "geo" ? "geo" : moduleKey;
-}
-
-function getConstructionStatusLabel(status: ControlPlanConstructionStatus) {
-  switch (status) {
-    case "ready":
-      return "Готово к приёмке";
-    case "blocked":
-      return "Нельзя принимать";
-    case "missing_required":
-      return "Не хватает проверок";
-    case "in_progress":
-      return "В работе";
-    case "not_started":
-    default:
-      return "Не начато";
-  }
 }
 
 function buildTask(
@@ -421,10 +374,7 @@ function buildTask(
   return {
     id: `${row.constructionKey}-${module.key}`,
     moduleKey: module.key,
-    label: module.label,
-    stage: module.stage,
     status,
-    statusLabel: getTaskStatusLabel(status),
     inspectionStatus,
     normativeBasis: formatNormativeBasis(row.constructionKey, module),
     latestAt: latest ? resolveRecordTimestampMs(latest) : null,
@@ -450,7 +400,7 @@ function buildConstructionStatus(tasks: ControlPlanTask[]): ControlPlanConstruct
   return "in_progress";
 }
 
-function buildNextAction(tasks: ControlPlanTask[]) {
+function buildNextAction(tasks: ControlPlanTask[]): Pick<ControlPlanRow, "nextAction" | "nextActionModule" | "nextActionTarget"> {
   const actionTask =
     tasks.find((task) => task.status === "issue_open") ||
     tasks.find((task) => task.status === "deviation") ||
@@ -458,37 +408,10 @@ function buildNextAction(tasks: ControlPlanTask[]) {
     tasks.find((task) => task.status === "factory_control") ||
     null;
 
-  if (!actionTask) {
-    return {
-      label: "Можно принимать",
-      target: "summary"
-    };
-  }
-
-  if (actionTask.status === "issue_open") {
-    return {
-      label: "Открыть замечание",
-      target: "journal"
-    };
-  }
-
-  if (actionTask.status === "deviation") {
-    return {
-      label: "Разобрать отклонение",
-      target: "journal"
-    };
-  }
-
-  if (actionTask.status === "factory_control") {
-    return {
-      label: `Проверить документы: ${actionTask.label}`,
-      target: actionTask.actionTarget
-    };
-  }
-
   return {
-    label: `Выполнить: ${actionTask.label}`,
-    target: actionTask.actionTarget
+    nextAction: !actionTask ? "accept" : actionTask.status === "issue_open" ? "open_issue" : actionTask.status === "deviation" ? "deviation" : actionTask.status === "factory_control" ? "documents" : "inspect",
+    nextActionModule: actionTask?.moduleKey || "",
+    nextActionTarget: actionTask?.actionTarget || "summary"
   };
 }
 
@@ -513,12 +436,12 @@ function addRowCandidate(
     context,
     displayName: context ? `${constructionLabel}, ${context}` : constructionLabel,
     status: "not_started",
-    statusLabel: getConstructionStatusLabel("not_started"),
     progressDone: 0,
     progressTotal: 0,
     openIssues: 0,
     overdueIssues: 0,
-    nextActionLabel: "Нет данных",
+    nextAction: "no_data",
+    nextActionModule: "",
     nextActionTarget: "controlPlan",
     tasks: []
   };
@@ -530,17 +453,12 @@ async function loadProjectCollectionRecords(projectId: string) {
   const collections = ["inspections", ...Object.values(MODULE_COLLECTIONS)];
   const nested = await Promise.all(
     collections.map(async (collectionName) => {
-      try {
-        const snap = await getProjectCollectionSnapshot(projectId, collectionName);
-        return snap.docs.map((docRef) => ({
-          ...docRef.data(),
-          _docId: docRef.id,
-          sourceCollection: collectionName
-        }));
-      } catch (error) {
-        console.warn(`[ControlPlan] Не удалось загрузить ${collectionName}:`, error);
-        return [];
-      }
+      const snap = await getProjectCollectionSnapshot(projectId, collectionName);
+      return snap.docs.map((docRef) => ({
+        ...docRef.data(),
+        _docId: docRef.id,
+        sourceCollection: collectionName
+      }));
     })
   );
   return nested.flat() as SummaryRecord[];
@@ -572,10 +490,7 @@ export async function loadProjectControlPlan(
   const [journalEntries, projectRecords, issues] = await Promise.all([
     loadJournalEntries(projectId),
     loadProjectCollectionRecords(projectId),
-    loadProjectIssues(projectId).catch((error) => {
-      console.warn("[ControlPlan] Не удалось загрузить замечания:", error);
-      return [] as IssueRecord[];
-    })
+    loadProjectIssues(projectId)
   ]);
 
   const rowMap = new Map<string, ControlPlanRow>();
@@ -630,13 +545,11 @@ export async function loadProjectControlPlan(
     return {
       ...row,
       status,
-      statusLabel: getConstructionStatusLabel(status),
       progressDone,
       progressTotal: tasks.length,
       openIssues,
       overdueIssues,
-      nextActionLabel: nextAction.label,
-      nextActionTarget: nextAction.target,
+      ...nextAction,
       tasks
     };
   }).sort((a, b) => {

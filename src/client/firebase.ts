@@ -1,11 +1,11 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { initializeApp } from "./infrastructure/firebase/app.js";
+import { getAuth } from "./infrastructure/firebase/auth.js";
 import {
   getFirestore,
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager
-} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+} from "./infrastructure/firebase/firestore.js";
 
 const firebaseConfig = {
   apiKey: "__FIREBASE_WEB_API_KEY__",

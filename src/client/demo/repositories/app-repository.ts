@@ -106,12 +106,12 @@ export async function clearProjectCollection(projectId: string, collectionName: 
   return count;
 }
 
-export async function deleteProjectCollectionDocsByField(projectId: string, collectionName: string, field: string, value: unknown) {
+export async function deleteProjectCollectionDocsByField(projectId: string, collectionName: string, field: string, value: unknown, _batchLimit = 500, retainedIds: string[] = []) {
   let count = 0;
   mutate((state) => {
     const records = getProjectCollection(state, projectId, collectionName);
     for (const [id, record] of Object.entries(records)) {
-      if (record[field] === value) { delete records[id]; count += 1; }
+      if (record[field] === value && !retainedIds.includes(id)) { delete records[id]; count += 1; }
     }
   });
   return count;

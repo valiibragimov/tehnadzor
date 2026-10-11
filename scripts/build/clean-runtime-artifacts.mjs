@@ -1,5 +1,5 @@
 import { rm } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, resolve, relative, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -50,7 +50,12 @@ const targets = [
 ];
 
 for (const relativePath of targets) {
-  await rm(resolve(projectRoot, relativePath), {
+  const target = resolve(projectRoot, relativePath);
+  const withinRoot = relative(projectRoot, target);
+  if (!withinRoot || withinRoot.startsWith("..") || isAbsolute(withinRoot)) {
+    throw new Error(`Refusing to remove a path outside the project: ${relativePath}`);
+  }
+  await rm(target, {
     recursive: true,
     force: true
   });

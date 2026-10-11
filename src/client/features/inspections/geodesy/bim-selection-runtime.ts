@@ -1,3 +1,5 @@
+import { t, translateEngineeringLabel } from "../../../shared/i18n/index.js";
+import { setBimResultHint } from "../../../app/ui/bim-result-hint.js";
 import {
   getConstructionLabel,
   normalizeConstructionKey
@@ -564,10 +566,14 @@ export function createGeodesyBimSelectionRuntime(
 
     const defaultOption = ownerDocument.createElement("option");
     defaultOption.value = "all";
-    defaultOption.textContent = defaultLabel;
+    defaultOption.textContent = translateEngineeringLabel(defaultLabel);
     select.appendChild(defaultOption);
 
-    options.forEach((optionData) => {
+    const visibleOptions = options.slice(0, 100);
+  const activeOption = options.find(option => option.value === nextValue);
+  if (activeOption && !visibleOptions.includes(activeOption)) visibleOptions.unshift(activeOption);
+  setBimResultHint(select, options.length);
+  visibleOptions.forEach((optionData) => {
       const option = ownerDocument.createElement("option");
       option.value = optionData.value;
       option.textContent = optionData.label;
@@ -609,7 +615,7 @@ export function createGeodesyBimSelectionRuntime(
 
     const previousValue = selectedId || "";
     const filteredElements = getFilteredElements();
-    const visibleElements = [...filteredElements];
+    const visibleElements = filteredElements.slice(0, 100);
     const selectedElement = previousValue
       ? elementsById.get(previousValue)
       : null;
@@ -617,7 +623,7 @@ export function createGeodesyBimSelectionRuntime(
 
     const manualOption = ownerDocument.createElement("option");
     manualOption.value = "";
-    manualOption.textContent = "Ручной ввод без BIM";
+    manualOption.textContent = t("form_manual_entry_without_bim");
     elementSelect.appendChild(manualOption);
 
     if (selectedElement) {
@@ -631,6 +637,8 @@ export function createGeodesyBimSelectionRuntime(
         visibleElements.unshift(selectedElement);
       }
     }
+
+  setBimResultHint(elementSelect, filteredElements.length);
 
     visibleElements.forEach((element) => {
       const option = ownerDocument.createElement("option");
@@ -1115,6 +1123,7 @@ export function createGeodesyBimSelectionRuntime(
   function start() {
     if (started) return api;
     started = true;
+    ownerDocument.addEventListener("app:language-changed", () => { renderFilterOptions(); renderElementOptions(); });
 
     elementSelect?.addEventListener("change", () => {
       applySelection(elementSelect.value);

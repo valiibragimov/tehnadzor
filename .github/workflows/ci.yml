@@ -29,7 +29,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: |
             package-lock.json
@@ -45,6 +45,21 @@ jobs:
       - name: Install functions dependencies
         run: npm ci --prefix functions
 
+      - name: Setup Java for isolated Firestore tests
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+
+      - name: API contract
+        run: npm run api:check
+
+      - name: Dependency audit
+        run: npm run audit:all
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -56,3 +71,6 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Firestore integration (synthetic demo project only)
+        run: npm run test:integration

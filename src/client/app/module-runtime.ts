@@ -1,3 +1,4 @@
+import type { WorkspaceContext } from "./workspace-context.js";
 import { dispatchAppTabActivated } from "./services/module-activation.js";
 import type { JournalGeodesyApi } from "./modules/journal.js";
 import type {
@@ -50,6 +51,7 @@ export interface ReinforcementRuntimeDependencies {
 }
 
 interface ModuleRuntimeOptions {
+  workspace: WorkspaceContext;
   onJournalTabActivated?: () => void;
   journalGeodesy: JournalGeodesyApi;
   reinforcement: ReinforcementRuntimeDependencies;
@@ -59,6 +61,7 @@ interface ModuleRuntimeOptions {
 type ModuleAction<TModule, TResult> = (module: TModule) => TResult | Promise<TResult>;
 
 export function createModuleRuntime({
+  workspace,
   onJournalTabActivated,
   journalGeodesy,
   reinforcement,
@@ -90,6 +93,11 @@ export function createModuleRuntime({
     if (!journalModulePromise) {
       journalModulePromise = import("./modules/journal.js")
         .then((module) => {
+          module.configureJournalWorkspace(workspace, () => withModule(getSummaryModule, "Summary", module => module.updateSummaryTab()), {
+            save: () => withModule(getGeometryModule, "Geometry", module => module.saveGeomChecks()),
+            render: () => withModule(getGeometryModule, "Geometry", module => module.renderGeomChecks()),
+            load: id => withModule(getGeometryModule, "Geometry", module => module.loadGeomCheck(id))
+          });
           module.configureJournalGeodesy(journalGeodesy);
           module.configureJournalReinforcement({
             checks: reinforcement.state.checks,
@@ -176,6 +184,12 @@ export function createModuleRuntime({
     if (!geometryModulePromise) {
       geometryModulePromise = import("./modules/geometry.js")
         .then((module) => {
+          module.configureGeometryWorkspace(workspace, {
+            updateSummary: () => withModule(getSummaryModule, "Summary", module => module.updateSummaryTab()),
+            addJournalEntry: params => withModule(getJournalModule, "Journal", module => module.addJournalEntry(params as any)),
+            upsertJournalEntry: params => withModule(getJournalModule, "Journal", module => module.upsertJournalEntry(params as any)),
+            notifySync: ref => withModule(getJournalModule, "Journal", module => module.notifyFirestoreSyncStatus(ref as any))
+          });
           module.initGeometryModule();
           return module;
         })
@@ -278,6 +292,7 @@ export function createModuleRuntime({
     if (!summaryModulePromise) {
       summaryModulePromise = import("./modules/summary.js")
         .then((module) => {
+          module.configureSummaryWorkspace(workspace, (moduleKey = null, construction = null) => withModule(getJournalModule, "Journal", module => module.setJournalFilters(moduleKey, construction)));
           module.configureSummaryStrength(() => strength.state.checks);
           module.configureSummaryReinforcement(
             () => reinforcement.state.checks
@@ -297,6 +312,7 @@ export function createModuleRuntime({
     if (!controlPlanModulePromise) {
       controlPlanModulePromise = import("../features/control-plan/index.js")
         .then((module) => {
+          module.configureControlPlanWorkspace(workspace);
           module.initControlPlanModule();
           return module;
         })
@@ -312,6 +328,7 @@ export function createModuleRuntime({
     if (!overviewModulePromise) {
       overviewModulePromise = import("./modules/overview.js")
         .then((module) => {
+          module.configureOverviewWorkspace(workspace);
           module.configureOverviewStrength(() => strength.state.checks.size);
           module.configureOverviewReinforcement(
             () => reinforcement.state.checks.size
@@ -464,6 +481,7 @@ export function createModuleRuntime({
   const activateTarget = (target: string | null | undefined, storageKey: string) => {
     if (!target) return;
 
+    document.body.dataset.workspaceTab = target;
     syncDesktopTabState(target);
     document.querySelectorAll<HTMLElement>(".section").forEach((section) => {
       section.classList.toggle("active", section.id === target);

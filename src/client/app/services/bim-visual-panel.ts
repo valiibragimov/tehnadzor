@@ -49,7 +49,7 @@ function createLazyApi(options: BimVisualPanelOptions): BimVisualPanelApi {
         return realApi;
       })
       .catch((error) => {
-        console.error("[BIM viewer] Failed to load That Open runtime", error);
+        console.error("[BIM viewer] Failed to load BIM viewer runtime", error);
         return null;
       });
 

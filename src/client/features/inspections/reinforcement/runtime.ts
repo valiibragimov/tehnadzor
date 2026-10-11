@@ -298,14 +298,14 @@ export function createReinforcementRuntime(
         .map((item) => safe(item.marking))
         .filter(Boolean)
         .join(", ");
-      return `<div class="node-data-row"><span class="node-label">Колонн:</span><span class="node-values"><strong>${check.columns.length} шт.</strong>${markings ? ` (${markings})` : ""}</span></div>`;
+      return `<div class="node-data-row"><span class="node-label" data-i18n="saved_columns">Колонн:</span><span class="node-values"><strong>${check.columns.length} шт.</strong>${markings ? ` (${markings})` : ""}</span></div>`;
     }
     if (check.beams) {
       const markings = check.beams
         .map((item) => safe(item.marking))
         .filter(Boolean)
         .join(", ");
-      return `<div class="node-data-row"><span class="node-label">Балок:</span><span class="node-values"><strong>${check.beams.length} шт.</strong>${markings ? ` (${markings})` : ""}</span></div>`;
+      return `<div class="node-data-row"><span class="node-label" data-i18n="saved_beams">Балок:</span><span class="node-values"><strong>${check.beams.length} шт.</strong>${markings ? ` (${markings})` : ""}</span></div>`;
     }
     if (check.walls) {
       const labels = getConstructionEntityLabels(
@@ -321,7 +321,7 @@ export function createReinforcementRuntime(
     if (check.location) {
       const stair = check.stairName ? `${safe(check.stairName)}, ` : "";
       const floor = check.floor ? `Этаж ${safe(check.floor)}, ` : "";
-      return `<div class="node-data-row"><span class="node-label">Местоположение:</span><span class="node-values">${stair}${floor}${safe(check.location)}</span></div>`;
+      return `<div class="node-data-row"><span class="node-label" data-i18n="saved_location">Местоположение:</span><span class="node-values">${stair}${floor}${safe(check.location)}</span></div>`;
     }
     return "";
   }
@@ -366,15 +366,15 @@ export function createReinforcementRuntime(
           <div class="node-header">
             <div class="node-title">
               <span class="node-icon">🔧</span>
-              Проверка от ${formatDate(Number(check.createdAt || Date.now()))}
+              <span data-i18n="saved_inspection_on">Проверка от</span> ${formatDate(Number(check.createdAt || Date.now()))}
             </div>
             <div class="node-header-controls">
-              <span class="status-tag ${statusClass}">${statusLabel}</span>
+              <span class="status-tag ${statusClass}" data-i18n="saved_${status === "ok" ? "ok" : status === "exceeded" ? "exceeded" : "empty"}">${statusLabel}</span>
               ${buildNodeDeleteIconButton("Удалить проверку")}
             </div>
           </div>
           <div class="node-data">
-            ${check.floor ? `<div class="node-data-row"><span class="node-label">Этаж:</span><span class="node-values">${safe(check.floor)}</span></div>` : ""}
+            ${check.floor ? `<div class="node-data-row"><span class="node-label" data-i18n="saved_floor">Этаж:</span><span class="node-values">${safe(check.floor)}</span></div>` : ""}
             ${checkLocationInfo(check)}
           </div>
         </div>`;

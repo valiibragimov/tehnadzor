@@ -100,7 +100,7 @@ export function createStrengthService(
       snapshot.forEach((document) => {
         const data = document.data();
         if (data.deleted) return;
-        elements.push({ ...data, id: document.id });
+        elements.push(data.id === document.id ? data as StrengthBimElementRecord : { ...data, id: document.id });
       });
       return elements;
     },

@@ -1,3 +1,4 @@
+import "./build-index-html.mjs";
 import { cp, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, extname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,6 +15,7 @@ const outputRoot = resolve(projectRoot, "dist-demo");
 const demoAdapterPlugin = {
   name: "tehnadzor-demo-adapters",
   setup(buildContext) {
+    buildContext.onResolve({ filter: /bim-repository\.js$/ }, () => ({ path: resolve(sourceRoot, "repositories", "bim-repository.ts") }));
     buildContext.onResolve({ filter: /firestore-repository\.js$/ }, () => ({
       path: resolve(sourceRoot, "repositories", "app-repository.ts")
     }));
@@ -23,13 +25,13 @@ const demoAdapterPlugin = {
     buildContext.onResolve({ filter: /ui\/lazy-libs\.js$/ }, () => ({
       path: resolve(sourceRoot, "lazy-libs-shim.ts")
     }));
-    buildContext.onResolve({ filter: /^https:\/\/www\.gstatic\.com\/firebasejs\/[^/]+\/firebase-auth\.js$/ }, () => ({
+    buildContext.onResolve({ filter: /infrastructure\/firebase\/auth\.js$/ }, () => ({
       path: resolve(sourceRoot, "firebase-auth-shim.ts")
     }));
-    buildContext.onResolve({ filter: /^https:\/\/www\.gstatic\.com\/firebasejs\/[^/]+\/firebase-firestore\.js$/ }, () => ({
+    buildContext.onResolve({ filter: /infrastructure\/firebase\/firestore\.js$/ }, () => ({
       path: resolve(sourceRoot, "firebase-firestore-shim.ts")
     }));
-    buildContext.onResolve({ filter: /^https:\/\/www\.gstatic\.com\/firebasejs\/[^/]+\/firebase-app\.js$/ }, () => ({
+    buildContext.onResolve({ filter: /infrastructure\/firebase\/app\.js$/ }, () => ({
       path: resolve(sourceRoot, "firebase-shim.ts")
     }));
     buildContext.onResolve({ filter: /^(?:\.\.\/|\.\/)+firebase\.js$/ }, () => ({
@@ -77,12 +79,12 @@ const demoHtml = productionHtml
   .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
   .replace(/\s+on(?:click|keydown|error)="[^"]*"/gi, "")
   .replace(/<link[^>]+(?:manifest|icon|preconnect|fonts\.googleapis|fonts\.gstatic)[^>]*>\s*/gi, "")
-  .replace(/<title>[\s\S]*?<\/title>/i, "<title>Интерактивная демонстрация Tehnadzor</title>")
+  .replace(/<title>[\s\S]*?<\/title>/i, '<title>Интерактивная демонстрация Tehnadzor</title><link rel="icon" href="data:,">')
   .replace(/<html lang="ru">/i, '<html lang="ru" class="theme-dark">')
   .replace(/<body class="home-page">/i, '<body class="home-page theme-dark">')
   .replace(
     /<meta name="viewport"([^>]+)>/i,
-    `<meta name="viewport"$1>\n  <meta name="robots" content="noindex,nofollow">\n  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; base-uri 'none'; form-action 'self'; object-src 'none'">`
+    `<meta name="viewport"$1>\n  <meta name="robots" content="noindex,nofollow">\n  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; base-uri 'none'; form-action 'self'; object-src 'none'">`
   )
   .replace(/<link rel="stylesheet" href="style\.css\?v=\d+"\s*\/?>/i, '<link rel="stylesheet" href="./style.css">')
   .replace(/<link rel="stylesheet" href="liquid-glass\.css\?v=\d+"\s*\/?>/i, '<link rel="stylesheet" href="./liquid-glass.css">')
@@ -91,6 +93,12 @@ const demoHtml = productionHtml
 
 await writeFile(resolve(outputRoot, "demo.html"), demoHtml, "utf8");
 await cp(resolve(projectRoot, "style.css"), resolve(outputRoot, "style.css"));
+// Real import path and vendor WASM are exercised in the isolated demo as well.
+await mkdir(resolve(outputRoot, "dist/app/services"), { recursive: true });
+await mkdir(resolve(outputRoot, "dist/app/vendor"), { recursive: true });
+await cp(resolve(projectRoot, "dist/app/services/ifc-import-worker.js"), resolve(outputRoot, "dist/app/services/ifc-import-worker.js"));
+for (const file of ["ifc-model.bundle.js", "web-ifc.wasm"]) await cp(resolve(projectRoot, "dist/app/vendor", file), resolve(outputRoot, "dist/app/vendor", file));
+
 await cp(resolve(projectRoot, "liquid-glass.css"), resolve(outputRoot, "liquid-glass.css"));
 await cp(
   resolve(projectRoot, "src", "client", "app", "modules", "summary", "analytics-block.html"),

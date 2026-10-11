@@ -8,7 +8,7 @@
     "useUnknownInCatchVariables": false,
     "noEmitOnError": true,
     "skipLibCheck": true,
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,

@@ -45,7 +45,7 @@ export function mountDemoRuntimeControls() {
   const header = document.querySelector("header");
   if (header && !document.getElementById("demoModeBanner")) {
     header.insertAdjacentHTML("afterend", `
-      <aside id="demoModeBanner" class="construction-bar" role="status">
+      <aside id="demoModeBanner" class="demo-notice" role="status">
         <div><strong>Демонстрационный режим</strong> — используются только синтетические данные. Изменения сохраняются локально в этом браузере.</div>
         <button id="btnResetDemo" type="button" class="btn-small btn-primary lg-btn lg-btn--pill">Сбросить демо</button>
       </aside>
@@ -57,19 +57,7 @@ export function mountDemoRuntimeControls() {
     window.location.reload();
   });
 
-  const fileInput = document.getElementById("ifcFileInput") as HTMLInputElement | null;
-  if (fileInput) fileInput.disabled = true;
-  const ifcState = document.getElementById("bimImportFileState");
-  const ifcStatus = document.getElementById("bimImportStatus");
-  if (ifcState) ifcState.textContent = "Синтетические BIM-метаданные";
-  if (ifcStatus) ifcStatus.textContent = "Загрузка IFC недоступна в демонстрационном режиме";
-
   [
-    "btnImportIfc",
-    "btnChooseAnotherIfc",
-    "btnClearIfcImport",
-    "btnResetSelectedIfc",
-    "btnIfcMoreActions",
     "headerProfileButton",
     "btnLogout",
     "btnSummaryGenerate",

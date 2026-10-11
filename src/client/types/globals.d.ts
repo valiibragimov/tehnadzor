@@ -1,5 +1,3 @@
-import type { AnalyticsCurrent, BimElement, Inspection, Project } from "./domain.js";
-
 declare global {
   interface EventTarget {
     value?: string;
@@ -42,8 +40,6 @@ declare global {
 
   interface Window {
     __APP_CONFIG__?: Record<string, unknown>;
-    currentProjectId?: string | null;
-    currentUserEngineerName?: string | null;
     Chart?: {
       new (...args: unknown[]): {
         destroy?: () => void;
@@ -64,128 +60,12 @@ declare global {
       };
     };
     DEBUG?: boolean;
-    dispatchAppEvent?: (...args: unknown[]) => void;
-    selectProject?: (...args: unknown[]) => void;
     registration?: ServiceWorkerRegistration;
     clients?: Clients;
     skipWaiting?: () => Promise<void> | void;
-    columns?: unknown[];
-    beams?: unknown[];
-    walls?: unknown[];
-    addNode?: (...args: unknown[]) => unknown;
-    saveGeomCheck?: (...args: unknown[]) => Promise<unknown> | unknown;
-    saveReinfCheck?: (...args: unknown[]) => Promise<unknown> | unknown;
-    saveStrengthCheck?: (...args: unknown[]) => Promise<unknown> | unknown;
-    loadReinfChecks?: (...args: unknown[]) => unknown;
-    saveReinfChecks?: (...args: unknown[]) => unknown;
-    renderReinfChecks?: (...args: unknown[]) => unknown;
-    loadReinfCheck?: (...args: unknown[]) => unknown;
-    updateReinfLocationFieldsVisibility?: (...args: unknown[]) => unknown;
-    loadStrengthChecks?: (...args: unknown[]) => unknown;
-    saveStrengthChecks?: (...args: unknown[]) => unknown;
-    renderStrengthChecks?: (...args: unknown[]) => unknown;
-    loadStrengthCheck?: (...args: unknown[]) => unknown;
-    updateStrengthFieldsVisibility?: (...args: unknown[]) => unknown;
-    geomGetColumns?: () => unknown[];
-    geomGetBeams?: () => unknown[];
-    geomGetWalls?: () => unknown[];
-    geomGetStairs?: () => unknown[];
-    reinfGetColumns?: () => unknown[];
-    reinfGetBeams?: () => unknown[];
-    reinfGetWalls?: () => unknown[];
-    showNotification?: (message: string, type?: string, duration?: number) => void;
-    updateSummaryTab?: (...args: unknown[]) => unknown;
-    upsertJournalEntry?: (entry: Inspection | Record<string, unknown>) => unknown;
     chartJsWarningShown?: boolean;
-    openKnowledgeSubcategory?: (...args: unknown[]) => unknown;
-    showKnowledgeMainPage?: (...args: unknown[]) => unknown;
-    showKnowledgeCategoryPage?: (...args: unknown[]) => unknown;
-    showAllArticles?: (...args: unknown[]) => unknown;
-    openArticle?: (...args: unknown[]) => unknown;
   }
 
-  interface GlobalThis {
-    __APP_CONFIG__?: Record<string, unknown>;
-    currentUserEngineerName?: string | null;
-    currentProjectId?: string | null;
-    registration?: ServiceWorkerRegistration;
-    clients?: Clients;
-    skipWaiting?: () => Promise<void> | void;
-    checked?: unknown[];
-    nodes?: unknown[];
-    geomChecks?: unknown[];
-    journalEntries?: Array<Record<string, unknown>>;
-    state?: Record<string, unknown>;
-    construction?: HTMLSelectElement | null;
-    engineer?: HTMLInputElement | HTMLSelectElement | null;
-    dateInput?: HTMLInputElement | null;
-    projectSelector?: HTMLSelectElement | null;
-    loadReinfCheck?: (...args: unknown[]) => unknown;
-    loadGeomCheck?: (...args: unknown[]) => unknown;
-    loadStrengthCheck?: (...args: unknown[]) => unknown;
-    loadReinfChecks?: (...args: unknown[]) => unknown;
-    saveReinfChecks?: (...args: unknown[]) => unknown;
-    renderReinfChecks?: (...args: unknown[]) => unknown;
-    updateReinfLocationFieldsVisibility?: (...args: unknown[]) => unknown;
-    loadStrengthChecks?: (...args: unknown[]) => unknown;
-    saveStrengthChecks?: (...args: unknown[]) => unknown;
-    renderStrengthChecks?: (...args: unknown[]) => unknown;
-    updateStrengthFieldsVisibility?: (...args: unknown[]) => unknown;
-    addJournalEntry?: (entry: Inspection | Record<string, unknown>) => unknown;
-    applyJournalFilter?: (...args: unknown[]) => unknown;
-    notifyFirestoreSyncStatus?: (...args: unknown[]) => unknown;
-    renderReinfChecks?: (...args: unknown[]) => unknown;
-    renderGeomChecks?: (...args: unknown[]) => unknown;
-    renderStrengthChecks?: (...args: unknown[]) => unknown;
-    saveReinfChecks?: (...args: unknown[]) => unknown;
-    saveGeomChecks?: (...args: unknown[]) => unknown;
-    saveStrengthChecks?: (...args: unknown[]) => unknown;
-    setConstructionAndTrigger?: (...args: unknown[]) => unknown;
-    setJournalFilters?: (...args: unknown[]) => unknown;
-    updateSummaryTab?: (
-      currentProject?: Project | null,
-      analyticsCurrent?: AnalyticsCurrent | null,
-      selectedBimElement?: BimElement | null
-    ) => unknown;
-    loadJournalFromFirestore?: (...args: unknown[]) => unknown;
-    upsertJournalEntry?: (entry: Inspection | Record<string, unknown>) => unknown;
-    currentGeomCheckId?: string | null;
-  }
-  
-  var currentProjectId: string | null;
-  var currentUserEngineerName: string | null;
-  var journal: Array<Record<string, unknown>>;
-  var journalEntries: Array<Record<string, unknown>>;
-  var journalFilteredEntries: Array<Record<string, unknown>>;
-  var journalFilterModule: string | null;
-  var journalFilterConstruction: string | null;
-  var construction: HTMLSelectElement | null;
-  var dateInput: HTMLInputElement | null;
-  var projectSelector: HTMLSelectElement | null;
-  var updateSummaryTab: (...args: unknown[]) => unknown;
-  var applyJournalFilter: (...args: unknown[]) => unknown;
-  var setJournalFilters: (...args: unknown[]) => unknown;
-  var suppressStrengthAutoSaveOnce: boolean;
-  var nodes: Map<string, Record<string, unknown>>;
-  var geomChecks: Map<string, Record<string, unknown>>;
-  var state: Record<string, unknown>;
-  var checked: Record<string, unknown>;
-  var saveGeomChecks: (...args: unknown[]) => unknown;
-  var renderGeomChecks: (...args: unknown[]) => unknown;
-  var loadGeomCheck: (...args: unknown[]) => unknown;
-  var selectProject: (...args: unknown[]) => unknown;
-  var setConstructionAndTrigger: (...args: unknown[]) => unknown;
-  var currentGeomCheckId: string | null;
-  var loadReinfChecks: (...args: unknown[]) => unknown;
-  var saveReinfChecks: (...args: unknown[]) => unknown;
-  var renderReinfChecks: (...args: unknown[]) => unknown;
-  var loadReinfCheck: (...args: unknown[]) => unknown;
-  var updateReinfLocationFieldsVisibility: (...args: unknown[]) => unknown;
-  var loadStrengthChecks: (...args: unknown[]) => unknown;
-  var saveStrengthChecks: (...args: unknown[]) => unknown;
-  var renderStrengthChecks: (...args: unknown[]) => unknown;
-  var loadStrengthCheck: (...args: unknown[]) => unknown;
-  var updateStrengthFieldsVisibility: (...args: unknown[]) => unknown;
 }
 
 export {};

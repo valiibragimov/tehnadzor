@@ -71,6 +71,19 @@ export default [
     }
   },
   {
+    files: ["src/shared/bim/**/*.ts", "server/src/application/**/*.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [{
+        group: ["**/client/**", "**/repositories/**", "**/infrastructure/**", "firebase*", "express", "piscina"],
+        message: "Domain and application modules depend on ports, not UI or infrastructure."
+      }] }]
+    }
+  },
+  {
+    files: ["tests/ui/**/*.mjs"],
+    languageOptions: { globals: { ...globals.browser } }
+  },
+  {
     files: ["scripts/**/*.mjs"],
     rules: {
       "no-console": "off"

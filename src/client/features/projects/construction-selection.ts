@@ -1,3 +1,4 @@
+import { translateEngineeringLabel } from "../../shared/i18n/index.js";
 import { APP_CONFIG } from "../../config.js";
 import {
   CONSTRUCTION_CATEGORIES,
@@ -141,7 +142,7 @@ export function createConstructionSelectionRuntime(
     CONSTRUCTION_CATEGORIES.forEach((item) => {
       const option = document.createElement("option");
       option.value = item.key;
-      option.textContent = item.label;
+      option.textContent = translateEngineeringLabel(item.label);
       category.appendChild(option);
     });
 
@@ -155,7 +156,7 @@ export function createConstructionSelectionRuntime(
     ) {
       const hiddenOption = document.createElement("option");
       hiddenOption.value = selectedCategory.key;
-      hiddenOption.textContent = selectedCategory.label;
+      hiddenOption.textContent = translateEngineeringLabel(selectedCategory.label);
       hiddenOption.hidden = true;
       category.appendChild(hiddenOption);
     }
@@ -182,7 +183,7 @@ export function createConstructionSelectionRuntime(
     options.forEach((item) => {
       const option = document.createElement("option");
       option.value = item.key;
-      option.textContent = item.label;
+      option.textContent = translateEngineeringLabel(item.label);
       type.appendChild(option);
     });
 
@@ -197,7 +198,7 @@ export function createConstructionSelectionRuntime(
       );
       const hiddenOption = document.createElement("option");
       hiddenOption.value = hiddenSelection.key;
-      hiddenOption.textContent = hiddenSelection.label || hiddenSelection.key;
+      hiddenOption.textContent = translateEngineeringLabel(hiddenSelection.label || hiddenSelection.key);
       hiddenOption.hidden = true;
       type.appendChild(hiddenOption);
     }
@@ -240,11 +241,11 @@ export function createConstructionSelectionRuntime(
 
     subtypeShell.hidden = false;
     subtypeShell.style.display = "";
-    subtypeLabel.textContent = controlLabel;
+    subtypeLabel.textContent = translateEngineeringLabel(controlLabel);
     options.forEach((item) => {
       const option = document.createElement("option");
       option.value = item.key;
-      option.textContent = item.label;
+      option.textContent = translateEngineeringLabel(item.label);
       subtype.appendChild(option);
     });
 
@@ -275,7 +276,7 @@ export function createConstructionSelectionRuntime(
     pileElementShell.hidden = !showPileElement;
     pileElementShell.style.display = showPileElement ? "" : "none";
     if (pileElementLabel) {
-      pileElementLabel.textContent = "Элемент";
+      pileElementLabel.textContent = translateEngineeringLabel("Элемент");
     }
 
     if (!showPileElement) {
@@ -365,6 +366,8 @@ export function createConstructionSelectionRuntime(
     syncConstructionSelectionState(initialConstructionValue, {
       syncVisibleControls: true
     });
+
+    document.addEventListener("app:language-changed", () => { syncConstructionSelectionState(getCurrentConstructionKey()); });
 
     category.addEventListener("change", () => {
       const hasSelection = fillConstructionTypeSelect(category.value, "");

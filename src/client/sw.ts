@@ -15,8 +15,9 @@ const STATIC_PAGES = [
 ];
 const STATIC_ASSETS = [
   "dist/app.js",
-  "dist/liquid-glass.js",
   "dist/app/ui/theme.js",
+  "dist/shared/i18n/index.js",
+  "dist/infrastructure/api/client.js",
   "dist/app/pdf/pdf-font.js",
   "dist/app/ui/datepicker.js",
   "dist/app/ui/system-ui.js",
@@ -28,8 +29,7 @@ const STATIC_ASSETS = [
   "dist/app/modules/knowledge.js",
   "dist/app/modules/journal.js",
   "dist/app/services/ifc-import-worker.js",
-  "dist/app/vendor/thatopen-bim-visual-panel.bundle.js",
-  "dist/app/vendor/thatopen-fragments-worker.mjs",
+  "dist/app/vendor/ifc-model.bundle.js",
   "dist/app/vendor/web-ifc.wasm",
   "dist/auth.js",
   "dist/config.js",

@@ -1,7 +1,7 @@
     <section class="section" id="journal">
       <div id="sectionJournal">
         <div class="module-title-row">
-          <h2>Журнал проверок</h2>
+          <h2 data-i18n="inspectionRegister">Журнал проверок</h2>
           <button
             type="button"
             class="module-help-toggle journal-help-toggle"
@@ -9,31 +9,19 @@
             aria-label="Показать описание журнала"
           ></button>
         </div>
-        <p class="subtitle">
-          Автоматически сохраняет результаты всех проверок. Можно сохранить текущий журнал в объект или загрузить данные из сохранённой проверки.
+        <p class="subtitle" data-i18n="inspectionRegisterHint">
+          Результаты проверок и корректирующие действия по объекту.
         </p>
         <div class="module-help-content" id="journalHelpContent">
           Автоматически сохраняет результаты всех проверок. Можно сохранить текущий журнал в объект или загрузить данные из сохранённой проверки.
         </div>
 
-        <div class="row" style="margin-bottom: 10px;">
-          <div>
-            <div class="meta">Загрузить параметры конструкций из сохранённой проверки</div>
-            <select id="checkSelector" data-ignore-lock="1" class="check-select ui-select">
-              <option disabled selected>Нет сохранённых проверок</option>
-            </select>
-          </div>
-        </div>
-
         <div class="row journal-toolbar">
-          <button id="btnJournalSaveToProject" class="btn-small btn-secondary lg-btn lg-btn--pill">
-            <span class="lg-btn__label">Сохранить журнал в объект</span>
-            <span class="lg-btn__glow" aria-hidden="true"></span>
-          </button>
+          <input id="journalSearch" type="search" class="journal-search" data-i18n-placeholder="searchInspections" data-i18n-aria="searchInspections" placeholder="Поиск проверок" aria-label="Поиск проверок" />
           <div class="journal-status-filters" id="journalStatusFilters" role="group" aria-label="Фильтр по статусу">
-            <button type="button" class="journal-filter-btn is-active" data-status-filter="all" aria-pressed="true">Все</button>
-            <button type="button" class="journal-filter-btn" data-status-filter="exceeded" aria-pressed="false">Нарушения</button>
-            <button type="button" class="journal-filter-btn" data-status-filter="ok" aria-pressed="false">В норме</button>
+            <button type="button" class="journal-filter-btn is-active" data-status-filter="all" aria-pressed="true" data-i18n="allResults">Все</button>
+            <button type="button" class="journal-filter-btn" data-status-filter="exceeded" aria-pressed="false" data-i18n="deviations">Нарушения</button>
+            <button type="button" class="journal-filter-btn" data-status-filter="ok" aria-pressed="false" data-i18n="withinLimits">В норме</button>
           </div>
           <div class="journal-mini-analytics" id="journalMiniAnalytics" aria-live="polite">
             <span class="journal-mini-analytics-item">
@@ -56,18 +44,35 @@
           </div>
         </div>
 
+        <details class="journal-sessions">
+          <summary data-i18n="savedInspections">Сохранённые проверки</summary>
+        <div class="row" style="margin-bottom: 10px;">
+          <div>
+            <div class="meta">Загрузить параметры конструкций из сохранённой проверки</div>
+            <select id="checkSelector" data-ignore-lock="1" class="check-select ui-select">
+              <option disabled selected>Нет сохранённых проверок</option>
+            </select>
+          </div>
+        </div>
+
+          <button id="btnJournalSaveToProject" class="btn-small btn-secondary lg-btn lg-btn--pill">
+            <span class="lg-btn__label">Сохранить журнал в объект</span>
+            <span class="lg-btn__glow" aria-hidden="true"></span>
+          </button>
+        </details>
+
         <input type="file" id="journalFileInput" accept=".json" style="display:none" />
 
         <div class="card journal-table-wrap" style="margin-top:12px; overflow:auto;">
           <table id="journalTable" class="table">
   <thead>
     <tr>
-      <th>Время</th>
-      <th>Модуль</th>
-      <th>Конструкция</th>
-      <th>Узел/Контекст</th>
-      <th>Статус</th>
-      <th>Детали</th>
+      <th data-i18n="time">Время</th>
+      <th data-i18n="module">Модуль</th>
+      <th data-i18n="construction">Конструкция</th>
+      <th data-i18n="context">Узел/Контекст</th>
+      <th data-i18n="status">Статус</th>
+      <th data-i18n="details">Детали</th>
       <th class="journal-actions-head">Действия</th>
     </tr>
   </thead>
@@ -78,7 +83,7 @@
         <div class="card journal-issues-panel" id="journalIssuesPanel" style="margin-top:12px;">
           <div class="journal-issues-head">
             <div>
-              <h3 class="card-title">Замечания</h3>
+              <h3 class="card-title" data-i18n="issues">Замечания</h3>
               <p class="subtitle">
                 Создаются из строк журнала с нарушениями и помогают вести корректирующие действия.
               </p>

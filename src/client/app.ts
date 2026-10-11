@@ -1,6 +1,7 @@
+import { initializeLocalization } from "./shared/i18n/index.js";
 import {
   getAuth
-} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+} from "./infrastructure/firebase/auth.js";
 
 import {
   getProjectDocSnapshot,
@@ -91,11 +92,6 @@ const PENDING_WELCOME_NEW_USER = "new_user";
 let currentUserId: string | null = null;
 let currentProjectId: string | null = readStoredProjectId();
 
-let journal: JournalViewEntry[] = [];
-let journalEntries: JournalEntryRecord[] = [];
-let journalFilteredEntries: JournalEntryRecord[] = [];
-let journalFilterModule: JournalFilterValue = null;
-let journalFilterConstruction: JournalFilterValue = null;
 let ifcImportRuntime: ReturnType<typeof createIfcImportRuntime> | null = null;
 let geodesyRuntimeRef: ReturnType<typeof createGeodesyRuntime> | null = null;
 let geoNodesRegistry: ReturnType<typeof createGeodesyState>["nodes"] | null =
@@ -289,7 +285,7 @@ const checked = {
 // ============================
 const reinforcementState = createReinforcementState();
 const reinfChecks = reinforcementState.checks;
-const geomChecks = globalThis.geomChecks instanceof Map ? globalThis.geomChecks : new Map();
+const geomChecks = new Map();
 let currentGeomCheckId = null;
 const strengthState = createStrengthState();
 const strengthChecks = strengthState.checks;
@@ -657,6 +653,18 @@ function updateStrengthFieldsVisibility() {
 }
 
 const appModuleBridge = createAppModuleBridge({
+  workspace: {
+    getProjectId: () => currentProjectId,
+    selectProject,
+    getEngineerName: profileRuntime.getCurrentEngineerName,
+    projectSelector: projectSelector as HTMLSelectElement | null,
+    construction, dateInput: dateInput as HTMLInputElement | null,
+    nodes, geometryChecks: geomChecks,
+    get geometryCheckId() { return currentGeomCheckId; },
+    set geometryCheckId(value) { currentGeomCheckId = value; },
+    inspectionState: state, inspectionChecked: checked,
+    setConstruction: setConstructionAndTrigger
+  },
   reinforcement: {
     state: reinforcementState,
     service: reinforcementService,
@@ -689,41 +697,28 @@ const appModuleBridge = createAppModuleBridge({
     }
   },
   onJournalTabActivated: () => {
-    journalFilterModule = null;
-    journalFilterConstruction = null;
-    appModuleBridge.applyJournalFilter();
+    appModuleBridge.setJournalFilters(null, null);
     appModuleBridge.renderJournal();
   }
 });
 
 const {
   loadJournal,
-  saveJournal,
   renderJournal,
   loadJournalSessionsForProject,
-  loadJournalFromFirestore,
-  applyJournalFilter,
   setJournalFilters,
-  addJournalEntry,
   upsertJournalEntry,
-  notifyFirestoreSyncStatus,
   withGeometryModule,
   loadGeomChecks,
-  saveGeomChecks,
   renderGeomChecks,
-  loadGeomCheck,
   updateGeomFieldsVisibility,
   refreshGeometryBimElementsIfLoaded,
   refreshReinforcementBimElementsIfLoaded,
   loadReinfChecks,
-  saveReinfChecks,
   renderReinfChecks,
-  loadReinfCheck,
   clearReinfForm,
   loadStrengthChecks,
-  saveStrengthChecks,
   renderStrengthChecks,
-  loadStrengthCheck,
   clearStrengthForm,
   refreshStrengthBimElementsIfLoaded,
   updateSummaryTab
@@ -1022,62 +1017,6 @@ initStaticBootstrap({
 // ============================
 //  Связки для модуля Итога
 // ============================
-const exposeSummaryBinding = (name, getter, setter) => {
-  Object.defineProperty(globalThis, name, {
-    configurable: true,
-    get: getter,
-    set: setter
-  });
-};
-
-exposeSummaryBinding("currentProjectId", () => currentProjectId, (value) => {
-  setCurrentProjectIdState(value);
-});
-exposeSummaryBinding("journal", () => journal, (value) => {
-  journal = value;
-});
-exposeSummaryBinding("journalEntries", () => journalEntries, (value) => {
-  journalEntries = value;
-});
-exposeSummaryBinding("journalFilteredEntries", () => journalFilteredEntries, (value) => {
-  journalFilteredEntries = value;
-});
-exposeSummaryBinding("journalFilterModule", () => journalFilterModule, (value) => {
-  journalFilterModule = value;
-});
-exposeSummaryBinding("journalFilterConstruction", () => journalFilterConstruction, (value) => {
-  journalFilterConstruction = value;
-});
-exposeSummaryBinding("currentGeomCheckId", () => currentGeomCheckId, (value) => {
-  currentGeomCheckId = value;
-});
-
-globalThis.applyJournalFilter = applyJournalFilter;
-globalThis.loadJournalFromFirestore = loadJournalFromFirestore;
-globalThis.setJournalFilters = setJournalFilters;
-globalThis.addJournalEntry = addJournalEntry;
-globalThis.upsertJournalEntry = upsertJournalEntry;
-globalThis.notifyFirestoreSyncStatus = notifyFirestoreSyncStatus;
-globalThis.updateSummaryTab = updateSummaryTab;
-globalThis.state = state;
-globalThis.checked = checked;
-globalThis.saveReinfChecks = saveReinfChecks;
-globalThis.renderReinfChecks = renderReinfChecks;
-globalThis.saveGeomChecks = saveGeomChecks;
-globalThis.renderGeomChecks = renderGeomChecks;
-globalThis.saveStrengthChecks = saveStrengthChecks;
-globalThis.renderStrengthChecks = renderStrengthChecks;
-globalThis.loadReinfCheck = loadReinfCheck;
-globalThis.loadGeomCheck = loadGeomCheck;
-globalThis.loadStrengthCheck = loadStrengthCheck;
-globalThis.setConstructionAndTrigger = setConstructionAndTrigger;
-globalThis.projectSelector = projectSelector as HTMLSelectElement | null;
-globalThis.engineer = null;
-globalThis.dateInput = dateInput as HTMLInputElement | null;
-globalThis.construction = construction as HTMLSelectElement | null;
-globalThis.nodes = nodes;
-globalThis.geomChecks = geomChecks;
-
 // ============================
 //  Нормализация ввода дробных чисел (запятая -> точка)
 // ============================
@@ -1092,3 +1031,5 @@ initActionMenus();
 //  Отслеживание сетевого состояния
 // ============================
 initNetworkStatus();
+
+void initializeLocalization();

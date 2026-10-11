@@ -1,7 +1,7 @@
     <section class="section" id="controlPlan">
       <div id="sectionControlPlan">
         <div class="module-title-row">
-          <h2>План контроля</h2>
+          <h2 data-i18n="controlPlan">План контроля</h2>
           <button
             type="button"
             class="module-help-toggle control-plan-help-toggle"
@@ -15,19 +15,19 @@
 
         <div class="control-plan-summary" id="controlPlanSummary" aria-live="polite">
           <div class="control-plan-metric">
-            <span>Конструкций</span>
+            <span data-i18n="planStructures">Конструкций</span>
             <strong id="controlPlanTotalRows">0</strong>
           </div>
           <div class="control-plan-metric">
-            <span>Готово</span>
+            <span data-i18n="planReady">Готово</span>
             <strong id="controlPlanReadyRows">0</strong>
           </div>
           <div class="control-plan-metric">
-            <span>Блокировано</span>
+            <span data-i18n="planBlocked">Блокировано</span>
             <strong id="controlPlanBlockedRows">0</strong>
           </div>
           <div class="control-plan-metric">
-            <span>Не хватает</span>
+            <span data-i18n="planMissing">Не хватает</span>
             <strong id="controlPlanMissingTasks">0</strong>
           </div>
         </div>
@@ -35,12 +35,12 @@
         <div class="control-plan-panel">
           <div class="control-plan-toolbar">
             <div>
-              <h3 class="control-plan-title">Матрица ITP</h3>
-              <p class="control-plan-description">План-факт по обязательным проверкам объекта.</p>
+              <h3 class="control-plan-title" data-i18n="planMatrix">Матрица ITP</h3>
+              <p class="control-plan-description" data-i18n="planDescription">План-факт по обязательным проверкам объекта.</p>
             </div>
             <div class="control-plan-toolbar-actions">
               <button id="btnControlPlanRefresh" class="btn-small btn-secondary lg-btn lg-btn--pill" type="button">
-                <span class="lg-btn__label">Обновить</span>
+                <span class="lg-btn__label" data-i18n="refresh">Обновить</span>
                 <span class="lg-btn__glow" aria-hidden="true"></span>
               </button>
               <button id="btnControlPlanExportCsv" class="btn-small btn-secondary lg-btn lg-btn--pill" type="button">
@@ -55,28 +55,28 @@
           </div>
           <div class="control-plan-filters">
             <div class="control-plan-status-filters" id="controlPlanStatusFilters" role="group" aria-label="Фильтр плана контроля">
-              <button type="button" class="control-plan-filter-btn is-active" data-control-plan-status="all" aria-pressed="true">Все</button>
-              <button type="button" class="control-plan-filter-btn" data-control-plan-status="blocked" aria-pressed="false">Нельзя принимать</button>
-              <button type="button" class="control-plan-filter-btn" data-control-plan-status="missing_required" aria-pressed="false">Не хватает</button>
-              <button type="button" class="control-plan-filter-btn" data-control-plan-status="ready" aria-pressed="false">Готово</button>
+              <button type="button" class="control-plan-filter-btn is-active" data-control-plan-status="all" aria-pressed="true" data-i18n="allResults">Все</button>
+              <button type="button" class="control-plan-filter-btn" data-control-plan-status="blocked" aria-pressed="false" data-i18n="cannotAccept">Нельзя принимать</button>
+              <button type="button" class="control-plan-filter-btn" data-control-plan-status="missing_required" aria-pressed="false" data-i18n="planMissing">Не хватает</button>
+              <button type="button" class="control-plan-filter-btn" data-control-plan-status="ready" aria-pressed="false" data-i18n="planReady">Готово</button>
             </div>
-            <input id="controlPlanSearch" class="control-plan-search" type="search" placeholder="Фильтр по конструкции" autocomplete="off" />
+            <input id="controlPlanSearch" class="control-plan-search" type="search" data-i18n-placeholder="searchStructures" data-i18n-aria="searchStructures" placeholder="Фильтр по конструкции" autocomplete="off" />
           </div>
-          <div id="controlPlanEmpty" class="control-plan-empty">
+          <div id="controlPlanEmpty" class="control-plan-empty" data-i18n="planEmpty">
             Выберите объект или выполните первую проверку, чтобы сформировать план контроля.
           </div>
-          <div id="controlPlanTableWrap" class="control-plan-table-wrap" hidden>
+          <div id="controlPlanTableWrap" class="control-plan-table-wrap" role="region" tabindex="0" data-i18n-aria="planMatrix" aria-label="Матрица ITP" hidden>
             <table class="control-plan-table">
               <thead>
                 <tr>
-                  <th>Конструкция</th>
-                  <th>Готовность</th>
-                  <th>Прогресс</th>
-                  <th>Следующее действие</th>
-                  <th>Гео</th>
-                  <th>Арм</th>
-                  <th>Геом</th>
-                  <th>Прочн</th>
+                  <th data-i18n="construction">Конструкция</th>
+                  <th data-i18n="readiness">Готовность</th>
+                  <th data-i18n="progress">Прогресс</th>
+                  <th data-i18n="nextAction">Следующее действие</th>
+                  <th data-i18n="geodesy">Гео</th>
+                  <th data-i18n="reinforcement">Арм</th>
+                  <th data-i18n="geometry">Геом</th>
+                  <th data-i18n="strength">Прочн</th>
                 </tr>
               </thead>
               <tbody id="controlPlanTableBody"></tbody>

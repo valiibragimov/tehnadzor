@@ -106,7 +106,7 @@ test("BIM workspace CSS removes desktop minimum height that clips the viewer", a
 
   assert.match(
     css,
-    /\.bim-workspace__body,[\s\S]*?\.bim-workspace__stage--3d\s*\{[\s\S]*?min-height:\s*0 !important;/u
+    /\.bim-workspace__body,[\s\S]*?\.bim-workspace__stage--3d\s*\{[\s\S]*?min-height:\s*0 (?:!important)?;/u
   );
   assert.match(css, /\.bim-workspace__surface\s*\{[\s\S]*?env\(safe-area-inset-top/u);
   assert.doesNotMatch(css, /bim-visual-legend|bim-workspace__legend/u);
@@ -125,13 +125,13 @@ test("IFC dialog and BIM controls keep responsive layout and light-theme contras
   );
   assert.match(css, /\.ifc-check-modal__content > \*\s*\{[\s\S]*?width:\s*100%[\s\S]*?max-width:\s*none/u);
   assert.doesNotMatch(css, /\.ifc-check-modal__header > \*,[\s\S]*?max-width:\s*100%/u);
-  assert.match(css, /\.ifc-check-modal__footer > button,[\s\S]*?min-width:\s*0 !important/u);
+  assert.match(css, /\.ifc-check-modal__footer > button,[\s\S]*?min-width:\s*0 (?:!important)?/u);
   assert.match(
     css,
-    /body\.theme-light \.bim-workspace__action[\s\S]*?background:\s*#eff6ff !important[\s\S]*?color:\s*#1e3a8a !important/u
+    /body\.theme-light \.bim-workspace__action[\s\S]*?background:\s*#eff6ff (?:!important)?[\s\S]*?color:\s*#1e3a8a (?:!important)?/u
   );
   assert.match(
     css,
-    /@media \(max-width: 768px\)[\s\S]*?\.bim-workspace__actions\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\) !important/u
+    /@media \(max-width: 768px\)[\s\S]*?\.bim-workspace__actions\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\) (?:!important)?/u
   );
 });

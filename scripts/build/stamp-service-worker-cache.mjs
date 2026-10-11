@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile, readdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -47,7 +47,19 @@ const assets = [
   .map((asset) => normalizeAssetPath(asset))
   .filter((asset) => !!asset);
 
-const uniqueAssets = Array.from(new Set(assets)).sort();
+// Lazy chunks affect cache invalidation without joining eager installation downloads.
+async function runtimeAssets(directory) {
+  const entries = await readdir(resolve(projectRoot, directory), { withFileTypes: true });
+  const result = [];
+  for (const entry of entries) {
+    const path = `${directory}/${entry.name}`;
+    if (entry.isDirectory()) result.push(...await runtimeAssets(path));
+    else if (entry.isFile() && /\.(js|css|html|wasm)$/.test(entry.name)) result.push(path);
+  }
+  return result;
+}
+const stylesheets = (await readdir(projectRoot)).filter(name => name.endsWith(".css"));
+const uniqueAssets = Array.from(new Set([...assets, ...stylesheets, ...await runtimeAssets("dist")])).sort();
 const hash = createHash("sha256");
 
 for (const asset of uniqueAssets) {

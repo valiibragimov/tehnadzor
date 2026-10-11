@@ -1,3 +1,5 @@
+import { t, translateEngineeringLabel } from "../../../shared/i18n/index.js";
+import { setBimResultHint } from "../../../app/ui/bim-result-hint.js";
 import { APP_CONFIG } from "../../../config.js";
 import {
   getConstructionCategoryKey,
@@ -305,10 +307,14 @@ function fillReinfBimFilterSelect(selectEl, options, defaultLabel, nextValue) {
 
   const defaultOption = document.createElement("option");
   defaultOption.value = "all";
-  defaultOption.textContent = defaultLabel;
+  defaultOption.textContent = translateEngineeringLabel(defaultLabel);
   selectEl.appendChild(defaultOption);
 
-  options.forEach((optionData) => {
+  const visibleOptions = options.slice(0, 100);
+  const activeOption = options.find(option => option.value === nextValue);
+  if (activeOption && !visibleOptions.includes(activeOption)) visibleOptions.unshift(activeOption);
+  setBimResultHint(selectEl, options.length);
+  visibleOptions.forEach((optionData) => {
     const option = document.createElement("option");
     option.value = optionData.value;
     option.textContent = optionData.label;
@@ -337,13 +343,13 @@ function renderReinfBimElementOptions(selectedId = selectedReinfBimElementId) {
 
   const previousValue = selectedId || "";
   const filteredElements = getFilteredReinfBimElements();
-  const visibleElements = [...filteredElements];
+  const visibleElements = filteredElements.slice(0, 100);
   const selectedElement = previousValue ? reinfBimElementsById.get(previousValue) : null;
   reinfBimElementSelect.innerHTML = "";
 
   const manualOption = document.createElement("option");
   manualOption.value = "";
-  manualOption.textContent = "Ручной ввод без BIM";
+  manualOption.textContent = t("form_manual_entry_without_bim");
   reinfBimElementSelect.appendChild(manualOption);
 
   if (selectedElement) {
@@ -353,6 +359,8 @@ function renderReinfBimElementOptions(selectedId = selectedReinfBimElementId) {
       visibleElements.unshift(selectedElement);
     }
   }
+
+  setBimResultHint(reinfBimElementSelect, filteredElements.length);
 
   visibleElements.forEach((element) => {
     const option = document.createElement("option");
@@ -540,16 +548,16 @@ function renderReinfBimBindingSnapshot() {
   }
 
   if (!hasLink) {
-    if (reinfBimSourceTitle) reinfBimSourceTitle.textContent = "BIM-элемент не выбран";
+    if (reinfBimSourceTitle) reinfBimSourceTitle.textContent = t("form_no_bim_element_selected");
     if (reinfBimSourceState) reinfBimSourceState.textContent = BIM_MANUAL_MODE_MESSAGE;
     if (reinfBimSourceMeta) reinfBimSourceMeta.textContent = "";
-    if (reinfBimAppliedTypeEl) reinfBimAppliedTypeEl.textContent = "Нет данных";
-    if (reinfBimAppliedFloorEl) reinfBimAppliedFloorEl.textContent = "Нет данных";
-    if (reinfBimAppliedMarkEl) reinfBimAppliedMarkEl.textContent = "Нет данных";
-    if (reinfBimAppliedAxesEl) reinfBimAppliedAxesEl.textContent = "Нет данных";
-    if (reinfBimAppliedRebarEl) reinfBimAppliedRebarEl.textContent = "Пока ручной ввод";
+    if (reinfBimAppliedTypeEl) reinfBimAppliedTypeEl.textContent = t("form_no_data");
+    if (reinfBimAppliedFloorEl) reinfBimAppliedFloorEl.textContent = t("form_no_data");
+    if (reinfBimAppliedMarkEl) reinfBimAppliedMarkEl.textContent = t("form_no_data");
+    if (reinfBimAppliedAxesEl) reinfBimAppliedAxesEl.textContent = t("form_no_data");
+    if (reinfBimAppliedRebarEl) reinfBimAppliedRebarEl.textContent = t("form_manual_entry");
     if (reinfBimSourceHint) {
-      reinfBimSourceHint.textContent = "Из текущего BIM-MVP в армирование надёжно приходят тип, этаж, BIM-оси и марка для колонн/балок. Диаметр, шаг и защитный слой пока вводятся вручную.";
+      reinfBimSourceHint.textContent = t("form_bim_supplies_type_floor_grid_axes_and_column_beam_marks_enter_bar_diam");
     }
     clearReinfStaticBimFieldHighlights();
     return;
@@ -818,7 +826,8 @@ async function loadReinfBimElements(projectId = getCurrentProjectId()) {
     await getDependencies().service.loadBimElements(projectId);
     const loadedRecords: ReinforcementBimElementRecord[] = [];
     snap.forEach((docSnap) => {
-      loadedRecords.push({ id: docSnap.id, ...docSnap.data() });
+      const data = docSnap.data();
+      loadedRecords.push(data.id === docSnap.id ? data as ReinforcementBimElementRecord : { ...data, id: docSnap.id });
     });
 
     reinfBimElements = normalizeReinforcementBimRecords(loadedRecords);
@@ -854,6 +863,7 @@ function renderReinfBeams() { return runtime?.rows.renderBeams(); }
 function initReinfBimBindings() {
   if (reinfBimBindingsInitialized) return;
   reinfBimBindingsInitialized = true;
+    document.addEventListener("app:language-changed", () => { renderReinfBimFilterOptions(); renderReinfBimElementOptions(); });
   reinfBimElementSelect?.addEventListener("change", (event) => {
     const nextId = event.target?.value || "";
     if (nextId !== "__empty__") applyReinfBimElementSelection(nextId);

@@ -29,8 +29,8 @@
   <link rel="shortcut icon" href="favicon.ico">
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=83">
   <link rel="stylesheet" href="liquid-glass.css?v=1">
-<link rel="stylesheet" href="style.css?v=83">
 </head>
 <body class="profile-page is-profile-loading">
   <script>
@@ -452,6 +452,7 @@
   <script type="module">
     import { logoutUser } from "./dist/auth.js";
     import { APP_CONFIG } from "./dist/config.js";
+    import { API_ROUTES } from "./dist/infrastructure/api/routes.js";
     import { PROFILE_FEED_FALLBACK } from "./dist/app/profile/feed-fallback.js";
     import { showConfirm, showAlert, showPrompt, setGlobalScrollLock } from "./dist/utils.js";
     import { initThemeControls } from "./dist/app/ui/theme.js";
@@ -475,7 +476,7 @@
       reauthenticateWithCredential,
       updatePassword,
       updateEmail
-    } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    } from "./dist/infrastructure/firebase/auth.js";
 
     const auth = getAuth();
     let currentUserId = null;
@@ -576,7 +577,7 @@
       }
       const configuredBase = String(APP_CONFIG.AI_REPORT_API_BASE || "").trim();
       if (configuredBase) {
-        const apiUrl = `${configuredBase.replace(/\/+$/, "")}/profile-feed`;
+        const apiUrl = `${configuredBase.replace(/\/+$/, "")}${API_ROUTES.profileFeed}`;
         try {
           const parsedApiUrl = new URL(apiUrl, location.href);
           const isCrossOriginLocalDev = isLocalDevHost && parsedApiUrl.origin !== location.origin;

@@ -1,3 +1,9 @@
+import { taskLabel, taskStatus, rowStatus, actionLabel } from "../../features/control-plan/index.js";
+import type { WorkspaceContext } from "../workspace-context.js";
+let workspace: Pick<WorkspaceContext, "getProjectId" | "getEngineerName" | "projectSelector" | "construction" | "dateInput" | "nodes" | "geometryChecks">;
+let resetJournalFilters: (module?: string | null, construction?: string | null) => unknown;
+export function configureSummaryWorkspace(context: typeof workspace, resetFilters: typeof resetJournalFilters) { workspace = context; resetJournalFilters = resetFilters; }
+import { createReportApi } from "../../infrastructure/api/client.js";
 import { APP_CONFIG } from "../../config.js";
 import {
   escapeHtml,
@@ -33,8 +39,10 @@ let analyticsTemplatePromise = null;
 let analyticsWarmupPromise = null;
 let summaryWorkspacePage = 0;
 const SUMMARY_WORKSPACE_MAX_HEIGHT = 440;
-const analyticsTemplateUrl = new URL("../../modules/summary/analytics-block.html", import.meta.url);
-const projectSelector = globalThis.projectSelector;
+const analyticsTemplateUrl = document.documentElement.dataset.runtimeMode === "demo"
+  ? new URL("./modules/summary/analytics-block.html", import.meta.url)
+  : new URL("../../modules/summary/analytics-block.html", import.meta.url);
+
 let getStrengthChecks = () => new Map<string, StrengthCheckRecord>();
 let getReinforcementChecks =
   () => new Map<string, ReinforcementCheckRecord>();
@@ -57,12 +65,12 @@ interface SummaryServerHealth {
 }
 
 function getSummaryGenerateFlightKey() {
-  const projectId = String(currentProjectId || "no-project").trim() || "no-project";
+  const projectId = String(workspace.getProjectId() || "no-project").trim() || "no-project";
   return `summary-generate:${projectId}`;
 }
 
 function getSummaryExportPdfFlightKey() {
-  const projectId = String(currentProjectId || "no-project").trim() || "no-project";
+  const projectId = String(workspace.getProjectId() || "no-project").trim() || "no-project";
   return `summary-export-pdf:${projectId}`;
 }
 
@@ -119,6 +127,7 @@ async function ensureAnalyticsModule() {
   if (!analyticsModulePromise) {
     analyticsModulePromise = import("./summary/analytics-block.js")
       .then((module) => {
+        module.configureAnalyticsSources(workspace);
         module.configureAnalyticsStrength(getStrengthChecks);
         module.configureAnalyticsReinforcement(getReinforcementChecks);
         return module;
@@ -637,8 +646,8 @@ async function refreshSummaryControlPlan(projectId) {
 
   try {
     summaryControlPlan = await loadProjectControlPlan(projectId, {
-      fallbackConstruction: construction?.dataset?.machineValue || construction?.value || "",
-      fallbackConstructionLabel: construction?.dataset?.displayLabel || construction?.value || ""
+      fallbackConstruction: workspace.construction?.dataset?.machineValue || workspace.construction?.value || "",
+      fallbackConstructionLabel: workspace.construction?.dataset?.displayLabel || workspace.construction?.value || ""
     });
   } catch (error) {
     console.warn(`[Summary] Не удалось загрузить план контроля для проекта ${projectId}:`, error);
@@ -812,8 +821,8 @@ function renderSummaryIssuesPanel() {
 }
 
 function getSummaryModuleStatus(moduleKey) {
-  if (!currentProjectId) return createEmptyModuleStatus();
-  if (summaryStatsProjectId !== currentProjectId) return createEmptyModuleStatus();
+  if (!workspace.getProjectId()) return createEmptyModuleStatus();
+  if (summaryStatsProjectId !== workspace.getProjectId()) return createEmptyModuleStatus();
   return summaryStatsByModule[moduleKey] || createEmptyModuleStatus();
 }
 
@@ -839,7 +848,7 @@ function getStrengthModuleStatus() {
  * Если analyticsCurrent отсутствует, применяет текущий fallback через inspections + legacy.
  */
 async function updateSummaryModuleCards() {
-  await refreshSummaryStatsFromInspections(currentProjectId);
+  await refreshSummaryStatsFromInspections(workspace.getProjectId());
 
   const geoStatus = getGeoModuleStatus();
   updateModuleCard("Geo", geoStatus, "geo");
@@ -854,7 +863,7 @@ async function updateSummaryModuleCards() {
   updateModuleCard("Strength", strengthStatus, "strength");
 
   console.log(`[Summary] Totals by module (source=${summaryStatsSource}):`, {
-    currentProjectId,
+    currentProjectId: workspace.getProjectId(),
     geo: { total: geoStatus.total, exceeded: geoStatus.exceeded },
     reinforcement: { total: reinfStatus.total, exceeded: reinfStatus.exceeded },
     geometry: { total: geomStatus.total, exceeded: geomStatus.exceeded },
@@ -969,7 +978,7 @@ function updateModuleCard(moduleName, moduleStatus, moduleKey) {
       
       // Устанавливаем фильтры
       setTimeout(() => {
-        setJournalFilters(moduleKey, null);
+        resetJournalFilters(moduleKey, null);
       }, 100);
     };
   }
@@ -979,8 +988,8 @@ function updateModuleCard(moduleName, moduleStatus, moduleKey) {
  * Обновляет параметры заключения
  */
 function getSelectedProjectMeta() {
-  const selectedOption = projectSelector && projectSelector.selectedIndex >= 0
-    ? projectSelector.options[projectSelector.selectedIndex]
+  const selectedOption = workspace.projectSelector && workspace.projectSelector.selectedIndex >= 0
+    ? workspace.projectSelector.options[workspace.projectSelector.selectedIndex]
     : null;
   const name = selectedOption && selectedOption.textContent
     ? selectedOption.textContent.trim()
@@ -988,7 +997,7 @@ function getSelectedProjectMeta() {
   const engineerAttr = selectedOption
     ? (selectedOption.getAttribute("data-engineer") || selectedOption.dataset?.engineer || "")
     : "";
-  const fallbackEngineer = (globalThis.currentUserEngineerName || "").trim();
+  const fallbackEngineer = (workspace.getEngineerName() || "").trim();
   const engineerName = engineerAttr.trim()
     ? engineerAttr.trim()
     : (fallbackEngineer || "—");
@@ -1006,7 +1015,7 @@ function updateSummaryParams() {
   }
   
   if (dateEl) {
-    dateEl.textContent = dateInput.value || "—";
+    dateEl.textContent = workspace.dateInput.value || "—";
   }
   
   if (engineerEl) {
@@ -1030,7 +1039,7 @@ function buildSummaryReportModel() {
   const projectMeta = getSelectedProjectMeta();
   const projectNameValue = projectMeta.name || "—";
   const constructionValue = "Все конструкции";
-  const dateValue = dateInput ? (dateInput.value || new Date().toISOString().slice(0, 10)) : new Date().toISOString().slice(0, 10);
+  const dateValue = workspace.dateInput ? (workspace.dateInput.value || new Date().toISOString().slice(0, 10)) : new Date().toISOString().slice(0, 10);
   const engineerValue = projectMeta.engineer || "—";
 
   const geoStatus = getGeoModuleStatus();
@@ -1151,10 +1160,10 @@ function buildSummaryReportText() {
     lines.push(`Нельзя принимать: ${model.controlPlan.summary.blockedRows}`);
     lines.push(`Невыполненных обязательных проверок: ${model.controlPlan.summary.missingTasks}`);
     model.controlPlan.rows.slice(0, 12).forEach((row, index) => {
-      lines.push(`${index + 1}. ${row.displayName}: ${row.statusLabel}, прогресс ${row.progressDone}/${row.progressTotal}`);
+      lines.push(`${index + 1}. ${row.displayName}: ${rowStatus(row)}, прогресс ${row.progressDone}/${row.progressTotal}`);
       const blockers = row.tasks
         .filter((task) => task.status === "required" || task.status === "deviation" || task.status === "issue_open")
-        .map((task) => `${task.label}: ${task.statusLabel}`);
+        .map((task) => `${taskLabel(task)}: ${taskStatus(task)}`);
       if (blockers.length > 0) {
         lines.push(`  Требует внимания: ${blockers.join("; ")}`);
       }
@@ -1186,12 +1195,10 @@ function buildSummaryReportText() {
  * Обновляет весь блок "Итог"
  */
 export async function updateSummaryTab() {
-  console.log("[updateSummaryTab] Обновление раздела Итог, currentProjectId:", currentProjectId);
+  console.log("[updateSummaryTab] Обновление раздела Итог, currentProjectId:", workspace.getProjectId());
 
   // Сбрасываем фильтры журнала при обновлении Итога (Итог всегда показывает все модули)
-  journalFilterModule = null;
-  journalFilterConstruction = null;
-  applyJournalFilter();
+  resetJournalFilters();
   
   console.log("[updateSummaryTab] Источник статусов: projects/{projectId}/inspections (+ fallback to module collections)");
 
@@ -1236,23 +1243,8 @@ function initSummaryHandlers() {
     updateServerStatusBadge();
     
     try {
-      // Таймаут через Promise.race для совместимости
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Timeout")), 2000)
-      );
-      
-      const fetchPromise = fetch(`${REPORT_API_BASE}/health`, {
-        method: "GET"
-      });
-      
-      const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
-      
-      if (response.ok) {
-        const result = await response.json() as SummaryServerHealth;
-        serverStatus.connected = result.ok === true || result.status === "running";
-      } else {
-        serverStatus.connected = false;
-      }
+      const result = await createReportApi(REPORT_API_BASE).health();
+      serverStatus.connected = result?.ok === true;
     } catch {
       serverStatus.connected = false;
     } finally {
@@ -1312,7 +1304,7 @@ function initSummaryHandlers() {
   if (btnGenerate) {
     btnGenerate.addEventListener("click", async () => {
       await runSingleFlight(getSummaryGenerateFlightKey(), async () => {
-        if (!currentProjectId) {
+        if (!workspace.getProjectId()) {
           showNotification("Сначала создайте объект или выберите существующий.", "warning");
           return;
         }
@@ -1330,11 +1322,11 @@ function initSummaryHandlers() {
             btnExportPdf.disabled = true;
           }
 
-          await refreshSummaryStatsFromInspections(currentProjectId);
+          await refreshSummaryStatsFromInspections(workspace.getProjectId());
 
           const projectMeta = getSelectedProjectMeta();
           const projectNameValue = projectMeta.name;
-          const dateValue = dateInput ? dateInput.value : new Date().toISOString().slice(0, 10);
+          const dateValue = workspace.dateInput ? workspace.dateInput.value : new Date().toISOString().slice(0, 10);
           const engineerValue = projectMeta.engineer;
 
           const geoStatus = getGeoModuleStatus();
@@ -1384,7 +1376,7 @@ function initSummaryHandlers() {
 
           try {
             const payload = {
-              projectId: currentProjectId,
+              projectId: workspace.getProjectId(),
               construction: currentConstruction,
               summaryData: {
                 project: projectNameValue || "—",
@@ -1412,47 +1404,14 @@ function initSummaryHandlers() {
               }
             };
 
-            const url = `${REPORT_API_BASE}/generateReport`;
-
-            console.log("[generateReport] ========== НАЧАЛО ЗАПРОСА ==========");
-            console.log("[generateReport] URL:", url);
-            console.log("[generateReport] Payload:", JSON.stringify(payload, null, 2));
-
             const authHeaders = await getAuthHeaders();
-            const response = await fetch(url, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...authHeaders
-              },
-              body: JSON.stringify(payload)
-            });
-
-            console.log("[generateReport] Статус ответа:", response.status, response.statusText);
-
-            if (!response.headers.get("content-type")?.includes("application/json")) {
-              const text = await response.text();
-              throw new Error(`Сервер вернул не JSON: ${text.substring(0, 100)}`);
-            }
-
-            const result = await response.json();
-            console.log("[generateReport] Результат:", result);
-
-            if (!response.ok) {
-              throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            if (!result.ok) {
-              throw new Error(result.error || "Сервер вернул ошибку");
-            }
-
-            const reportText = result.text || result.reportText || result.content || "";
+            const reportText = await createReportApi(REPORT_API_BASE).generateReport(payload, authHeaders);
 
             if (!reportText || reportText.trim() === "") {
               throw new Error("Сервер вернул пустой отчёт");
             }
 
-            console.log("[generateReport] Отчёт получен, длина:", reportText.length, "символов");
+
 
             const safeReportText = escapeHtml(reportText);
             contentEl.innerHTML = `
@@ -1581,7 +1540,7 @@ function initSummaryHandlers() {
 
           const report = buildSummaryReportText();
           const model = report.model;
-          const requisites = await loadDocumentRequisites(currentProjectId, {
+          const requisites = await loadDocumentRequisites(workspace.getProjectId(), {
             kind: "summary",
             date: model.date,
             projectNameFallback: model.projectName,
@@ -1802,7 +1761,7 @@ function initSummaryHandlers() {
           drawTableRow(["N", "Конструкция", "Готовность", "Прогресс", "Следующее действие"], itpWidths, true);
           if (itpRows.length) {
             itpRows.forEach((row, index) => {
-              drawTableRow([index + 1, row.displayName, row.statusLabel, `${row.progressDone}/${row.progressTotal}`, row.nextActionLabel], itpWidths);
+              drawTableRow([index + 1, row.displayName, rowStatus(row), `${row.progressDone}/${row.progressTotal}`, actionLabel(row)], itpWidths);
             });
           } else {
             drawTableRow(["—", "Блокирующих позиций ITP нет", "—", "—", "Дополнительные действия не требуются"], itpWidths);
@@ -1850,13 +1809,13 @@ function initSummaryHandlers() {
       debugBtn.style.display = "inline-block";
       debugBtn.addEventListener("click", async () => {
         console.log("=== DEBUG: Пересчет итога ===");
-          console.log("currentProjectId:", currentProjectId);
+          console.log("currentProjectId:", workspace.getProjectId());
           const constructionEl = document.getElementById("construction");
           const currentConstruction =
             constructionEl?.dataset?.displayLabel ||
-            (construction ? construction.dataset?.displayLabel || construction.value : "");
+            (workspace.construction ? workspace.construction.dataset?.displayLabel || workspace.construction.value : "");
           console.log("construction:", currentConstruction);
-        await refreshSummaryStatsFromInspections(currentProjectId);
+        await refreshSummaryStatsFromInspections(workspace.getProjectId());
         console.log("summaryStatsProjectId:", summaryStatsProjectId);
         console.log("summary source:", "projects/{projectId}/inspections (+ fallback to module collections)");
         
@@ -1905,9 +1864,7 @@ export function initSummaryModule() {
       // При переключении на вкладку Итог сбрасываем фильтры журнала
       const target = tab.getAttribute("data-target");
       if (target === "summary") {
-        journalFilterModule = null;
-        journalFilterConstruction = null;
-        applyJournalFilter();
+        resetJournalFilters();
         console.log("[Tab] Переключение на Итог: фильтры журнала сброшены");
         scheduleAnalyticsWarmup();
         setTimeout(() => {
@@ -1917,17 +1874,8 @@ export function initSummaryModule() {
     });
   });
 
-  // Обновляем при загрузке проекта
-  const originalSelectProject = window.selectProject;
-  if (typeof originalSelectProject === "function") {
-    window.selectProject = function (...args) {
-      const result = originalSelectProject.apply(this, args);
-      scheduleAnalyticsWarmup();
-      setTimeout(() => {
-        updateSummaryTab();
-      }, 200);
-      return result;
-    };
-  }
+  document.addEventListener("app:project-context-updated", () => {
+    scheduleAnalyticsWarmup();
+    void updateSummaryTab();
+  });
 }
-
