@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { build } from "esbuild";
 import { readIndexHtmlSource } from "./index-html-source.mjs";
+import { buildDemoHtml } from "./demo-html.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -75,21 +76,7 @@ await build({
 });
 
 const productionHtml = await readIndexHtmlSource(projectRoot);
-const demoHtml = productionHtml
-  .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
-  .replace(/\s+on(?:click|keydown|error)="[^"]*"/gi, "")
-  .replace(/<link[^>]+(?:manifest|icon|preconnect|fonts\.googleapis|fonts\.gstatic)[^>]*>\s*/gi, "")
-  .replace(/<title>[\s\S]*?<\/title>/i, '<title>Интерактивная демонстрация Tehnadzor</title><link rel="icon" href="data:,">')
-  .replace(/<html lang="ru">/i, '<html lang="ru" class="theme-dark">')
-  .replace(/<body class="home-page">/i, '<body class="home-page theme-dark">')
-  .replace(
-    /<meta name="viewport"([^>]+)>/i,
-    `<meta name="viewport"$1>\n  <meta name="robots" content="noindex,nofollow">\n  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; base-uri 'none'; form-action 'self'; object-src 'none'">`
-  )
-  .replace(/<link rel="stylesheet" href="style\.css\?v=\d+"\s*\/?>/i, '<link rel="stylesheet" href="./style.css">')
-  .replace(/<link rel="stylesheet" href="liquid-glass\.css\?v=\d+"\s*\/?>/i, '<link rel="stylesheet" href="./liquid-glass.css">')
-  .replace(/<link rel="stylesheet" href="dist\/modules\/summary\/analytics-block\.css\?v=\d+"\s*\/?>/i, '<link rel="stylesheet" href="./modules/summary/analytics-block.css">')
-  .replace(/<\/body>/i, '  <script type="module" src="./demo.js"></script>\n</body>');
+const demoHtml = buildDemoHtml(productionHtml);
 
 await writeFile(resolve(outputRoot, "demo.html"), demoHtml, "utf8");
 await cp(resolve(projectRoot, "style.css"), resolve(outputRoot, "style.css"));
