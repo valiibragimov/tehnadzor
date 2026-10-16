@@ -171,7 +171,7 @@ test("control plan module exposes ITP workflow", async () => {
   assert.match(serviceSource, /loadProjectIssues/u);
   assert.match(serviceSource, /sourceRowMap/u);
   assert.match(serviceSource, /decodeSourceContext/u);
-  assert.match(serviceSource, /linkedProjectRecords/u);
+  // Cross-record identity and linking are exercised by control-plan-results.test.mjs.
   assert.match(serviceSource, /recordHasJournalLink/u);
   assert.match(serviceSource, /formworkElementName/u);
   assert.doesNotMatch(serviceSource, /record\.sourceId\s*\?\?\s*""/u);

@@ -1,0 +1,6 @@
+# Generated artifacts are compared byte-for-byte by api:check and shared:check.
+/api/openapi.json text eol=lf
+/src/shared/api-schema.d.ts text eol=lf
+/src/shared/api-routes.ts text eol=lf
+/src/client/infrastructure/api/routes.ts text eol=lf
+/src/client/infrastructure/bim-publication.d.ts text eol=lf

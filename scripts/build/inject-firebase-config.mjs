@@ -69,6 +69,22 @@ if (missingKeys.length > 0) {
   );
 }
 
+// Synthetic CI configuration must never silently become a working login build.
+const testConfig = process.env.FIREBASE_CONFIG_MODE === "test";
+const projectId = process.env.FIREBASE_WEB_PROJECT_ID || dotenv.FIREBASE_WEB_PROJECT_ID;
+if (testConfig && !projectId.startsWith("demo-")) {
+  throw new Error("[firebase-config] Test configuration requires a demo- project ID.");
+}
+const placeholderKeys = firebaseEnvKeys.filter((key) =>
+  /^(?:demo(?:-|\.)|__|your[-_]|replace[-_])/iu.test(process.env[key] || dotenv[key])
+);
+if (!testConfig && placeholderKeys.length > 0) {
+  throw new Error(
+    `[firebase-config] Placeholder Firebase web config: ${placeholderKeys.join(", ")}. ` +
+    "Use the existing Firebase Console web configuration. Synthetic CI builds require FIREBASE_CONFIG_MODE=test."
+  );
+}
+
 let firebaseJs = await readFile(firebaseDistPath, "utf8");
 
 for (const key of firebaseEnvKeys) {
