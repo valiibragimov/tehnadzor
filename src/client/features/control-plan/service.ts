@@ -193,20 +193,22 @@ function parseTimestampMs(value: unknown): number | null {
 
 function resolveRecordTimestampMs(record: Record<string, unknown>) {
   return (
-    parseTimestampMs(record.timestamp) ??
-    parseTimestampMs(record.createdAt) ??
-    parseTimestampMs(record.checkedAt) ??
     parseTimestampMs(record.updatedAt) ??
+    parseTimestampMs(record.timestamp) ??
+    parseTimestampMs(record.checkedAt) ??
+    parseTimestampMs(record.createdAt) ??
     parseTimestampMs(record.date)
   );
 }
 
 function resolveRecordStatus(record: Record<string, unknown>) {
-  const normalized = normalizeLower(record.status ?? record.checkStatus ?? record.summaryText);
-  if (normalized === "ok" || normalized.includes("норм") || normalized.includes("соответ")) return "ok";
-  if (normalized === "exceeded" || normalized.includes("превыш") || normalized.includes("отклон") || normalized.includes("fail")) {
+  const normalized = normalizeLower(record.checkStatus ?? record.status ?? record.summaryText);
+  const compact = normalized.replace(/\s+/g, "");
+  if (["exceeded", "bad", "ошибка", "недобор", "fail", "failed"].includes(compact) ||
+      /не\s*соответ|не\s*в\s*норм|несоответств|превыш|отклон/u.test(normalized)) {
     return "exceeded";
   }
+  if (["ok", "внорме", "соответствует"].includes(compact) || /^(?:в\s*норме|соответствует)(?:\s|$)/u.test(normalized)) return "ok";
   return "";
 }
 
@@ -289,7 +291,9 @@ function getIssueConstructionKey(issue: IssueRecord) {
   return normalizeConstructionKey(issue.construction ?? issue.constructionLabel, "floor_slab");
 }
 
-function issueMatchesRow(issue: IssueRecord, row: { constructionKey: string; context: string }) {
+function issueMatchesRow(issue: IssueRecord, row: { constructionKey: string; context: string }, inspections: Record<string, unknown>[][] = []) {
+  const linked = findIssueInspection(issue, inspections);
+  if (linked) return recordMatchesRow(linked.find(record => record.sourceCollection === "journal") || linked[0], row);
   if (getIssueConstructionKey(issue) !== row.constructionKey) return false;
   const issueContext = getContextKey(issue.context);
   const rowContext = getContextKey(row.context);
@@ -307,7 +311,7 @@ function recordHasJournalLink(record: Record<string, unknown>, sourceRowMap: Map
   ];
   return candidates.some((value) => {
     const sourceId = normalizeText(value);
-    return sourceId && sourceRowMap.has(sourceId);
+    return sourceId && sourceRowMap.has(`${getRecordModuleKey(record)}:${sourceId}`);
   });
 }
 
@@ -334,36 +338,101 @@ function getTaskActionTarget(status: ControlPlanTaskStatus, moduleKey: string) {
   return moduleKey === "geo" ? "geo" : moduleKey;
 }
 
+function uniqueInspectionRecords(records: Record<string, unknown>[]) {
+  const byIdentity = new Map<string, Record<string, unknown>[]>();
+  const inspections = new Set<Record<string, unknown>[]>();
+  for (const record of records) {
+    const sourceIds = [record.sourceId, record.sourceDocId].map(normalizeText).filter(Boolean);
+    const documentId = normalizeText(record._docId) || normalizeText(record.id);
+    const moduleKey = getRecordModuleKey(record);
+    const keys = sourceIds.map(id => `${moduleKey}:source:${id}`);
+    if (documentId) keys.push(`${moduleKey}:${record.sourceCollection === "journal" ? "journal" : "source"}:${documentId}`);
+    const matches = [...new Set(keys.map(key => byIdentity.get(key)).filter(Boolean))];
+    const inspection = matches[0] || [];
+    for (const other of matches.slice(1)) {
+      inspection.push(...other);
+      inspections.delete(other);
+      for (const [key, group] of byIdentity) if (group === other) byIdentity.set(key, inspection);
+    }
+    inspection.push(record);
+    inspections.add(inspection);
+    for (const key of keys) byIdentity.set(key, inspection);
+  }
+  // Joining aliases can merge groups created at different times.
+  return [...inspections].map(inspection => inspection.sort((a, b) =>
+    (resolveRecordTimestampMs(b) || 0) - (resolveRecordTimestampMs(a) || 0)
+  )).sort((a, b) => (resolveRecordTimestampMs(b[0]) || 0) - (resolveRecordTimestampMs(a[0]) || 0));
+}
+
+function issueReferencesRecord(issue: IssueRecord, record: Record<string, unknown>) {
+  const sourceId = normalizeText(issue.sourceInspectionId);
+  const journalId = normalizeText(issue.sourceJournalEntryId);
+  if (journalId && record.sourceCollection === "journal" && journalId === normalizeText(record.id)) return true;
+  return Boolean(sourceId && [record.sourceId, record.sourceDocId,
+    ...(record.sourceCollection === "journal" ? [] : [record._docId, record.id])
+  ].some(id => normalizeText(id) === sourceId));
+}
+
+function findIssueInspection(issue: IssueRecord, inspections: Record<string, unknown>[][]) {
+  const moduleKey = getRecordModuleKey(issue);
+  const links: IssueRecord[] = [];
+  if (normalizeText(issue.sourceInspectionId)) links.push({ sourceInspectionId: issue.sourceInspectionId });
+  if (normalizeText(issue.sourceJournalEntryId)) links.push({ sourceJournalEntryId: issue.sourceJournalEntryId });
+  if (!links.length) return undefined;
+  return inspections.find(inspection => getRecordModuleKey(inspection[0]) === moduleKey &&
+    links.every(link => inspection.some(record => issueReferencesRecord(link, record)))
+  );
+}
+
+function repeatControlSucceeded(issue: IssueRecord, original: Record<string, unknown>[], inspections: Record<string, unknown>[][]) {
+  if (issue.repeatControlStatus && issue.repeatControlStatus !== "ok") return false;
+  const sourceInspectionId = normalizeText(issue.repeatControlInspectionId);
+  const sourceJournalEntryId = normalizeText(issue.repeatControlJournalEntryId);
+  // Legacy closures without repeat-control IDs remain readable.
+  if (!sourceInspectionId && !sourceJournalEntryId) return true;
+  const repeat = findIssueInspection({ moduleKey: getRecordModuleKey(issue), sourceInspectionId, sourceJournalEntryId }, inspections);
+  return Boolean(repeat && repeat !== original && resolveRecordStatus(repeat[0]) === "ok");
+}
+
 function buildTask(
   row: { constructionKey: string; context: string },
   module: ControlPlanModuleDefinition,
-  records: Record<string, unknown>[],
+  inspections: Record<string, unknown>[][],
   issues: IssueRecord[]
 ): ControlPlanTask | null {
   const inspectionStatus = getInspectionModuleStatus(row.constructionKey, module.inspectionModule);
   const behavior = getConstructionModuleBehavior(row.constructionKey, module.key === "geo" ? "geo" : module.key as never);
   if (inspectionStatus === "notApplicable" || behavior.supported === false) return null;
 
-  const moduleRecords = records
-    .filter((record) => getRecordModuleKey(record) === module.key && recordMatchesRow(record, row))
-    .sort((a, b) => (resolveRecordTimestampMs(b) || 0) - (resolveRecordTimestampMs(a) || 0));
+  const moduleInspections = inspections
+    .filter(inspection => getRecordModuleKey(inspection[0]) === module.key)
+    .filter(inspection => recordMatchesRow(
+      inspection.find(record => record.sourceCollection === "journal") || inspection[0], row
+    ));
+  const moduleRecords = moduleInspections.map(inspection => inspection[0]);
   const moduleIssues = issues.filter((issue) => {
     const issueModuleKey = normalizeModuleKey(issue.moduleKey || issue.module);
-    return issueModuleKey === module.key && issueMatchesRow(issue, row);
+    return issueModuleKey === module.key && issueMatchesRow(issue, row, inspections);
   });
   const openIssues = moduleIssues.filter((issue) => getRuntimeIssueStatus(issue) !== "closed").length;
   const closedIssues = moduleIssues.filter((issue) => getRuntimeIssueStatus(issue) === "closed").length;
   const repeatControls = moduleIssues.filter((issue) => hasIssueRepeatControl(issue)).length;
-  const exceededCount = moduleRecords.filter((record) => resolveRecordStatus(record) === "exceeded").length;
+  const exceededInspections = moduleInspections.filter(inspection => resolveRecordStatus(inspection[0]) === "exceeded");
+  const exceededCount = exceededInspections.length;
+  const unresolvedRecords = exceededInspections.filter(inspection => !moduleIssues.some(issue =>
+    getRuntimeIssueStatus(issue) === "closed" &&
+    repeatControlSucceeded(issue, inspection, moduleInspections) &&
+    findIssueInspection(issue, inspections) === inspection
+  ));
   const okCount = moduleRecords.filter((record) => resolveRecordStatus(record) === "ok").length;
   const latest = moduleRecords[0] || null;
 
   let status: ControlPlanTaskStatus = "required";
   if (openIssues > 0) {
     status = "issue_open";
-  } else if (exceededCount > closedIssues) {
+  } else if (unresolvedRecords.length > 0) {
     status = "deviation";
-  } else if (exceededCount > 0 && closedIssues >= exceededCount) {
+  } else if (exceededCount > 0) {
     status = "resolved";
   } else if (okCount > 0) {
     status = "done";
@@ -493,6 +562,10 @@ export async function loadProjectControlPlan(
     loadProjectIssues(projectId)
   ]);
 
+  const inspections = uniqueInspectionRecords([
+    ...(journalEntries as JournalEntryRecord[]).map(entry => ({ ...entry, sourceCollection: "journal" })),
+    ...projectRecords
+  ]);
   const rowMap = new Map<string, ControlPlanRow>();
   const sourceRowMap = new Map<string, string>();
 
@@ -501,12 +574,14 @@ export async function loadProjectControlPlan(
     const rowId = row?.id || "";
     [entry.id, entry.sourceId].forEach((value) => {
       const sourceId = normalizeText(value);
-      if (sourceId && rowId) sourceRowMap.set(sourceId, rowId);
+      if (sourceId && rowId) sourceRowMap.set(`${getRecordModuleKey(entry)}:${sourceId}`, rowId);
     });
   });
 
   issues.forEach((issue) => {
-    const row = addRowCandidate(rowMap, issue as Record<string, unknown>);
+    const linked = findIssueInspection(issue, inspections);
+    const journalRecord = linked?.find(record => record.sourceCollection === "journal");
+    const row = addRowCandidate(rowMap, journalRecord || issue as Record<string, unknown>);
     const rowId = row?.id || "";
     [
       issue.sourceInspectionId,
@@ -515,21 +590,19 @@ export async function loadProjectControlPlan(
       issue.repeatControlJournalEntryId
     ].forEach((value) => {
       const sourceId = normalizeText(value);
-      if (sourceId && rowId) sourceRowMap.set(sourceId, rowId);
+      if (sourceId && rowId) sourceRowMap.set(`${getRecordModuleKey(issue)}:${sourceId}`, rowId);
     });
   });
 
-  const linkedProjectRecords = (projectRecords as SummaryRecord[]).filter((record) =>
-    recordHasJournalLink(record as Record<string, unknown>, sourceRowMap)
-  );
-  const allRecords = [
-    ...(journalEntries as JournalEntryRecord[]),
-    ...linkedProjectRecords
-  ] as Record<string, unknown>[];
+  // Join identities before selecting linked records, including sources reached
+  // through a registry document ID rather than directly from the journal.
+  const allInspections = inspections.filter(inspection => inspection.some(record =>
+    record.sourceCollection === "journal" || recordHasJournalLink(record, sourceRowMap)
+  ));
 
   const rows = Array.from(rowMap.values()).map((row) => {
     const tasks = CONTROL_PLAN_MODULES
-      .map((module) => buildTask(row, module, allRecords, issues))
+      .map((module) => buildTask(row, module, allInspections, issues))
       .filter(Boolean) as ControlPlanTask[];
     const status = buildConstructionStatus(tasks);
     const progressDone = tasks.filter((task) =>
@@ -537,7 +610,7 @@ export async function loadProjectControlPlan(
       task.status === "resolved" ||
       task.status === "factory_control"
     ).length;
-    const rowIssues = issues.filter((issue) => issueMatchesRow(issue, row));
+    const rowIssues = issues.filter((issue) => issueMatchesRow(issue, row, allInspections));
     const openIssues = rowIssues.filter((issue) => getRuntimeIssueStatus(issue) !== "closed").length;
     const overdueIssues = rowIssues.filter((issue) => getRuntimeIssueStatus(issue) === "overdue").length;
     const nextAction = buildNextAction(tasks);
