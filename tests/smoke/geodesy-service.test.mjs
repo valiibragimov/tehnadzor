@@ -52,11 +52,8 @@ function createRepository(overrides = {}) {
       calls.push(["clearNodes", ...args]);
       return 0;
     },
-    async upsertInspection(...args) {
-      calls.push(["upsertInspection", ...args]);
-    },
-    async deleteInspection(...args) {
-      calls.push(["deleteInspection", ...args]);
+    async refreshAnalytics(...args) {
+      calls.push(["refreshAnalytics", ...args]);
     },
     async clearInspections(...args) {
       calls.push(["clearInspections", ...args]);
@@ -98,7 +95,7 @@ test("geodesy service persists the source node before its inspection projection"
 
   assert.deepEqual(calls, [
     ["saveNode", "project-1", "node-A-1", payload],
-    ["upsertInspection", "project-1", "node-A-1", payload]
+    ["refreshAnalytics", "project-1"]
   ]);
 });
 
@@ -127,10 +124,10 @@ test("geodesy service loads BIM records without leaking snapshots to UI", async 
   ]);
 });
 
-test("geodesy service keeps a saved node when the analytics dual-write fails", async () => {
+test("geodesy service keeps a saved node when the analytics refresh fails", async () => {
   const warnings = [];
   const { repository, calls } = createRepository({
-    async upsertInspection() {
+    async refreshAnalytics() {
       throw new Error("offline");
     }
   });
@@ -164,7 +161,7 @@ test("geodesy service deletes and clears source and inspection projections", asy
 
   assert.deepEqual(calls, [
     ["markNodeDeleted", "project-1", "node-A-1"],
-    ["deleteInspection", "project-1", "node-A-1"],
+    ["refreshAnalytics", "project-1"],
     ["clearNodes", "project-1"],
     ["clearInspections", "project-1"]
   ]);

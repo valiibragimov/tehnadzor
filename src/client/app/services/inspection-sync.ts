@@ -1,9 +1,10 @@
 import {
-  deleteProjectCollectionDoc,
+  commitInspectionRegistryDocs,
+  deleteOrphanInspectionDoc,
   getProjectCollectionSnapshot,
-  setProjectCollectionDoc
+  saveJournalInspectionSession
 } from "../repositories/firestore-repository.js";
-import { recomputeAndPersistProjectAnalyticsCurrent } from "./analytics-current.js";
+import { refreshPendingProjectAnalytics } from "./analytics-current.js";
 
 function normalizeSelectorValue(value) {
   return String(value == null ? "" : value).trim().toLocaleLowerCase("ru");
@@ -36,35 +37,40 @@ export async function saveInspectionAndRefreshAnalytics(
   options = { merge: true }
 ) {
   if (!projectId || !inspectionId) return null;
-  await setProjectCollectionDoc(projectId, "inspections", inspectionId, inspectionPayload, options);
-  await recomputeAndPersistProjectAnalyticsCurrent(projectId);
+  await commitInspectionRegistryDocs(projectId, [{ id: inspectionId, data: inspectionPayload, merge: options.merge }]);
+  await refreshPendingProjectAnalytics(projectId);
   return inspectionId;
 }
 
 export async function deleteInspectionAndRefreshAnalytics(projectId, inspectionId) {
   if (!projectId || !inspectionId) return;
-  await deleteProjectCollectionDoc(projectId, "inspections", inspectionId);
-  await recomputeAndPersistProjectAnalyticsCurrent(projectId);
+  await commitInspectionRegistryDocs(projectId, [{ id: inspectionId }]);
+  await refreshPendingProjectAnalytics(projectId);
+}
+
+export async function saveJournalSessionAndRefreshAnalytics(projectId: string, sessionId: string, payload: Record<string, unknown>) {
+  const result = await saveJournalInspectionSession(projectId, sessionId, payload);
+  await refreshPendingProjectAnalytics(projectId);
+  return result;
 }
 
 export async function clearInspectionsByModuleAndRefreshAnalytics(projectId, selector: InspectionSelector = {}) {
   if (!projectId) return 0;
 
   const inspectionsSnap = await getProjectCollectionSnapshot(projectId, "inspections");
-  if (inspectionsSnap.empty) return 0;
 
-  const idsToDelete = [];
+  const candidates: Array<{ id: string; sourceCollection: string }> = [];
   inspectionsSnap.forEach((docSnap) => {
     const inspection = docSnap.data() || {};
     if (matchesInspectionSelector(inspection, selector)) {
-      idsToDelete.push(docSnap.id);
+      candidates.push({ id: docSnap.id, sourceCollection: inspection.sourceCollection || selector.sourceCollection || "" });
     }
   });
 
-  if (!idsToDelete.length) return 0;
-  await Promise.all(
-    idsToDelete.map((docId) => deleteProjectCollectionDoc(projectId, "inspections", docId))
-  );
-  await recomputeAndPersistProjectAnalyticsCurrent(projectId);
-  return idsToDelete.length;
+  let deletedCount = 0;
+  for (const candidate of candidates) {
+    if (await deleteOrphanInspectionDoc(projectId, candidate.id, candidate.sourceCollection)) deletedCount += 1;
+  }
+  await refreshPendingProjectAnalytics(projectId);
+  return deletedCount;
 }

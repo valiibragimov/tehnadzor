@@ -1,4 +1,5 @@
 import { t, translateStatus } from "../../shared/i18n/index.js";
+import { refreshPendingProjectAnalytics } from "../services/analytics-current.js";
 import type { WorkspaceContext } from "../workspace-context.js";
 let workspace: Pick<WorkspaceContext, "getProjectId" | "selectProject" | "construction" | "geometryChecks" | "geometryCheckId" | "setConstruction" | "inspectionState" | "inspectionChecked">;
 let summaryChanged: () => unknown = () => undefined;
@@ -10,9 +11,8 @@ let journalFilteredEntries: JournalEntryRecord[] = [];
 let journalFilterModule: string | null = null;
 let journalFilterConstruction: string | null = null;
 import {
-  addProjectCollectionDoc,
-  clearProjectCollection,
-  deleteProjectCollectionDoc,
+  clearInspectionSourceDocs,
+  deleteInspectionSourceDocs,
   getProjectCollectionDocSnapshot,
   getProjectCollectionSnapshot,
   getProjectDocSnapshot,
@@ -26,8 +26,7 @@ import {
 } from "../construction.js";
 import {
   clearInspectionsByModuleAndRefreshAnalytics,
-  deleteInspectionAndRefreshAnalytics,
-  saveInspectionAndRefreshAnalytics
+  saveJournalSessionAndRefreshAnalytics
 } from "../services/inspection-sync.js";
 import {
   createIssuePayloadFromJournalEntry,
@@ -1079,7 +1078,7 @@ async function clearInspectionDualWriteForSourceCollection(projectId, sourceColl
 async function clearModuleCollection(collectionName, map, saveFn, renderFn, resetFn) {
   if (!workspace.getProjectId()) return;
   try {
-    await clearProjectCollection(workspace.getProjectId(), collectionName);
+    await clearInspectionSourceDocs(workspace.getProjectId(), collectionName);
     await clearInspectionDualWriteForSourceCollection(workspace.getProjectId(), collectionName);
   } catch (error) {
     console.error(`[Journal] Ошибка очистки коллекции ${collectionName}:`, error);
@@ -1167,8 +1166,8 @@ async function deleteModuleCheckFromEntry(entry) {
       if (!sourceId) sourceId = findGeoNodeKeyForJournalEntry(entry);
 
       if (!sourceId) return;
-      await deleteProjectCollectionDoc(workspace.getProjectId(), "geoNodes", sourceId);
-      await deleteInspectionAndRefreshAnalytics(workspace.getProjectId(), sourceId);
+      await deleteInspectionSourceDocs(workspace.getProjectId(), "geoNodes", [sourceId]);
+      await refreshPendingProjectAnalytics(workspace.getProjectId());
       if (geodesy.nodes.has(sourceId)) {
         geodesy.nodes.delete(sourceId);
         geodesy.saveNodes();
@@ -1255,8 +1254,8 @@ async function deleteModuleCheckFromEntry(entry) {
       }
 
       if (!sourceId) return;
-      await deleteProjectCollectionDoc(workspace.getProjectId(), "geomChecks", sourceId);
-      await deleteInspectionAndRefreshAnalytics(workspace.getProjectId(), sourceId);
+      await deleteInspectionSourceDocs(workspace.getProjectId(), "geomChecks", [sourceId]);
+      await refreshPendingProjectAnalytics(workspace.getProjectId());
       if (workspace.geometryChecks.has(sourceId)) {
         workspace.geometryChecks.delete(sourceId);
         geometryActions.save();
@@ -1876,6 +1875,8 @@ function notifyFirestoreSyncStatus(docRef) {
   );
 }
 
+let pendingJournalSession: { projectId: string; signature: string; id: string } | null = null;
+
 document
   .getElementById("btnJournalSaveToProject")
   .addEventListener("click", async () => {
@@ -1888,14 +1889,17 @@ document
       return;
     }
 
+    const projectId = workspace.getProjectId();
+    const entries = journal.map(entry => ({ ...entry }));
+    const signature = JSON.stringify(entries);
+    if (!pendingJournalSession || pendingJournalSession.projectId !== projectId || pendingJournalSession.signature !== signature) {
+      pendingJournalSession = { projectId, signature, id: crypto.randomUUID() };
+    }
+    const operation = pendingJournalSession;
     try {
-      const snap = await getProjectDocSnapshot(workspace.getProjectId());
+      const snap = await getProjectDocSnapshot(projectId);
       const projectData = snap.exists() ? snap.data() || {} : {};
 
-      let lastNumber = 0;
-      lastNumber = projectData.lastCheckNumber || 0;
-
-      const checkNumber = lastNumber + 1;
       const nowTs = Date.now();
       const authUid = String(auth.currentUser?.uid || "").trim();
       const ownerUid = String(projectData.ownerUid || projectData.createdBy || authUid || "").trim();
@@ -1903,9 +1907,8 @@ document
       const contractorName = String(projectData.contractorName || "").trim();
 
       const sessionPayload: Record<string, unknown> & { ownerUid?: string; createdBy?: string } = {
-        checkNumber,
         date: nowTs,
-        entries: journal,
+        entries,
         createdAt: nowTs,
         updatedAt: nowTs,
         contractorName
@@ -1913,38 +1916,11 @@ document
       if (ownerUid) sessionPayload.ownerUid = ownerUid;
       if (createdBy) sessionPayload.createdBy = createdBy;
 
-      const savedSession = await addProjectCollectionDoc(
-        workspace.getProjectId(),
-        "journalSessions",
-        sessionPayload
-      );
-
-      const inspectionPayload = {
-        ...sessionPayload,
-        projectId: workspace.getProjectId(),
-        sessionId: savedSession.id,
-        sourceCollection: "journalSessions",
-        sourceSessionId: savedSession.id,
-        entriesCount: Array.isArray(journal) ? journal.length : 0
-      };
-      await saveInspectionAndRefreshAnalytics(
-        workspace.getProjectId(),
-        savedSession.id,
-        inspectionPayload,
-        { merge: true }
-      );
-
-      const projectPatch: Record<string, unknown> & { ownerUid?: string; createdBy?: string } = {
-        lastCheckNumber: checkNumber,
-        lastCheckDate: nowTs,
-        contractorName
-      };
-      if (ownerUid) projectPatch.ownerUid = ownerUid;
-      if (createdBy) projectPatch.createdBy = createdBy;
-      await mergeProjectDoc(workspace.getProjectId(), projectPatch);
+      const { checkNumber } = await saveJournalSessionAndRefreshAnalytics(projectId, operation.id, sessionPayload);
+      if (pendingJournalSession === operation) pendingJournalSession = null;
 
       showNotification(`Журнал сохранён как проверка №${checkNumber}.`, "success");
-      await loadJournalSessionsForProject(workspace.getProjectId());
+      await loadJournalSessionsForProject(projectId);
     } catch (e) {
       console.error("Ошибка сохранения журнала:", e);
       showNotification("Не удалось сохранить журнал для объекта.", "error");

@@ -1,17 +1,15 @@
 import { getAuth } from "../../../infrastructure/firebase/auth.js";
 import {
-  clearProjectCollection,
-  createProjectCollectionDoc,
-  deleteProjectCollectionDoc,
+  clearInspectionSourceDocs,
+  deleteInspectionSourceDocs,
   getProjectCollectionSnapshot,
   getProjectDocSnapshot,
-  updateProjectCollectionDoc
+  saveInspectionSourceDoc
 } from "../../../app/repositories/firestore-repository.js";
 import {
-  clearInspectionsByModuleAndRefreshAnalytics,
-  deleteInspectionAndRefreshAnalytics,
-  saveInspectionAndRefreshAnalytics
+  clearInspectionsByModuleAndRefreshAnalytics
 } from "../../../app/services/inspection-sync.js";
+import { recomputeAndPersistProjectAnalyticsCurrent, refreshPendingProjectAnalytics } from "../../../app/services/analytics-current.js";
 import type { Project } from "../../../types/domain.js";
 import {
   createReinforcementService,
@@ -26,8 +24,47 @@ export interface ReinforcementFirestoreContext {
 export function createFirestoreReinforcementService(
   context: ReinforcementFirestoreContext = {}
 ): ReinforcementService {
+  async function buildInspection(projectId: string, checkId: string, data: Record<string, unknown>) {
+    const projectSnapshot = await getProjectDocSnapshot(projectId);
+    const projectData = (
+      projectSnapshot.exists() ? projectSnapshot.data() || {} : {}
+    ) as Partial<Project>;
+    const authUid = String(
+      context.getCurrentUserId?.() || getAuth().currentUser?.uid || ""
+    ).trim();
+    const ownerUid = String(
+      projectData.ownerUid || projectData.createdBy || authUid
+    ).trim();
+    const createdBy = String(
+      projectData.createdBy || projectData.ownerUid || authUid
+    ).trim();
+    const inspectionPayload: Record<string, unknown> = {
+      projectId,
+      module: "Армирование",
+      moduleKey: "reinforcement",
+      sourceCollection: "reinfChecks",
+      sourceId: checkId,
+      sourceDocId: checkId,
+      construction: data.construction || "",
+      constructionCategory: data.constructionCategory || "",
+      constructionLabel: data.constructionLabel || "",
+      constructionType: data.constructionType || "",
+      constructionSubtype: data.constructionSubtype || "",
+      constructionSubtypeLabel: data.constructionSubtypeLabel || "",
+      checkStatus: data.status || null,
+      summaryText: data.summaryText || "",
+      createdAt: data.createdAt || Date.now(),
+      updatedAt: Date.now(),
+      contractorName: String(projectData.contractorName || "").trim()
+    };
+    if (ownerUid) inspectionPayload.ownerUid = ownerUid;
+    if (createdBy) inspectionPayload.createdBy = createdBy;
+
+    return inspectionPayload;
+  }
   const repository: ReinforcementRepository = {
-    loadChecks(projectId) {
+    async loadChecks(projectId) {
+      await refreshPendingProjectAnalytics(projectId);
       return getProjectCollectionSnapshot(projectId, "reinfChecks");
     },
 
@@ -36,79 +73,32 @@ export function createFirestoreReinforcementService(
     },
 
     async createCheck(projectId, data) {
-      const result = await createProjectCollectionDoc(
-        projectId,
-        "reinfChecks",
-        data
-      );
+      const checkId = String(data.id || crypto.randomUUID());
+      data.id = checkId;
+      data.createdAt ??= Date.now();
+      const result = await saveInspectionSourceDoc(projectId, "reinfChecks", checkId,
+        data, await buildInspection(projectId, checkId, data));
       return { id: result.id, ref: result.ref };
     },
 
     async updateCheck(projectId, checkId, data) {
-      const result = await updateProjectCollectionDoc(
-        projectId,
-        "reinfChecks",
-        checkId,
-        data
-      );
+      const result = await saveInspectionSourceDoc(projectId, "reinfChecks", checkId,
+        { ...data, updatedAt: Date.now() }, await buildInspection(projectId, checkId, data));
       return { id: result.id, ref: result.ref };
     },
 
     deleteCheck(projectId, checkId) {
-      return deleteProjectCollectionDoc(projectId, "reinfChecks", checkId);
+      return deleteInspectionSourceDocs(projectId, "reinfChecks", [checkId]);
     },
 
     clearChecks(projectId) {
-      return clearProjectCollection(projectId, "reinfChecks");
+      return clearInspectionSourceDocs(projectId, "reinfChecks");
     },
 
-    async upsertInspection(projectId, checkId, data) {
-      const projectSnapshot = await getProjectDocSnapshot(projectId);
-      const projectData = (
-        projectSnapshot.exists() ? projectSnapshot.data() || {} : {}
-      ) as Partial<Project>;
-      const authUid = String(
-        context.getCurrentUserId?.() || getAuth().currentUser?.uid || ""
-      ).trim();
-      const ownerUid = String(
-        projectData.ownerUid || projectData.createdBy || authUid
-      ).trim();
-      const createdBy = String(
-        projectData.createdBy || projectData.ownerUid || authUid
-      ).trim();
-      const inspectionPayload: Record<string, unknown> = {
-        projectId,
-        module: "Армирование",
-        moduleKey: "reinforcement",
-        sourceCollection: "reinfChecks",
-        sourceId: checkId,
-        sourceDocId: checkId,
-        construction: data.construction || "",
-        constructionCategory: data.constructionCategory || "",
-        constructionLabel: data.constructionLabel || "",
-        constructionType: data.constructionType || "",
-        constructionSubtype: data.constructionSubtype || "",
-        constructionSubtypeLabel: data.constructionSubtypeLabel || "",
-        checkStatus: data.status || null,
-        summaryText: data.summaryText || "",
-        createdAt: data.createdAt || Date.now(),
-        updatedAt: Date.now(),
-        contractorName: String(projectData.contractorName || "").trim()
-      };
-      if (ownerUid) inspectionPayload.ownerUid = ownerUid;
-      if (createdBy) inspectionPayload.createdBy = createdBy;
-
-      await saveInspectionAndRefreshAnalytics(
-        projectId,
-        checkId,
-        inspectionPayload,
-        { merge: true }
-      );
+    async refreshAnalytics(projectId) {
+      await recomputeAndPersistProjectAnalyticsCurrent(projectId);
     },
 
-    deleteInspection(projectId, checkId) {
-      return deleteInspectionAndRefreshAnalytics(projectId, checkId);
-    },
 
     clearInspections(projectId) {
       return clearInspectionsByModuleAndRefreshAnalytics(projectId, {
@@ -117,5 +107,6 @@ export function createFirestoreReinforcementService(
       });
     }
   };
+
   return createReinforcementService(repository);
 }

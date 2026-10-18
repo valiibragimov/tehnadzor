@@ -1,6 +1,7 @@
 import {
-  getProjectCollectionSnapshot,
-  mergeProjectDoc
+  getInspectionRegistrySnapshot,
+  getProjectDocSnapshot,
+  persistInspectionAnalyticsIfCurrent
 } from "../repositories/firestore-repository.js";
 
 const ANALYTICS_MODULE_KEYS = ["geo", "reinforcement", "geometry", "strength"];
@@ -224,17 +225,32 @@ function finalizeAggregate(aggregate) {
 
 export async function recomputeAndPersistProjectAnalyticsCurrent(projectId) {
   if (!projectId) return null;
-
-  const inspectionsSnapshot = await getProjectCollectionSnapshot(projectId, "inspections");
-  const aggregate = createAggregate();
-  inspectionsSnapshot.forEach((inspectionDoc) => {
-    addInspectionToAggregate(aggregate, {
-      ...inspectionDoc.data(),
-      _docId: inspectionDoc.id
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const project = await getProjectDocSnapshot(projectId);
+    const revision = project.data()?.inspectionSync?.revision || "";
+    const inspectionsSnapshot = await getInspectionRegistrySnapshot(projectId);
+    const aggregate = createAggregate();
+    inspectionsSnapshot.forEach((inspectionDoc) => {
+      addInspectionToAggregate(aggregate, {
+        ...inspectionDoc.data(),
+        _docId: inspectionDoc.id
+      });
     });
-  });
+    const analyticsCurrent = finalizeAggregate(aggregate);
+    if (await persistInspectionAnalyticsIfCurrent(projectId, revision, analyticsCurrent)) return analyticsCurrent;
+  }
+  throw new Error("Inspection analytics changed during refresh; retry required.");
+}
 
-  const analyticsCurrent = finalizeAggregate(aggregate);
-  await mergeProjectDoc(projectId, { analyticsCurrent });
-  return analyticsCurrent;
+export async function refreshPendingProjectAnalytics(projectId: string) {
+  if (!projectId) return null;
+  try {
+    const project = await getProjectDocSnapshot(projectId);
+    if (!project.data()?.inspectionSync?.pending) return null;
+    return await recomputeAndPersistProjectAnalyticsCurrent(projectId);
+  } catch (error) {
+    // Source and registry are already committed; keep the durable marker for retry.
+    console.warn("[Inspections] Analytics refresh remains pending:", error);
+    return null;
+  }
 }

@@ -17,12 +17,7 @@ export interface GeodesyRepository {
   ): Promise<unknown>;
   markNodeDeleted(projectId: string, nodeId: string): Promise<unknown>;
   clearNodes(projectId: string): Promise<number>;
-  upsertInspection(
-    projectId: string,
-    sourceId: string,
-    nodeData: Record<string, unknown>
-  ): Promise<void>;
-  deleteInspection(projectId: string, sourceId: string): Promise<void>;
+  refreshAnalytics(projectId: string): Promise<void>;
   clearInspections(projectId: string): Promise<number>;
 }
 
@@ -47,6 +42,13 @@ export function createGeodesyService(
   repository: GeodesyRepository,
   logger: Pick<Console, "warn"> = console
 ): GeodesyService {
+  async function refreshAnalyticsSafely(projectId: string) {
+    try {
+      await repository.refreshAnalytics(projectId);
+    } catch (error) {
+      logger.warn("[Inspections][geo] analytics refresh remains pending:", error);
+    }
+  }
   return {
     async loadNodes(projectId) {
       const nodes = new Map<string, Record<string, unknown>>();
@@ -76,16 +78,12 @@ export function createGeodesyService(
 
     async saveNode(projectId, nodeId, data) {
       await repository.saveNode(projectId, nodeId, data);
-      try {
-        await repository.upsertInspection(projectId, nodeId, data);
-      } catch (error) {
-        logger.warn("[DualWrite][geo] inspections upsert failed:", error);
-      }
+      await refreshAnalyticsSafely(projectId);
     },
 
     async deleteNode(projectId, nodeId) {
       await repository.markNodeDeleted(projectId, nodeId);
-      await repository.deleteInspection(projectId, nodeId);
+      await refreshAnalyticsSafely(projectId);
     },
 
     async clearNodes(projectId) {

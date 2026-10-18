@@ -19,12 +19,7 @@ export interface StrengthRepository {
   ): Promise<StrengthWriteResult>;
   deleteCheck(projectId: string, checkId: string): Promise<void>;
   clearChecks(projectId: string): Promise<number>;
-  upsertInspection(
-    projectId: string,
-    checkId: string,
-    data: StrengthCheckRecord
-  ): Promise<void>;
-  deleteInspection(projectId: string, checkId: string): Promise<void>;
+  refreshAnalytics(projectId: string): Promise<void>;
   clearInspections(projectId: string): Promise<number>;
 }
 
@@ -63,15 +58,11 @@ export function createStrengthService(
   repository: StrengthRepository,
   logger: Pick<Console, "warn"> = console
 ): StrengthService {
-  async function upsertInspectionSafely(
-    projectId: string,
-    checkId: string,
-    data: StrengthCheckRecord
-  ) {
+  async function refreshAnalyticsSafely(projectId: string) {
     try {
-      await repository.upsertInspection(projectId, checkId, data);
+      await repository.refreshAnalytics(projectId);
     } catch (error) {
-      logger.warn("[DualWrite][strength] inspections upsert failed:", error);
+      logger.warn("[Inspections][strength] analytics refresh remains pending:", error);
     }
   }
 
@@ -107,19 +98,19 @@ export function createStrengthService(
 
     async createCheck(projectId, data) {
       const result = await repository.createCheck(projectId, data);
-      await upsertInspectionSafely(projectId, result.id, data);
+      await refreshAnalyticsSafely(projectId);
       return result;
     },
 
     async updateCheck(projectId, checkId, data) {
       const result = await repository.updateCheck(projectId, checkId, data);
-      await upsertInspectionSafely(projectId, checkId, data);
+      await refreshAnalyticsSafely(projectId);
       return result;
     },
 
     async deleteCheck(projectId, checkId) {
       await repository.deleteCheck(projectId, checkId);
-      await repository.deleteInspection(projectId, checkId);
+      await refreshAnalyticsSafely(projectId);
     },
 
     async clearChecks(projectId) {

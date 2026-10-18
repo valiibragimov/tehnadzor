@@ -453,7 +453,7 @@ export function createStrengthActions({
       return null;
     }
 
-    const provisionalId = existingId || `chk_${now()}`;
+    const provisionalId = existingId || crypto.randomUUID();
     const data = form.readCheck(existing);
     const evaluation = evaluateStrengthCheck(data);
     data.status = evaluation.status;
@@ -462,6 +462,8 @@ export function createStrengthActions({
     data.projectId = projectId;
     data.module = "strength";
     data.createdAt = existing?.createdAt || now();
+    data.id = provisionalId;
+    setCurrentStrengthCheckId(state, provisionalId);
     state.checks.set(provisionalId, data);
     saveLocalChecks();
     renderChecks();

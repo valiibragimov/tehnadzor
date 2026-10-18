@@ -55,18 +55,16 @@ import {
   clearByType as geomClearByType
 } from "./geometry/data.js";
 import {
-  clearProjectCollection,
-  createProjectCollectionDoc,
-  deleteProjectCollectionDoc,
+  clearInspectionSourceDocs,
+  saveInspectionSourceDoc,
+  deleteInspectionSourceDocs,
   getProjectDocSnapshot,
-  getProjectCollectionSnapshot,
-  updateProjectCollectionDoc
+  getProjectCollectionSnapshot
 } from "../repositories/firestore-repository.js";
 import {
-  clearInspectionsByModuleAndRefreshAnalytics,
-  deleteInspectionAndRefreshAnalytics,
-  saveInspectionAndRefreshAnalytics
+  clearInspectionsByModuleAndRefreshAnalytics
 } from "../services/inspection-sync.js";
+import { refreshPendingProjectAnalytics } from "../services/analytics-current.js";
 import type {
   GeometryBeamRecord,
   GeometryCheckRecord,
@@ -118,7 +116,7 @@ const notifyFirestoreSyncStatusSafe = (ref: unknown) => geometryActions.notifySy
 
 const auth = getAuth();
 
-async function upsertGeomInspectionDualWrite(projectId, inspectionId, checkData) {
+async function saveGeomInspection(projectId, inspectionId, checkData) {
   const projectSnap = await getProjectDocSnapshot(projectId);
   const projectData = projectSnap.exists() ? projectSnap.data() || {} : {};
   const authUid = String(auth.currentUser?.uid || "").trim();
@@ -145,12 +143,10 @@ async function upsertGeomInspectionDualWrite(projectId, inspectionId, checkData)
   if (ownerUid) inspectionPayload.ownerUid = ownerUid;
   if (createdBy) inspectionPayload.createdBy = createdBy;
 
-  await saveInspectionAndRefreshAnalytics(
-    projectId,
-    inspectionId,
-    inspectionPayload,
-    { merge: true }
-  );
+  const saved = await saveInspectionSourceDoc(projectId, "geomChecks", inspectionId,
+    { ...checkData, updatedAt: Date.now() }, inspectionPayload);
+  await refreshPendingProjectAnalytics(projectId);
+  return saved;
 }
 
 async function clearGeomInspectionDualWrite(projectId) {
@@ -2781,7 +2777,9 @@ async function loadGeomChecks() {
   }
 
   try {
-    const snap = await getProjectCollectionSnapshot(getCurrentProjectId(), "geomChecks");
+    const projectId = getCurrentProjectId();
+    await refreshPendingProjectAnalytics(projectId);
+    const snap = await getProjectCollectionSnapshot(projectId, "geomChecks");
     console.log("[loadGeomChecks] Загружено из Firestore проверок:", snap.size);
     snap.forEach(docSnap => {
       const data = docSnap.data();
@@ -2972,8 +2970,8 @@ function renderGeomChecks() {
           const projectId = getCurrentProjectId();
           if (projectId) {
             try {
-              await deleteProjectCollectionDoc(projectId, "geomChecks", id);
-              await deleteInspectionAndRefreshAnalytics(projectId, id);
+              await deleteInspectionSourceDocs(projectId, "geomChecks", [id]);
+              await refreshPendingProjectAnalytics(projectId);
             } catch (error) {
               console.error("[Geometry] Ошибка удаления проверки из Firestore:", error);
             }
@@ -3140,7 +3138,7 @@ async function saveGeomCheck({ skipJournalOnce = false } = {}) {
   const existing = getCurrentGeomCheckId() && geomChecks.has(getCurrentGeomCheckId())
     ? geomChecks.get(getCurrentGeomCheckId())
     : null;
-  const id = existing ? getCurrentGeomCheckId() : `chk_${Date.now()}`;
+  const id = existing ? getCurrentGeomCheckId() : crypto.randomUUID();
   const flags = getGeometryConstructionFlags();
   if (flags.isUnsupported) {
     setGeometryUnsupportedState({ notify: true });
@@ -3310,6 +3308,8 @@ async function saveGeomCheck({ skipJournalOnce = false } = {}) {
   const createdAtClient = existing?.createdAt || Date.now();
   data.createdAt = createdAtClient;
 
+  data.id = id;
+  setCurrentGeomCheckId(id);
   geomChecks.set(id, data);
   saveGeomChecks();
   renderGeomChecks();
@@ -3318,34 +3318,11 @@ async function saveGeomCheck({ skipJournalOnce = false } = {}) {
   skipGeomJournalOnce = false;
 
   try {
-    let finalId = id;
+    const finalId = id;
     const projectId = getCurrentProjectId();
-    if (existing) {
-      const { ref: docRef } = await updateProjectCollectionDoc(projectId, "geomChecks", id, data);
-      notifyFirestoreSyncStatusSafe(docRef);
-      console.log("[btnSaveGeomCheck] Проверка обновлена в Firestore, docId:", finalId);
-    } else {
-      const created = await createProjectCollectionDoc(projectId, "geomChecks", data);
-      const docRef = created.ref;
-      notifyFirestoreSyncStatusSafe(docRef);
-      finalId = created.id;
-      console.log("[btnSaveGeomCheck] Проверка сохранена в Firestore, docId:", finalId, "localId:", id);
-
-      if (finalId !== id) {
-        geomChecks.delete(id);
-        geomChecks.set(finalId, { ...data, id: finalId });
-        saveGeomChecks();
-        renderGeomChecks();
-      }
-    }
-
+    const saved = await saveGeomInspection(projectId, id, data);
+    notifyFirestoreSyncStatusSafe(saved.ref);
     setCurrentGeomCheckId(finalId);
-
-    try {
-      await upsertGeomInspectionDualWrite(projectId, finalId, data);
-    } catch (dualWriteError) {
-      console.warn("[DualWrite][geometry] inspections upsert failed:", dualWriteError);
-    }
 
     if (!skipJournal && data.status !== "empty") {
       let context = "";
@@ -4622,7 +4599,7 @@ async function clearGeomChecks() {
   console.log("[btnClearGeomChecks] Путь Firestore: projects/" + projectId + "/geomChecks");
 
   try {
-    const deletedCount = await clearProjectCollection(projectId, "geomChecks");
+    const deletedCount = await clearInspectionSourceDocs(projectId, "geomChecks");
     const deletedDualWriteCount = await clearGeomInspectionDualWrite(projectId);
     console.log("[btnClearGeomChecks] Найдено документов в Firestore:", deletedCount);
     console.log("[btnClearGeomChecks] Удалено документов из Firestore:", deletedCount);

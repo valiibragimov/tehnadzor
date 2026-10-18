@@ -579,6 +579,7 @@ async function getSummaryStatsFromAnalyticsCurrent(projectId) {
     const projectSnap = await getProjectDocSnapshot(projectId);
     if (!projectSnap.exists()) return null;
     const projectData = projectSnap.data() || {};
+    if (projectData.inspectionSync?.pending) return null;
     return tryBuildSummaryStatsFromAnalyticsCurrent(projectData.analyticsCurrent);
   } catch (error) {
     console.warn(`[Summary] Не удалось загрузить analyticsCurrent для проекта ${projectId}:`, error);

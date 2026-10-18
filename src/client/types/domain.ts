@@ -81,6 +81,7 @@ export interface Project {
   createdAt?: number | FirestoreTimestampLike | null;
   updatedAt?: number | FirestoreTimestampLike | null;
   analyticsCurrent?: AnalyticsCurrent | null;
+  inspectionSync?: { version: 1; revision: string; pending: boolean };
   modulesEnabled?: Partial<Record<ModuleKey, boolean>>;
   [key: string]: unknown;
 }

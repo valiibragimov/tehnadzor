@@ -1,16 +1,14 @@
 import {
-  clearProjectCollection,
-  createProjectCollectionDoc,
-  deleteProjectCollectionDoc,
+  clearInspectionSourceDocs,
+  deleteInspectionSourceDocs,
   getProjectCollectionSnapshot,
   getProjectDocSnapshot,
-  updateProjectCollectionDoc
+  saveInspectionSourceDoc
 } from "../../../app/repositories/firestore-repository.js";
 import {
-  clearInspectionsByModuleAndRefreshAnalytics,
-  deleteInspectionAndRefreshAnalytics,
-  saveInspectionAndRefreshAnalytics
+  clearInspectionsByModuleAndRefreshAnalytics
 } from "../../../app/services/inspection-sync.js";
+import { recomputeAndPersistProjectAnalyticsCurrent, refreshPendingProjectAnalytics } from "../../../app/services/analytics-current.js";
 import type { Project } from "../../../types/domain.js";
 import {
   createStrengthService,
@@ -25,8 +23,43 @@ export interface StrengthFirestoreContext {
 export function createFirestoreStrengthService(
   context: StrengthFirestoreContext
 ): StrengthService {
+  async function buildInspection(projectId: string, checkId: string, data: Record<string, unknown>) {
+    const projectSnapshot = await getProjectDocSnapshot(projectId);
+    const projectData = (
+      projectSnapshot.exists() ? projectSnapshot.data() || {} : {}
+    ) as Partial<Project>;
+    const currentUserId = String(context.getCurrentUserId() || "").trim();
+    const ownerUid = String(
+      projectData.ownerUid || projectData.createdBy || currentUserId
+    ).trim();
+    const createdBy = String(
+      projectData.createdBy || projectData.ownerUid || currentUserId
+    ).trim();
+
+    const inspectionPayload: Record<string, unknown> = {
+      projectId,
+      module: "Прочность",
+      moduleKey: "strength",
+      sourceCollection: "strengthChecks",
+      sourceId: checkId,
+      sourceDocId: checkId,
+      construction: data.construction || "",
+      constructionSubtype: data.constructionSubtype || "",
+      constructionSubtypeLabel: data.constructionSubtypeLabel || "",
+      checkStatus: data.status || null,
+      summaryText: data.summaryText || "",
+      createdAt: data.createdAt || Date.now(),
+      updatedAt: Date.now(),
+      contractorName: String(projectData.contractorName || "").trim()
+    };
+    if (ownerUid) inspectionPayload.ownerUid = ownerUid;
+    if (createdBy) inspectionPayload.createdBy = createdBy;
+
+    return inspectionPayload;
+  }
   const repository: StrengthRepository = {
-    loadChecks(projectId) {
+    async loadChecks(projectId) {
+      await refreshPendingProjectAnalytics(projectId);
       return getProjectCollectionSnapshot(projectId, "strengthChecks");
     },
 
@@ -35,79 +68,32 @@ export function createFirestoreStrengthService(
     },
 
     async createCheck(projectId, data) {
-      const result = await createProjectCollectionDoc(
-        projectId,
-        "strengthChecks",
-        data
-      );
+      const checkId = String(data.id || crypto.randomUUID());
+      data.id = checkId;
+      data.createdAt ??= Date.now();
+      const result = await saveInspectionSourceDoc(projectId, "strengthChecks", checkId,
+        data, await buildInspection(projectId, checkId, data));
       return { id: result.id, ref: result.ref };
     },
 
     async updateCheck(projectId, checkId, data) {
-      const result = await updateProjectCollectionDoc(
-        projectId,
-        "strengthChecks",
-        checkId,
-        data
-      );
+      const result = await saveInspectionSourceDoc(projectId, "strengthChecks", checkId,
+        { ...data, updatedAt: Date.now() }, await buildInspection(projectId, checkId, data));
       return { id: result.id, ref: result.ref };
     },
 
     deleteCheck(projectId, checkId) {
-      return deleteProjectCollectionDoc(
-        projectId,
-        "strengthChecks",
-        checkId
-      );
+      return deleteInspectionSourceDocs(projectId, "strengthChecks", [checkId]);
     },
 
     clearChecks(projectId) {
-      return clearProjectCollection(projectId, "strengthChecks");
+      return clearInspectionSourceDocs(projectId, "strengthChecks");
     },
 
-    async upsertInspection(projectId, checkId, data) {
-      const projectSnapshot = await getProjectDocSnapshot(projectId);
-      const projectData = (
-        projectSnapshot.exists() ? projectSnapshot.data() || {} : {}
-      ) as Partial<Project>;
-      const currentUserId = String(context.getCurrentUserId() || "").trim();
-      const ownerUid = String(
-        projectData.ownerUid || projectData.createdBy || currentUserId
-      ).trim();
-      const createdBy = String(
-        projectData.createdBy || projectData.ownerUid || currentUserId
-      ).trim();
-
-      const inspectionPayload: Record<string, unknown> = {
-        projectId,
-        module: "Прочность",
-        moduleKey: "strength",
-        sourceCollection: "strengthChecks",
-        sourceId: checkId,
-        sourceDocId: checkId,
-        construction: data.construction || "",
-        constructionSubtype: data.constructionSubtype || "",
-        constructionSubtypeLabel: data.constructionSubtypeLabel || "",
-        checkStatus: data.status || null,
-        summaryText: data.summaryText || "",
-        createdAt: data.createdAt || Date.now(),
-        updatedAt: Date.now(),
-        contractorName: String(projectData.contractorName || "").trim()
-      };
-      if (ownerUid) inspectionPayload.ownerUid = ownerUid;
-      if (createdBy) inspectionPayload.createdBy = createdBy;
-
-      await saveInspectionAndRefreshAnalytics(
-        projectId,
-        checkId,
-        inspectionPayload,
-        { merge: true }
-      );
+    async refreshAnalytics(projectId) {
+      await recomputeAndPersistProjectAnalyticsCurrent(projectId);
     },
 
-    deleteInspection(projectId, checkId) {
-      return deleteInspectionAndRefreshAnalytics(projectId, checkId);
-    },
 
     clearInspections(projectId) {
       return clearInspectionsByModuleAndRefreshAnalytics(projectId, {

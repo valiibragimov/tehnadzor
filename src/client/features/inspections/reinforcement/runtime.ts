@@ -543,7 +543,7 @@ export function createReinforcementRuntime(
         : null;
     const provisionalId = existing
       ? String(currentId)
-      : `chk_${Date.now()}`;
+      : crypto.randomUUID();
     const evaluation = evaluateReinforcementCheck(candidate);
     candidate.status = evaluation.status;
     candidate.summaryText = evaluation.summaryText;
@@ -552,6 +552,8 @@ export function createReinforcementRuntime(
     candidate.module = "reinforcement";
     candidate.createdAt = existing?.createdAt || candidate.createdAt ||
       Date.now();
+    candidate.id = provisionalId;
+    state.currentCheckId = provisionalId;
 
     state.checks.set(provisionalId, candidate);
     saveLocalChecks();

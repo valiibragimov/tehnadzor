@@ -7,12 +7,14 @@ import {
   doc,
   getDoc,
   getDocs,
+  getDocsFromServer,
   onSnapshot,
   type OrderByDirection,
   type QuerySnapshot,
   type DocumentData,
   orderBy,
   query,
+  runTransaction,
   setDoc,
   serverTimestamp,
   where,
@@ -193,6 +195,159 @@ export async function setProjectCollectionDoc(
 export async function deleteProjectCollectionDoc(projectId, collectionName, docId) {
   const ref = getProjectCollectionDocRef(projectId, collectionName, docId);
   await deleteDoc(ref);
+}
+
+// Source evidence and its read model must either both change or neither change.
+// The additive v1 marker survives a failed analytics refresh and a browser restart.
+function inspectionRepresentsSource(document, sourceCollection: string, sourceId: string) {
+  const data = document.data();
+  return data.sourceCollection === sourceCollection &&
+    String(data.sourceId || data.sourceDocId || document.id) === sourceId;
+}
+
+export function getInspectionRegistrySnapshot(projectId: string) {
+  // A partial offline cache must never become the authoritative analytics snapshot
+  // or decide which persisted legacy aliases need updating.
+  return getDocsFromServer(getProjectCollectionRef(projectId, "inspections"));
+}
+
+export async function saveInspectionSourceDoc(
+  projectId: string,
+  sourceCollection: string,
+  sourceId: string,
+  source: FirestoreRecord,
+  inspection: FirestoreRecord,
+  options: { merge?: boolean } = {}
+) {
+  const inspections = await getInspectionRegistrySnapshot(projectId);
+  const matching = inspections.docs.filter(document => inspectionRepresentsSource(document, sourceCollection, sourceId));
+  const registryIds = matching.map(document => document.id);
+  if (!registryIds.length) {
+    const registryId = `${sourceCollection}_${sourceId}`;
+    if (inspections.docs.some(document => document.id === registryId)) throw new Error("Inspection registry identity is already occupied.");
+    registryIds.push(registryId);
+  }
+  if (registryIds.length > 498) throw new Error("Too many inspection aliases for an atomic save.");
+  const ref = getProjectCollectionDocRef(projectId, sourceCollection, sourceId);
+  const batch = writeBatch(db);
+  batch.set(ref, source, options);
+  for (const registryId of registryIds) {
+    batch.set(getProjectCollectionDocRef(projectId, "inspections", registryId), inspection, { merge: true });
+  }
+  batch.set(getProjectDocRef(projectId), {
+    inspectionSync: { version: 1, revision: crypto.randomUUID(), pending: true }
+  }, { merge: true });
+  await batch.commit();
+  return { id: sourceId, ref };
+}
+
+export async function deleteInspectionSourceDocs(
+  projectId: string, sourceCollection: string, sourceIds: string[], softDelete = false
+) {
+  const inspections = await getInspectionRegistrySnapshot(projectId);
+  // Keep each source and all its legacy aliases together within the 500 write limit.
+  let offset = 0;
+  while (offset < sourceIds.length) {
+    const batch = writeBatch(db);
+    let writes = 1;
+    while (offset < sourceIds.length) {
+      const sourceId = sourceIds[offset];
+      const matching = inspections.docs.filter(document => inspectionRepresentsSource(document, sourceCollection, sourceId));
+      if (matching.length > 498) throw new Error("Too many inspection aliases for an atomic deletion.");
+      if (writes + 1 + matching.length > 500) break;
+      const ref = getProjectCollectionDocRef(projectId, sourceCollection, sourceId);
+      if (softDelete) batch.set(ref, { deleted: true }, { merge: true });
+      else batch.delete(ref);
+      for (const document of matching) batch.delete(document.ref);
+      writes += 1 + matching.length;
+      offset += 1;
+    }
+    batch.set(getProjectDocRef(projectId), {
+      inspectionSync: { version: 1, revision: crypto.randomUUID(), pending: true }
+    }, { merge: true });
+    await batch.commit();
+  }
+}
+
+export async function persistInspectionAnalyticsIfCurrent(
+  projectId: string, revision: string, analyticsCurrent: FirestoreRecord
+) {
+  return runTransaction(db, async transaction => {
+    const ref = getProjectDocRef(projectId);
+    const project = await transaction.get(ref);
+    if (!project.exists()) throw new Error("Inspection project no longer exists.");
+    if ((project.data().inspectionSync?.revision || "") !== revision) return false;
+    transaction.set(ref, {
+      analyticsCurrent,
+      inspectionSync: { version: 1, revision: revision || crypto.randomUUID(), pending: false }
+    }, { merge: true });
+    return true;
+  });
+}
+
+export async function clearInspectionSourceDocs(projectId: string, sourceCollection: string) {
+  const snapshot = await getDocsFromServer(getProjectCollectionRef(projectId, sourceCollection));
+  await deleteInspectionSourceDocs(projectId, sourceCollection, snapshot.docs.map(document => document.id));
+  return snapshot.size;
+}
+
+export async function commitInspectionRegistryDocs(
+  projectId: string, entries: Array<{ id: string; data?: FirestoreRecord; merge?: boolean }>
+) {
+  for (let offset = 0; offset < entries.length; offset += 499) {
+    const batch = writeBatch(db);
+    for (const entry of entries.slice(offset, offset + 499)) {
+      const ref = getProjectCollectionDocRef(projectId, "inspections", entry.id);
+      if (entry.data) batch.set(ref, entry.data, { merge: entry.merge ?? true });
+      else batch.delete(ref);
+    }
+    batch.set(getProjectDocRef(projectId), {
+      inspectionSync: { version: 1, revision: crypto.randomUUID(), pending: true }
+    }, { merge: true });
+    await batch.commit();
+  }
+}
+
+export async function deleteOrphanInspectionDoc(projectId: string, inspectionId: string, sourceCollection: string) {
+  if (!sourceCollection) return false;
+  return runTransaction(db, async transaction => {
+    const inspectionRef = getProjectCollectionDocRef(projectId, "inspections", inspectionId);
+    const inspection = await transaction.get(inspectionRef);
+    if (!inspection.exists()) return false;
+    const data = inspection.data();
+    if (data.sourceCollection && data.sourceCollection !== sourceCollection) return false;
+    const sourceId = String(data.sourceId || data.sourceDocId || data.sourceSessionId || inspectionId);
+    const source = await transaction.get(getProjectCollectionDocRef(projectId, sourceCollection, sourceId));
+    if (source.exists() && !source.data().deleted) return false;
+    transaction.delete(inspectionRef);
+    transaction.set(getProjectDocRef(projectId), {
+      inspectionSync: { version: 1, revision: crypto.randomUUID(), pending: true }
+    }, { merge: true });
+    return true;
+  });
+}
+
+export async function saveJournalInspectionSession(projectId: string, sessionId: string, payload: FirestoreRecord) {
+  return runTransaction(db, async transaction => {
+    const projectRef = getProjectDocRef(projectId);
+    const sessionRef = getProjectCollectionDocRef(projectId, "journalSessions", sessionId);
+    const project = await transaction.get(projectRef);
+    const existing = await transaction.get(sessionRef);
+    if (!project.exists()) throw new Error("Inspection project no longer exists.");
+    if (existing.exists()) return { id: sessionId, checkNumber: Number(existing.data().checkNumber) };
+    const checkNumber = (Number(project.data().lastCheckNumber) || 0) + 1;
+    const session = { ...payload, checkNumber };
+    transaction.set(sessionRef, session);
+    transaction.set(getProjectCollectionDocRef(projectId, "inspections", sessionId), {
+      ...session, projectId, sessionId, sourceCollection: "journalSessions", sourceSessionId: sessionId,
+      entriesCount: Array.isArray(payload.entries) ? payload.entries.length : 0
+    });
+    transaction.set(projectRef, {
+      lastCheckNumber: checkNumber, lastCheckDate: payload.date,
+      inspectionSync: { version: 1, revision: crypto.randomUUID(), pending: true }
+    }, { merge: true });
+    return { id: sessionId, checkNumber };
+  });
 }
 
 export async function clearProjectCollection(projectId: string, collectionName: string) {

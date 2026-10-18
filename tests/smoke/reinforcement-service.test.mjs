@@ -56,11 +56,8 @@ function createRepository(overrides = {}) {
         calls.push(["clearChecks", ...args]);
         return 3;
       },
-      async upsertInspection(...args) {
-        calls.push(["upsertInspection", ...args]);
-      },
-      async deleteInspection(...args) {
-        calls.push(["deleteInspection", ...args]);
+      async refreshAnalytics(...args) {
+        calls.push(["refreshAnalytics", ...args]);
       },
       async clearInspections(...args) {
         calls.push(["clearInspections", ...args]);
@@ -245,16 +242,16 @@ test("reinforcement service creates and updates with dual-write", async () => {
 
   assert.deepEqual(calls, [
     ["createCheck", "project-1", created],
-    ["upsertInspection", "project-1", "created-check", created],
+    ["refreshAnalytics", "project-1"],
     ["updateCheck", "project-1", "check-1", updated],
-    ["upsertInspection", "project-1", "check-1", updated]
+    ["refreshAnalytics", "project-1"]
   ]);
 });
 
 test("reinforcement service preserves source save on dual-write error", async () => {
   const warnings = [];
   const { repository } = createRepository({
-    async upsertInspection() {
+    async refreshAnalytics() {
       throw new Error("offline");
     }
   });
@@ -278,7 +275,7 @@ test("reinforcement service deletes and clears source plus projection", async ()
 
   assert.deepEqual(calls, [
     ["deleteCheck", "project-1", "check-1"],
-    ["deleteInspection", "project-1", "check-1"],
+    ["refreshAnalytics", "project-1"],
     ["clearChecks", "project-1"],
     ["clearInspections", "project-1"]
   ]);

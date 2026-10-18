@@ -93,6 +93,12 @@ The regular client loads Chart.js and jsPDF from external CDNs when needed. Char
 
 Root `index.html` and `sw.js` are generated too. Do not edit generated outputs by hand.
 
+## Inspection write recovery
+
+Inspection source records and their `inspections` projections commit atomically. Existing registry IDs are retained; new IDs include the source collection. Journal sessions also reserve their check number in the same transaction. Retry a create with the same source/session ID; it represents the same operation.
+
+The additive project field `inspectionSync` has version `1`, a revision token and a `pending` flag. Analytics refresh clears the flag only if that revision still matches. A failed refresh leaves the marker in Firestore; reopening inspection modules retries it. Summary never falls back to a pending aggregate. No backfill or source format migration is required: projects without the field remain readable. Rolling back leaves existing source and registry formats readable and the marker ignored; reopen with the updated client to finish pending analytics repairs. Keep pending markers when rolling back.
+
 ## Verification
 
 Run the commands listed in [README](../README.md#development-and-tests) before submitting application changes.

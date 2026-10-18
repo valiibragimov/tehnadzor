@@ -42,11 +42,8 @@ function createRepository(overrides = {}) {
       calls.push(["clearChecks", ...args]);
       return 0;
     },
-    async upsertInspection(...args) {
-      calls.push(["upsertInspection", ...args]);
-    },
-    async deleteInspection(...args) {
-      calls.push(["deleteInspection", ...args]);
+    async refreshAnalytics(...args) {
+      calls.push(["refreshAnalytics", ...args]);
     },
     async clearInspections(...args) {
       calls.push(["clearInspections", ...args]);
@@ -152,7 +149,7 @@ test("strength service loads active checks and excludes soft-deleted records", a
   ]);
 });
 
-test("strength service saves source before creating its inspection projection", async () => {
+test("strength service saves a check before refreshing analytics", async () => {
   const { repository, calls } = createRepository();
   const service = createStrengthService(repository);
   const payload = { status: "ok", markValue: 30, actual: 31 };
@@ -162,11 +159,11 @@ test("strength service saves source before creating its inspection projection", 
   assert.equal(result.id, "created-check");
   assert.deepEqual(calls, [
     ["createCheck", "project-1", payload],
-    ["upsertInspection", "project-1", "created-check", payload]
+    ["refreshAnalytics", "project-1"]
   ]);
 });
 
-test("strength service updates source before updating its inspection projection", async () => {
+test("strength service updates a check before refreshing analytics", async () => {
   const { repository, calls } = createRepository();
   const service = createStrengthService(repository);
   const payload = { status: "exceeded", markValue: 30, actual: 28 };
@@ -175,14 +172,14 @@ test("strength service updates source before updating its inspection projection"
 
   assert.deepEqual(calls, [
     ["updateCheck", "project-1", "check-1", payload],
-    ["upsertInspection", "project-1", "check-1", payload]
+    ["refreshAnalytics", "project-1"]
   ]);
 });
 
-test("strength service keeps a saved source check when dual-write fails", async () => {
+test("strength service keeps a saved source check when analytics refresh fails", async () => {
   const warnings = [];
   const { repository, calls } = createRepository({
-    async upsertInspection() {
+    async refreshAnalytics() {
       throw new Error("offline");
     }
   });
@@ -217,7 +214,7 @@ test("strength service deletes and clears source and inspection projections", as
 
   assert.deepEqual(calls, [
     ["deleteCheck", "project-1", "check-1"],
-    ["deleteInspection", "project-1", "check-1"],
+    ["refreshAnalytics", "project-1"],
     ["clearChecks", "project-1"],
     ["clearInspections", "project-1"]
   ]);
