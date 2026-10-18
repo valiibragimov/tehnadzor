@@ -300,6 +300,12 @@ export interface KnowledgeArticle extends Record<string, unknown> {
   tags?: string[];
 }
 
+export interface ProjectInspectionSources {
+  projectId: string;
+  collections: Readonly<Record<string, readonly SummaryRecord[] | undefined>>;
+  issues?: readonly IssueRecord[];
+}
+
 export interface SummaryRecord extends Record<string, unknown> {
   _docId?: string;
   deleted?: boolean;

@@ -27,7 +27,7 @@ import {
   type ControlPlanResult
 } from "../../features/control-plan/index.js";
 import { loadDocumentRequisites } from "../services/document-requisites.js";
-import type { IssueRecord, SummaryPdfTextOptions, SummaryRecord } from "../../types/module-records.js";
+import type { IssueRecord, ProjectInspectionSources, SummaryPdfTextOptions, SummaryRecord } from "../../types/module-records.js";
 import type { StrengthCheckRecord } from "../../features/inspections/strength/index.js";
 import type { ReinforcementCheckRecord } from "../../features/inspections/reinforcement/index.js";
 
@@ -182,7 +182,7 @@ function scheduleAnalyticsWarmup() {
   return analyticsWarmupPromise;
 }
 
-async function updateAnalyticsBlock(isCurrent: () => boolean) {
+async function updateAnalyticsBlock(isCurrent: () => boolean, sources?: ProjectInspectionSources) {
   const container = document.getElementById("analyticsBlockContainer");
   if (!container) return;
 
@@ -193,7 +193,7 @@ async function updateAnalyticsBlock(isCurrent: () => boolean) {
     const analyticsModule = await ensureAnalyticsModule();
     if (!isCurrent()) return;
     if (analyticsModule && typeof analyticsModule.loadAnalytics === "function") {
-      await analyticsModule.loadAnalytics(isCurrent);
+      await analyticsModule.loadAnalytics(isCurrent, sources);
     }
   } catch (error) {
     if (!isCurrent()) return;
@@ -476,7 +476,7 @@ async function getProjectCollectionDocs(projectId, collectionName) {
     })) as SummaryRecord[];
   } catch (error) {
     console.warn(`[Summary] Не удалось загрузить ${collectionName} для проекта ${projectId}:`, error);
-    return [];
+    return null;
   }
 }
 
@@ -603,12 +603,14 @@ async function refreshSummaryStatsFromInspections(projectId) {
   const sequence = ++summaryStatsRequestSequence;
   const requestWorkspace = workspace;
   if (!projectId || summaryStatsProjectId !== projectId) clearSummaryProjectData(projectId);
-  if (!projectId) return summaryStatsByModule;
+  if (!projectId) return { projectId: "", collections: {} } as ProjectInspectionSources;
 
   const aggregate = createSummaryAggregate();
+  const collections: Record<string, SummaryRecord[]> = {};
   const inspections = await getProjectCollectionDocs(projectId, "inspections");
+  if (inspections) collections.inspections = inspections;
 
-  inspections.forEach((inspection: SummaryRecord) => {
+  (inspections || []).forEach((inspection: SummaryRecord) => {
     const moduleKey = resolveSummaryModuleKey(inspection);
     if (!moduleKey) return;
 
@@ -625,7 +627,8 @@ async function refreshSummaryStatsFromInspections(projectId) {
       if (!collectionName) return;
 
       const docs = await getProjectCollectionDocs(projectId, collectionName);
-      docs.forEach((doc: SummaryRecord) => {
+      if (docs) collections[collectionName] = docs;
+      (docs || []).forEach((doc: SummaryRecord) => {
         if (doc?.deleted) return;
         const status = normalizeSummaryStatus(doc?.status ?? doc?.checkStatus);
         const timestampMs = resolveSummaryTimestampMs(doc);
@@ -644,23 +647,25 @@ async function refreshSummaryStatsFromInspections(projectId) {
     ? mergedStats
     : (await getSummaryStatsFromAnalyticsCurrent(projectId)) || mergedStats;
   const issues = await applyIssueCountsToSummaryStats(projectId, statsByModule);
-  const controlPlan = await refreshSummaryControlPlan(projectId);
+  const sources: ProjectInspectionSources = { projectId, collections, issues: issues ?? undefined };
+  const controlPlan = await refreshSummaryControlPlan(projectId, sources);
   if (sequence !== summaryStatsRequestSequence || workspace !== requestWorkspace || workspace.getProjectId() !== projectId) return null;
   summaryStatsProjectId = projectId;
   summaryStatsByModule = statsByModule;
-  summaryIssueRecords = issues;
+  summaryIssueRecords = issues || [];
   summaryControlPlan = controlPlan;
   summaryStatsSource = totalMergedChecks > 0 ? "inspections+collections" : "analyticsCurrent";
-  return summaryStatsByModule;
+  return sources;
 }
 
-async function refreshSummaryControlPlan(projectId) {
+async function refreshSummaryControlPlan(projectId, sources: ProjectInspectionSources) {
   if (!projectId) {
     return null;
   }
 
   try {
     return await loadProjectControlPlan(projectId, {
+      sources,
       fallbackConstruction: workspace.construction?.dataset?.machineValue || workspace.construction?.value || "",
       fallbackConstructionLabel: workspace.construction?.dataset?.displayLabel || workspace.construction?.value || ""
     });
@@ -678,7 +683,7 @@ async function applyIssueCountsToSummaryStats(projectId, statsByModule) {
     issues = await loadProjectIssues(projectId);
   } catch (error) {
     console.warn(`[Summary] Не удалось загрузить замечания для проекта ${projectId}:`, error);
-    return [];
+    return null;
   }
 
   issues.forEach((issue) => {
@@ -854,11 +859,11 @@ function getStrengthModuleStatus() {
 
 /**
  * Обновляет мини-карточки статуса модулей
- * Использует analyticsCurrent как основной источник.
- * Если analyticsCurrent отсутствует, применяет текущий fallback через inspections + legacy.
+ * Использует inspections и legacy-коллекции; analyticsCurrent служит резервным источником.
  */
 async function updateSummaryModuleCards() {
-  if (!await refreshSummaryStatsFromInspections(workspace.getProjectId())) return;
+  const sources = await refreshSummaryStatsFromInspections(workspace.getProjectId());
+  if (!sources) return;
 
   const geoStatus = getGeoModuleStatus();
   updateModuleCard("Geo", geoStatus, "geo");
@@ -883,6 +888,7 @@ async function updateSummaryModuleCards() {
   // Обновляем текст итога (убираем "Нет сохранённых проверок" если есть данные)
   updateSummaryTextPlaceholder(geoStatus, reinfStatus, geomStatus, strengthStatus);
   renderSummaryIssuesPanel();
+  return sources;
 }
 
 /**
@@ -1217,9 +1223,9 @@ export async function updateSummaryTab() {
   console.log("[updateSummaryTab] Источник статусов: projects/{projectId}/inspections (+ fallback to module collections)");
 
   updateSummaryParams();
-  await updateSummaryModuleCards();
+  const sources = await updateSummaryModuleCards();
   if (!isCurrent()) return;
-  await updateAnalyticsBlock(isCurrent);
+  await updateAnalyticsBlock(isCurrent, sources);
   if (!isCurrent()) return;
   await syncSummaryWorkspacePager();
 }

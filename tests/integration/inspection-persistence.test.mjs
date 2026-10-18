@@ -11,14 +11,19 @@ if (!/^(127\.0\.0\.1|localhost):\d+$/.test(address)) throw new Error("A loopback
 test("inspection persistence is atomic, recoverable and revision guarded in Firestore", { timeout: 120000 }, async t => {
   const [host, port] = address.split(":");
   const environment = await initializeTestEnvironment({ projectId: "demo-inspection-consistency", firestore: { host, port: Number(port), rules: await readFile("firestore.rules", "utf8") } });
-  let failRefresh = false, readGate = null;
+  let failRefresh = false, readGate = null, fullScans = 0;
   const db = environment.authenticatedContext("owner").firestore();
   const sdk = {
     ...firestore,
     async runTransaction(...args) { if (failRefresh) { failRefresh = false; throw new Error("synthetic analytics interruption"); } return firestore.runTransaction(...args); },
     async getDocs(reference) { const result = await firestore.getDocs(reference); if (readGate) await readGate(reference.path); return result; }
   };
-  sdk.getDocsFromServer = async reference => { const result = await firestore.getDocsFromServer(reference); if (readGate) await readGate(reference.path); return result; };
+  sdk.getDocsFromServer = async reference => {
+    if (reference.path?.endsWith("/inspections")) fullScans += 1;
+    const result = await firestore.getDocsFromServer(reference);
+    if (readGate) await readGate(reference.path);
+    return result;
+  };
   globalThis.integrationInspectionSdk = sdk;
   globalThis.integrationInspectionDb = db;
   try {
@@ -82,6 +87,19 @@ test("inspection persistence is atomic, recoverable and revision guarded in Fire
       assert.equal((await runtime.getProjectCollectionSnapshot(project, "journalSessions")).size, 2);
       assert.equal((await runtime.getProjectDocSnapshot(project)).data().lastCheckNumber, 2);
       assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", "session-a")).data().sessionId, "session-a");
+    });
+    await t.test("targeted queries preserve legacy aliases and shared repairs scan Firestore once", async () => {
+      await runtime.setProjectCollectionDoc(project, "inspections", "legacy-check", { sourceCollection: "strengthChecks", moduleKey: "strength", checkStatus: "exceeded" });
+      await runtime.setProjectCollectionDoc(project, "inspections", "legacy-alias", { sourceCollection: "strengthChecks", sourceDocId: "legacy-check", moduleKey: "strength", checkStatus: "exceeded" });
+      fullScans = 0;
+      await service.updateCheck(project, "legacy-check", { status: "ok", actual: 31 });
+      assert.equal(fullScans, 1);
+      for (const id of ["legacy-check", "legacy-alias"]) assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", id)).data().checkStatus, "ok");
+      await runtime.commitInspectionRegistryDocs(project, [{ id: "repair", data: { moduleKey: "geometry", checkStatus: "exceeded" } }]);
+      fullScans = 0;
+      const repaired = await Promise.all(Array.from({ length: 4 }, () => runtime.refreshPendingProjectAnalytics(project)));
+      assert.equal(fullScans, 1);
+      assert.equal(repaired.every(result => result.exceededCount === 1), true);
     });
   } finally {
     delete globalThis.integrationInspectionSdk;

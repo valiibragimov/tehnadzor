@@ -17,7 +17,7 @@ import {
   hasIssueRepeatControl,
   loadProjectIssues
 } from "../../app/services/issues.js";
-import type { IssueRecord, JournalEntryRecord, SummaryRecord } from "../../types/module-records.js";
+import type { IssueRecord, JournalEntryRecord, ProjectInspectionSources, SummaryRecord } from "../../types/module-records.js";
 
 export type ControlPlanTaskStatus =
   | "required"
@@ -398,7 +398,7 @@ function buildTask(
   row: { constructionKey: string; context: string },
   module: ControlPlanModuleDefinition,
   inspections: Record<string, unknown>[][],
-  issues: IssueRecord[]
+  issues: readonly IssueRecord[]
 ): ControlPlanTask | null {
   const inspectionStatus = getInspectionModuleStatus(row.constructionKey, module.inspectionModule);
   const behavior = getConstructionModuleBehavior(row.constructionKey, module.key === "geo" ? "geo" : module.key as never);
@@ -518,10 +518,12 @@ function addRowCandidate(
   return row;
 }
 
-async function loadProjectCollectionRecords(projectId: string) {
+async function loadProjectCollectionRecords(projectId: string, sources?: ProjectInspectionSources) {
   const collections = ["inspections", ...Object.values(MODULE_COLLECTIONS)];
   const nested = await Promise.all(
     collections.map(async (collectionName) => {
+      const records = sources?.collections[collectionName];
+      if (records) return records.map(record => ({ ...record, sourceCollection: collectionName }));
       const snap = await getProjectCollectionSnapshot(projectId, collectionName);
       return snap.docs.map((docRef) => ({
         ...docRef.data(),
@@ -535,7 +537,7 @@ async function loadProjectCollectionRecords(projectId: string) {
 
 export async function loadProjectControlPlan(
   projectId: string,
-  options: { fallbackConstruction?: string | null; fallbackConstructionLabel?: string | null } = {}
+  options: { fallbackConstruction?: string | null; fallbackConstructionLabel?: string | null; sources?: ProjectInspectionSources } = {}
 ): Promise<ControlPlanResult> {
   const generatedAt = Date.now();
   if (!projectId) {
@@ -556,10 +558,11 @@ export async function loadProjectControlPlan(
     };
   }
 
+  if (options.sources && options.sources.projectId !== projectId) throw new Error("Inspection sources belong to another project.");
   const [journalEntries, projectRecords, issues] = await Promise.all([
     loadJournalEntries(projectId),
-    loadProjectCollectionRecords(projectId),
-    loadProjectIssues(projectId)
+    loadProjectCollectionRecords(projectId, options.sources),
+    options.sources?.issues ?? loadProjectIssues(projectId)
   ]);
 
   const inspections = uniqueInspectionRecords([

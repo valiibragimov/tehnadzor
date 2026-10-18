@@ -101,6 +101,8 @@ The additive project field `inspectionSync` has version `1`, a revision token an
 
 ## Verification
 
+Inspection saves locate existing registry aliases through indexed source/document ID queries instead of scanning the project. Bulk deletion indexes the selected module's aliases once. Concurrent pending analytics refreshes share work per project; a new save requests a final revision check, and failures retain the durable recovery marker. Summary cards, control plan and detailed analytics reuse successful collection reads from that request, tagged with the project ID. Failed reads retain the existing fallback path; no persistent read cache or data migration is introduced.
+
 Run the commands listed in [README](../README.md#development-and-tests) before submitting application changes.
 
 - `npm test` rebuilds the client and demo, then runs smoke, core and browser tests.

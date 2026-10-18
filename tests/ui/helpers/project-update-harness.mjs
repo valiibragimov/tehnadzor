@@ -60,6 +60,7 @@ const bundle = await build({
             return globalThis.projectReadGate(method,args,snapshot);
           }
           export const getProjectCollectionSnapshot=(...args)=>read('getProjectCollectionSnapshot',args);
+          export const getProjectCollectionDocSnapshot=(...args)=>read('getProjectCollectionDocSnapshot',args);
           export const getProjectCollectionOrderedSnapshot=(...args)=>read('getProjectCollectionOrderedSnapshot',args);
           export const getProjectDocSnapshot=(...args)=>read('getProjectDocSnapshot',args);
           export const getJournalEntriesSnapshot=(...args)=>read('getJournalEntriesSnapshot',args);
@@ -89,8 +90,9 @@ export async function startProjectUpdateHarness({ production = false } = {}) {
     await page.goto(`${server.url}/demo.html`);
     if (production) return { page, close: async () => { await browser.close(); await server.close(); } };
     await page.evaluate(async () => {
-      const gates = [], flights = new Map();
+      const gates = [], flights = new Map(), reads = [];
       window.projectReadGate = (method, args, snapshot) => {
+        reads.push({ method, project: args[0], collection: args[1] });
         const gate = gates.find(item => !item.started && item.method === method &&
           (item.project == null || item.project === args[0]) && (item.collection == null || item.collection === args[1]));
         if (!gate) return snapshot;
@@ -101,7 +103,7 @@ export async function startProjectUpdateHarness({ production = false } = {}) {
       };
       const ui = await (await import("/project-update-harness.js")).setup();
       window.race = {
-        ...ui, gates,
+        ...ui, gates, reads,
         hold(method, project, collection) { gates.push({ method, project, collection, started: false }); return gates.length-1; },
         start(name, action) { flights.set(name, ui[action]()); },
         finish: name => flights.get(name),

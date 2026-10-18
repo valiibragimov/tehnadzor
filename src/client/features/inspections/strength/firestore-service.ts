@@ -8,7 +8,7 @@ import {
 import {
   clearInspectionsByModuleAndRefreshAnalytics
 } from "../../../app/services/inspection-sync.js";
-import { recomputeAndPersistProjectAnalyticsCurrent, refreshPendingProjectAnalytics } from "../../../app/services/analytics-current.js";
+import { refreshPendingProjectAnalytics } from "../../../app/services/analytics-current.js";
 import type { Project } from "../../../types/domain.js";
 import {
   createStrengthService,
@@ -91,7 +91,7 @@ export function createFirestoreStrengthService(
     },
 
     async refreshAnalytics(projectId) {
-      await recomputeAndPersistProjectAnalyticsCurrent(projectId);
+      await refreshPendingProjectAnalytics(projectId);
     },
 
 

@@ -1,3 +1,4 @@
+import type { ProjectInspectionSources } from "../../../types/module-records.js";
 import type { WorkspaceContext } from "../../workspace-context.js";
 let workspace: Pick<WorkspaceContext, "getProjectId" | "nodes" | "geometryChecks">;
 export function configureAnalyticsSources(context: typeof workspace) { workspace = context; }
@@ -1932,7 +1933,7 @@ function refreshAnalyticsAfterContractorChange(projectId, nextState = {}) {
   renderAnalyticsSelection();
 }
 
-async function getProjectSources(projectId) {
+async function getProjectSources(projectId, sources?: ProjectInspectionSources) {
   const currentProjectId = getCurrentProjectId();
   const isCurrentProject = projectId === currentProjectId;
   if (!isCurrentProject) {
@@ -1946,7 +1947,7 @@ async function getProjectSources(projectId) {
     }
   }
 
-  let inspections = await getCollectionDocs(projectId, "inspections");
+  let inspections = await getCollectionDocs(projectId, "inspections", sources);
   inspections = inspections.filter(isInspectionSupportedForAnalytics);
 
   let geoNodes = [];
@@ -1958,7 +1959,7 @@ async function getProjectSources(projectId) {
     const loadedCollections = await Promise.all(
       LEGACY_SOURCE_COLLECTIONS.map(async (collectionName) => ({
         collectionName,
-        docs: await getCollectionDocs(projectId, collectionName)
+        docs: await getCollectionDocs(projectId, collectionName, sources)
       }))
     );
 
@@ -2028,7 +2029,7 @@ async function getProjectSources(projectId) {
   const loadedByCollection = await Promise.all(
     [...neededDocIdsByCollection.entries()].map(async ([collectionName, idsSet]) => {
       const ids = [...idsSet];
-      const { docs, missingIds } = await getCollectionDocsByIds(projectId, collectionName, ids);
+      const { docs, missingIds } = await getCollectionDocsByIds(projectId, collectionName, ids, sources);
       let resolvedDocs = docs;
 
       if (isCurrentProject && missingIds.length > 0) {
@@ -2068,7 +2069,9 @@ async function getProjectSources(projectId) {
     : setFreshAnalyticsCache(analyticsProjectSourcesCache, projectId, result);
 }
 
-async function getCollectionDocs(projectId, collectionName) {
+async function getCollectionDocs(projectId, collectionName, sources?: ProjectInspectionSources) {
+  const provided = sources?.projectId === projectId ? sources.collections[collectionName] : undefined;
+  if (provided) return [...provided];
   try {
     const snap = await getProjectCollectionSnapshot(projectId, collectionName);
     return snap.docs.map((docRef) => ({
@@ -2095,7 +2098,7 @@ async function getCollectionDocById(projectId, collectionName, docId) {
   }
 }
 
-async function getCollectionDocsByIds(projectId, collectionName, docIds) {
+async function getCollectionDocsByIds(projectId, collectionName, docIds, sources?: ProjectInspectionSources) {
   const uniqueDocIds = [...new Set(
     (Array.isArray(docIds) ? docIds : [])
       .map((docId) => String(docId || "").trim())
@@ -2106,6 +2109,14 @@ async function getCollectionDocsByIds(projectId, collectionName, docIds) {
     return { docs: [], missingIds: [] };
   }
 
+  const provided = sources?.projectId === projectId ? sources.collections[collectionName] : undefined;
+  if (provided) {
+    const byId = new Map(provided.map(record => [String(record._docId || record.id || ""), record]));
+    return {
+      docs: uniqueDocIds.filter(id => byId.has(id)).map(id => byId.get(id)),
+      missingIds: uniqueDocIds.filter(id => !byId.has(id))
+    };
+  }
   const docs = [];
   const missingIds = [];
   const loaded = await Promise.all(
@@ -2148,7 +2159,7 @@ function getLocalLegacyDocsByIds(collectionName, docIds) {
 }
 
 
-export async function loadAnalytics(isRequestCurrent: () => boolean = () => true) {
+export async function loadAnalytics(isRequestCurrent: () => boolean = () => true, sources?: ProjectInspectionSources) {
   const ui = getUiElements();
   if (!ui) return;
 
@@ -2178,8 +2189,8 @@ export async function loadAnalytics(isRequestCurrent: () => boolean = () => true
     const sourcesPerProject = await Promise.all(
       projectDocs.map(async (project) => {
         try {
-          const sources = await getProjectSources(project.id);
-          return { project, sources };
+          const projectSources = await getProjectSources(project.id, sources);
+          return { project, sources: projectSources };
         } catch (error) {
           console.warn(`[Analytics] sources load failed for ${project.id}`, error);
           return {

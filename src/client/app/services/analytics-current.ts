@@ -223,10 +223,9 @@ function finalizeAggregate(aggregate) {
   };
 }
 
-export async function recomputeAndPersistProjectAnalyticsCurrent(projectId) {
-  if (!projectId) return null;
+async function recomputeFromProject(projectId: string, initialProject: Awaited<ReturnType<typeof getProjectDocSnapshot>>) {
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const project = await getProjectDocSnapshot(projectId);
+    const project = attempt === 0 ? initialProject : await getProjectDocSnapshot(projectId);
     const revision = project.data()?.inspectionSync?.revision || "";
     const inspectionsSnapshot = await getInspectionRegistrySnapshot(projectId);
     const aggregate = createAggregate();
@@ -242,15 +241,42 @@ export async function recomputeAndPersistProjectAnalyticsCurrent(projectId) {
   throw new Error("Inspection analytics changed during refresh; retry required.");
 }
 
-export async function refreshPendingProjectAnalytics(projectId: string) {
+export async function recomputeAndPersistProjectAnalyticsCurrent(projectId) {
   if (!projectId) return null;
-  try {
-    const project = await getProjectDocSnapshot(projectId);
-    if (!project.data()?.inspectionSync?.pending) return null;
-    return await recomputeAndPersistProjectAnalyticsCurrent(projectId);
-  } catch (error) {
-    // Source and registry are already committed; keep the durable marker for retry.
-    console.warn("[Inspections] Analytics refresh remains pending:", error);
-    return null;
+  return recomputeFromProject(projectId, await getProjectDocSnapshot(projectId));
+}
+
+const pendingRefreshes = new Map<string, {
+  promise: ReturnType<typeof recomputeAndPersistProjectAnalyticsCurrent>;
+  requested: boolean;
+}>();
+
+export function refreshPendingProjectAnalytics(projectId: string): ReturnType<typeof recomputeAndPersistProjectAnalyticsCurrent> {
+  if (!projectId) return Promise.resolve(null);
+  const active = pendingRefreshes.get(projectId);
+  if (active) {
+    active.requested = true;
+    return active.promise;
   }
+  const refresh = { promise: Promise.resolve(null) as ReturnType<typeof recomputeAndPersistProjectAnalyticsCurrent>, requested: true };
+  pendingRefreshes.set(projectId, refresh);
+  refresh.promise = (async () => {
+    let result = null;
+    try {
+      do {
+        refresh.requested = false;
+        const project = await getProjectDocSnapshot(projectId);
+        if (project.data()?.inspectionSync?.pending) result = await recomputeFromProject(projectId, project);
+      } while (refresh.requested);
+      return result;
+    } catch (error) {
+      // Source and registry are committed; keep the durable marker for retry.
+      console.warn("[Inspections] Analytics refresh remains pending:", error);
+      return null;
+    } finally {
+      // Remove before settling the promise: a later save must start a fresh check.
+      pendingRefreshes.delete(projectId);
+    }
+  })();
+  return refresh.promise;
 }

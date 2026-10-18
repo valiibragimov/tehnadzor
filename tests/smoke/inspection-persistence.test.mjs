@@ -6,6 +6,8 @@ import { build } from "esbuild";
 // the Firestore SDK boundary. Batches stage writes until commit succeeds.
 const records = new Map();
 let sequence = 0, failWrite = null, readGate = null, partialCache = false;
+let fullRegistryReads = 0;
+let afterCommit = null;
 const ref = (...parts) => ({ path: parts.filter(part => typeof part === "string").join("/"), get id() { return this.path.split("/").at(-1); } });
 function mergeFields(previous = {}, incoming) {
   const result = structuredClone(previous);
@@ -21,7 +23,7 @@ function writer() {
   const api = {
     set(reference, value, options) { paths.push(reference.path); writes.push(() => records.set(reference.path, options?.merge ? mergeFields(records.get(reference.path), value) : structuredClone(value))); return api; },
     delete(reference) { paths.push(reference.path); writes.push(() => records.delete(reference.path)); return api; },
-    async commit() { if (failWrite && failWrite(paths)) { failWrite = null; const error = new Error("batch rejected"); error.stack = error.message; throw error; } writes.forEach(write => write()); },
+    async commit() { if (failWrite && failWrite(paths)) { failWrite = null; const error = new Error("batch rejected"); error.stack = error.message; throw error; } writes.forEach(write => write()); if (afterCommit) await afterCommit(paths); },
     async get(reference) { return snapshot(reference); }
   };
   return api;
@@ -30,14 +32,26 @@ const sdk = {
   collection: (_, ...parts) => ref(...parts),
   doc: (parent, ...parts) => typeof parent?.path === "string" ? ref(parent.path, ...(parts.length ? parts : [`auto-${++sequence}`])) : ref(...parts),
   getDoc: async reference => snapshot(reference),
-  getDocs: async reference => { const docs = [...records.keys()].filter(path => path.startsWith(reference.path + "/") && !path.slice(reference.path.length + 1).includes("/")).map(path => snapshot(ref(path))); if (readGate) await readGate(reference.path); return { docs, empty: !docs.length, size: docs.length, forEach: callback => docs.forEach(callback) }; },
+  getDocs: async reference => {
+    if (reference.path.endsWith("/inspections") && !reference.filters?.length) fullRegistryReads += 1;
+    function matches(document, filter) {
+      if (filter.kind === "or") return filter.filters.some(child => matches(document, child));
+      const value = filter.field === "__name__" ? document.id : document.data()?.[filter.field];
+      return filter.operator === "in" ? filter.value.includes(value) : value === filter.value;
+    }
+    const docs = [...records.keys()].filter(path => path.startsWith(reference.path + "/") && !path.slice(reference.path.length + 1).includes("/")).map(path => snapshot(ref(path))).filter(document => (reference.filters || []).every(filter => matches(document, filter)));
+    if (readGate) await readGate(reference.path);
+    return { docs, empty: !docs.length, size: docs.length, forEach: callback => docs.forEach(callback) };
+  },
   setDoc: async (...args) => { const batch = writer(); batch.set(...args); await batch.commit(); },
   deleteDoc: async reference => { const batch = writer(); batch.delete(reference); await batch.commit(); },
   addDoc: async (parent, data) => { const reference = sdk.doc(parent); await sdk.setDoc(reference, data); return reference; },
   writeBatch: writer,
   runTransaction: async (_, callback) => { const transaction = writer(); const result = await callback(transaction); await transaction.commit(); return result; },
   serverTimestamp: () => 1800000000000,
-  onSnapshot() {}, orderBy() {}, query: reference => reference, where() {}
+  onSnapshot() {}, orderBy() {}, query: (reference, ...filters) => ({ ...reference, filters }),
+  where: (field, operator, value) => ({ field, operator, value }),
+  or: (...filters) => ({ kind: "or", filters }), documentId: () => "__name__"
 };
 sdk.getDocsFromServer = sdk.getDocs;
 const readDocs = sdk.getDocs;
@@ -59,7 +73,7 @@ const bundle = await build({
 const runtime = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString("base64")}`);
 const service = runtime.createFirestoreStrengthService({ getCurrentUserId: () => "owner" });
 const project = "synthetic-project";
-function reset() { records.clear(); failWrite = null; readGate = null; partialCache = false; records.set(`projects/${project}`, { ownerUid: "owner", createdBy: "owner" }); }
+function reset() { records.clear(); failWrite = null; readGate = null; afterCommit = null; partialCache = false; fullRegistryReads = 0; records.set(`projects/${project}`, { ownerUid: "owner", createdBy: "owner" }); }
 
 test("a rejected inspection batch leaves both the previous source and registry intact", async () => {
   reset();
@@ -221,4 +235,62 @@ test("analytics repair cannot publish a partial offline cache as the complete re
   partialCache = true;
   await runtime.recomputeAndPersistProjectAnalyticsCurrent(project);
   assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.totalChecks, 1);
+});
+
+test("saving one check scans the registry only for analytics, not to locate its aliases", async () => {
+  reset();
+  for (let index = 0; index < 1000; index += 1) {
+    await runtime.setProjectCollectionDoc(project, "inspections", `unrelated-${index}`, { sourceCollection: "strengthChecks", sourceId: `other-${index}`, moduleKey: "strength", checkStatus: "ok" });
+  }
+  await service.updateCheck(project, "check", { status: "exceeded" });
+  assert.equal(fullRegistryReads, 1);
+  assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.totalChecks, 1001);
+});
+
+test("simultaneous module loads share one pending analytics scan", async () => {
+  reset();
+  await runtime.commitInspectionRegistryDocs(project, [{ id: "check", data: { moduleKey: "strength", checkStatus: "exceeded" } }]);
+  const results = await Promise.all(Array.from({ length: 4 }, () => runtime.refreshPendingProjectAnalytics(project)));
+  assert.equal(fullRegistryReads, 1);
+  assert.equal(results.every(result => result?.totalChecks === 1), true);
+  assert.equal((await runtime.getProjectDocSnapshot(project)).data().inspectionSync.pending, false);
+});
+
+test("a save arriving as a shared refresh completes is not lost", async () => {
+  reset();
+  await runtime.commitInspectionRegistryDocs(project, [{ id: "first", data: { moduleKey: "strength", checkStatus: "ok" } }]);
+  let lateRefresh;
+  afterCommit = async paths => {
+    if (paths.length !== 1 || paths[0] !== `projects/${project}`) return;
+    afterCommit = null;
+    await runtime.commitInspectionRegistryDocs(project, [{ id: "late", data: { moduleKey: "strength", checkStatus: "exceeded" } }]);
+    lateRefresh = runtime.refreshPendingProjectAnalytics(project);
+  };
+  const first = await runtime.refreshPendingProjectAnalytics(project);
+  const late = await lateRefresh;
+  assert.equal(first.totalChecks, 2);
+  assert.equal(late.exceededCount, 1);
+  assert.equal(fullRegistryReads, 2);
+  assert.equal((await runtime.getProjectDocSnapshot(project)).data().inspectionSync.pending, false);
+});
+
+test("a failed shared refresh releases its request so reopening can repair", async () => {
+  reset();
+  await runtime.commitInspectionRegistryDocs(project, [{ id: "check", data: { moduleKey: "strength", checkStatus: "exceeded" } }]);
+  failWrite = paths => paths.length === 1 && paths[0] === `projects/${project}`;
+  assert.deepEqual(await Promise.all([runtime.refreshPendingProjectAnalytics(project), runtime.refreshPendingProjectAnalytics(project)]), [null, null]);
+  assert.equal((await runtime.getProjectDocSnapshot(project)).data().inspectionSync.pending, true);
+  assert.equal((await runtime.refreshPendingProjectAnalytics(project)).exceededCount, 1);
+  assert.equal(fullRegistryReads, 2);
+});
+
+test("targeted alias reads retain sourceDocId and document-ID legacy links without changing another module", async () => {
+  reset();
+  await runtime.setProjectCollectionDoc(project, "inspections", "check", { sourceCollection: "strengthChecks", moduleKey: "strength", checkStatus: "exceeded" });
+  await runtime.setProjectCollectionDoc(project, "inspections", "legacy-alias", { sourceCollection: "strengthChecks", sourceDocId: "check", moduleKey: "strength", checkStatus: "exceeded" });
+  await runtime.setProjectCollectionDoc(project, "inspections", "foreign", { sourceCollection: "geoNodes", sourceId: "check", moduleKey: "geo", checkStatus: "exceeded" });
+  await service.updateCheck(project, "check", { status: "ok" });
+  for (const id of ["check", "legacy-alias"]) assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", id)).data().checkStatus, "ok");
+  assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", "foreign")).data().checkStatus, "exceeded");
+  assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.totalChecks, 2);
 });

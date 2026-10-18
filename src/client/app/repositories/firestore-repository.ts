@@ -5,6 +5,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  documentId,
   getDoc,
   getDocs,
   getDocsFromServer,
@@ -13,6 +14,7 @@ import {
   type QuerySnapshot,
   type DocumentData,
   orderBy,
+  or,
   query,
   runTransaction,
   setDoc,
@@ -211,6 +213,19 @@ export function getInspectionRegistrySnapshot(projectId: string) {
   return getDocsFromServer(getProjectCollectionRef(projectId, "inspections"));
 }
 
+function getInspectionSourceSnapshot(projectId: string, sourceCollection: string, sourceIds: string[]) {
+  const registry = getProjectCollectionRef(projectId, "inspections");
+  if (sourceIds.length !== 1) {
+    return getDocsFromServer(query(registry, where("sourceCollection", "==", sourceCollection)));
+  }
+  const sourceId = sourceIds[0];
+  return getDocsFromServer(query(registry, or(
+    where("sourceId", "==", sourceId),
+    where("sourceDocId", "==", sourceId),
+    where(documentId(), "in", [sourceId, `${sourceCollection}_${sourceId}`])
+  )));
+}
+
 export async function saveInspectionSourceDoc(
   projectId: string,
   sourceCollection: string,
@@ -219,7 +234,7 @@ export async function saveInspectionSourceDoc(
   inspection: FirestoreRecord,
   options: { merge?: boolean } = {}
 ) {
-  const inspections = await getInspectionRegistrySnapshot(projectId);
+  const inspections = await getInspectionSourceSnapshot(projectId, sourceCollection, [sourceId]);
   const matching = inspections.docs.filter(document => inspectionRepresentsSource(document, sourceCollection, sourceId));
   const registryIds = matching.map(document => document.id);
   if (!registryIds.length) {
@@ -244,7 +259,17 @@ export async function saveInspectionSourceDoc(
 export async function deleteInspectionSourceDocs(
   projectId: string, sourceCollection: string, sourceIds: string[], softDelete = false
 ) {
-  const inspections = await getInspectionRegistrySnapshot(projectId);
+  if (!sourceIds.length) return;
+  const inspections = await getInspectionSourceSnapshot(projectId, sourceCollection, sourceIds);
+  const aliasesBySource = new Map<string, typeof inspections.docs>();
+  for (const document of inspections.docs) {
+    const data = document.data();
+    if (data.sourceCollection !== sourceCollection) continue;
+    const sourceId = String(data.sourceId || data.sourceDocId || document.id);
+    const aliases = aliasesBySource.get(sourceId) || [];
+    aliases.push(document);
+    aliasesBySource.set(sourceId, aliases);
+  }
   // Keep each source and all its legacy aliases together within the 500 write limit.
   let offset = 0;
   while (offset < sourceIds.length) {
@@ -252,7 +277,7 @@ export async function deleteInspectionSourceDocs(
     let writes = 1;
     while (offset < sourceIds.length) {
       const sourceId = sourceIds[offset];
-      const matching = inspections.docs.filter(document => inspectionRepresentsSource(document, sourceCollection, sourceId));
+      const matching = aliasesBySource.get(sourceId) || [];
       if (matching.length > 498) throw new Error("Too many inspection aliases for an atomic deletion.");
       if (writes + 1 + matching.length > 500) break;
       const ref = getProjectCollectionDocRef(projectId, sourceCollection, sourceId);
