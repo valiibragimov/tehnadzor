@@ -182,19 +182,21 @@ function scheduleAnalyticsWarmup() {
   return analyticsWarmupPromise;
 }
 
-async function updateAnalyticsBlock() {
+async function updateAnalyticsBlock(isCurrent: () => boolean) {
   const container = document.getElementById("analyticsBlockContainer");
   if (!container) return;
 
   try {
     const templateReady = await ensureAnalyticsTemplate();
-    if (!templateReady) return;
+    if (!templateReady || !isCurrent()) return;
 
     const analyticsModule = await ensureAnalyticsModule();
+    if (!isCurrent()) return;
     if (analyticsModule && typeof analyticsModule.loadAnalytics === "function") {
-      await analyticsModule.loadAnalytics();
+      await analyticsModule.loadAnalytics(isCurrent);
     }
   } catch (error) {
+    if (!isCurrent()) return;
     console.error("[Summary] Ошибка загрузки аналитики:", error);
     container.innerHTML = `
       <div class="analytics-state analytics-error">
@@ -297,6 +299,8 @@ let summaryStatsByModule = createEmptySummaryStatsByModule();
 let summaryStatsSource = "none";
 let summaryIssueRecords: IssueRecord[] = [];
 let summaryControlPlan: ControlPlanResult | null = null;
+let summaryStatsRequestSequence = 0;
+let summaryUpdateSequence = 0;
 
 function createEmptyModuleStatus() {
   return {
@@ -582,16 +586,23 @@ async function getSummaryStatsFromAnalyticsCurrent(projectId) {
   }
 }
 
-async function refreshSummaryStatsFromInspections(projectId) {
-  if (!projectId) {
-    summaryStatsProjectId = "";
-    summaryStatsByModule = createEmptySummaryStatsByModule();
-    summaryStatsSource = "none";
-    summaryIssueRecords = [];
-    summaryControlPlan = null;
-    renderSummaryIssuesPanel();
-    return summaryStatsByModule;
+function clearSummaryProjectData(projectId) {
+  summaryStatsProjectId = projectId || "";
+  summaryStatsByModule = createEmptySummaryStatsByModule();
+  summaryStatsSource = "none";
+  summaryIssueRecords = [];
+  summaryControlPlan = null;
+  for (const [moduleKey, name] of Object.entries({ geo: "Geo", reinforcement: "Reinf", geometry: "Geom", strength: "Strength" })) {
+    updateModuleCard(name, summaryStatsByModule[moduleKey], moduleKey);
   }
+  renderSummaryIssuesPanel();
+}
+
+async function refreshSummaryStatsFromInspections(projectId) {
+  const sequence = ++summaryStatsRequestSequence;
+  const requestWorkspace = workspace;
+  if (!projectId || summaryStatsProjectId !== projectId) clearSummaryProjectData(projectId);
+  if (!projectId) return summaryStatsByModule;
 
   const aggregate = createSummaryAggregate();
   const inspections = await getProjectCollectionDocs(projectId, "inspections");
@@ -622,53 +633,51 @@ async function refreshSummaryStatsFromInspections(projectId) {
     })
   );
 
-  summaryStatsProjectId = projectId;
   const mergedStats = finalizeSummaryAggregate(aggregate);
   const totalMergedChecks = SUMMARY_MODULE_KEYS.reduce(
     (sum, moduleKey) => sum + (mergedStats[moduleKey]?.total || 0),
     0
   );
 
-  summaryStatsByModule = totalMergedChecks > 0
+  const statsByModule = totalMergedChecks > 0
     ? mergedStats
     : (await getSummaryStatsFromAnalyticsCurrent(projectId)) || mergedStats;
-  await applyIssueCountsToSummaryStats(projectId, summaryStatsByModule);
-  await refreshSummaryControlPlan(projectId);
+  const issues = await applyIssueCountsToSummaryStats(projectId, statsByModule);
+  const controlPlan = await refreshSummaryControlPlan(projectId);
+  if (sequence !== summaryStatsRequestSequence || workspace !== requestWorkspace || workspace.getProjectId() !== projectId) return null;
+  summaryStatsProjectId = projectId;
+  summaryStatsByModule = statsByModule;
+  summaryIssueRecords = issues;
+  summaryControlPlan = controlPlan;
   summaryStatsSource = totalMergedChecks > 0 ? "inspections+collections" : "analyticsCurrent";
   return summaryStatsByModule;
 }
 
 async function refreshSummaryControlPlan(projectId) {
   if (!projectId) {
-    summaryControlPlan = null;
     return null;
   }
 
   try {
-    summaryControlPlan = await loadProjectControlPlan(projectId, {
+    return await loadProjectControlPlan(projectId, {
       fallbackConstruction: workspace.construction?.dataset?.machineValue || workspace.construction?.value || "",
       fallbackConstructionLabel: workspace.construction?.dataset?.displayLabel || workspace.construction?.value || ""
     });
   } catch (error) {
     console.warn(`[Summary] Не удалось загрузить план контроля для проекта ${projectId}:`, error);
-    summaryControlPlan = null;
+    return null;
   }
-
-  return summaryControlPlan;
 }
 
 async function applyIssueCountsToSummaryStats(projectId, statsByModule) {
-  if (!projectId || !statsByModule) return statsByModule;
+  if (!projectId || !statsByModule) return [];
 
   let issues: IssueRecord[] = [];
   try {
     issues = await loadProjectIssues(projectId);
-    summaryIssueRecords = issues;
   } catch (error) {
     console.warn(`[Summary] Не удалось загрузить замечания для проекта ${projectId}:`, error);
-    summaryIssueRecords = [];
-    renderSummaryIssuesPanel();
-    return statsByModule;
+    return [];
   }
 
   issues.forEach((issue) => {
@@ -701,7 +710,7 @@ async function applyIssueCountsToSummaryStats(projectId, statsByModule) {
     }
   });
 
-  return statsByModule;
+  return issues;
 }
 
 function formatSummaryIssueDate(value, emptyLabel = "—") {
@@ -848,7 +857,7 @@ function getStrengthModuleStatus() {
  * Если analyticsCurrent отсутствует, применяет текущий fallback через inspections + legacy.
  */
 async function updateSummaryModuleCards() {
-  await refreshSummaryStatsFromInspections(workspace.getProjectId());
+  if (!await refreshSummaryStatsFromInspections(workspace.getProjectId())) return;
 
   const geoStatus = getGeoModuleStatus();
   updateModuleCard("Geo", geoStatus, "geo");
@@ -1195,6 +1204,10 @@ function buildSummaryReportText() {
  * Обновляет весь блок "Итог"
  */
 export async function updateSummaryTab() {
+  const sequence = ++summaryUpdateSequence;
+  const requestWorkspace = workspace;
+  const projectId = workspace.getProjectId();
+  const isCurrent = () => sequence === summaryUpdateSequence && workspace === requestWorkspace && workspace.getProjectId() === projectId;
   console.log("[updateSummaryTab] Обновление раздела Итог, currentProjectId:", workspace.getProjectId());
 
   // Сбрасываем фильтры журнала при обновлении Итога (Итог всегда показывает все модули)
@@ -1204,7 +1217,9 @@ export async function updateSummaryTab() {
 
   updateSummaryParams();
   await updateSummaryModuleCards();
-  await updateAnalyticsBlock();
+  if (!isCurrent()) return;
+  await updateAnalyticsBlock(isCurrent);
+  if (!isCurrent()) return;
   await syncSummaryWorkspacePager();
 }
 
@@ -1877,5 +1892,12 @@ export function initSummaryModule() {
   document.addEventListener("app:project-context-updated", () => {
     scheduleAnalyticsWarmup();
     void updateSummaryTab();
+  });
+  workspace.projectSelector?.addEventListener("change", () => {
+    ++summaryUpdateSequence;
+    ++summaryStatsRequestSequence;
+    clearSummaryProjectData(workspace.getProjectId());
+    updateSummaryParams();
+    // Reload after project data has arrived; analytics may use feature-owned maps.
   });
 }

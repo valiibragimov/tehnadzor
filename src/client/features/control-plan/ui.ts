@@ -18,6 +18,8 @@ import { loadDocumentRequisites } from "../../app/services/document-requisites.j
 
 let controlPlanInitialized = false;
 let lastControlPlan: ControlPlanResult | null = null;
+let controlPlanRequestSequence = 0;
+let controlPlanProjectId = "";
 let controlPlanStatusFilter = "all";
 let controlPlanSearchQuery = "";
 
@@ -598,21 +600,31 @@ function bindControlPlanNavigation() {
 }
 
 export async function updateControlPlan() {
+  const sequence = ++controlPlanRequestSequence;
+  const requestWorkspace = workspace;
+  const projectId = String(workspace.getProjectId() || "");
+  const isCurrent = () => sequence === controlPlanRequestSequence && workspace === requestWorkspace &&
+    String(workspace.getProjectId() || "") === projectId;
+  if (controlPlanProjectId !== projectId) {
+    controlPlanProjectId = projectId;
+    renderControlPlan(getEmptyControlPlan());
+  }
   const fallback = getSelectedConstructionFallback();
   const button = document.getElementById("btnControlPlanRefresh");
 
   try {
     setButtonBusyState(button, true, { busyLabel: "Обновление..." });
-    const plan = await loadProjectControlPlan(String(workspace.getProjectId() || ""), {
+    const plan = await loadProjectControlPlan(projectId, {
       fallbackConstruction: fallback.key,
       fallbackConstructionLabel: fallback.label
     });
-    renderControlPlan(plan);
+    if (isCurrent()) renderControlPlan(plan);
   } catch (error) {
+    if (!isCurrent()) return;
     console.error("[ControlPlan] Не удалось обновить план контроля:", error);
     showNotification("Не удалось обновить план контроля.", "error");
   } finally {
-    setButtonBusyState(button, false);
+    if (sequence === controlPlanRequestSequence) setButtonBusyState(button, false);
   }
 }
 
@@ -654,6 +666,8 @@ export function initControlPlanModule() {
   });
 
   document.addEventListener("app:language-changed", () => { if (lastControlPlan) renderControlPlan(lastControlPlan); });
+  document.addEventListener("app:project-context-updated", () => { void updateControlPlan(); });
+  workspace.projectSelector?.addEventListener("change", () => { void updateControlPlan(); });
 
   bindControlPlanNavigation();
 

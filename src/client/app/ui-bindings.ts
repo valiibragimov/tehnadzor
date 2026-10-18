@@ -40,6 +40,7 @@ export function initProjectSelectorBinding({
       setCurrentProjectId(null);
       setModulesEnabled(false);
       await resetFormForNewProject();
+      document.dispatchEvent(new CustomEvent("app:project-context-updated", { detail: { projectId: null } }));
       return;
     }
 

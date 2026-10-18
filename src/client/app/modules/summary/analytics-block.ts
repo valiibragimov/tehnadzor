@@ -2148,11 +2148,12 @@ function getLocalLegacyDocsByIds(collectionName, docIds) {
 }
 
 
-export async function loadAnalytics() {
+export async function loadAnalytics(isRequestCurrent: () => boolean = () => true) {
   const ui = getUiElements();
   if (!ui) return;
 
   const runId = ++lastRunId;
+  const isCurrent = () => runId === lastRunId && isRequestCurrent();
   destroyCharts();
   showLoader(ui);
 
@@ -2167,7 +2168,7 @@ export async function loadAnalytics() {
       getProjectsForUser(currentUser.uid),
       ensureChartJsLoaded()
     ]);
-    if (runId !== lastRunId) return;
+    if (!isCurrent()) return;
 
     if (!projectDocs.length) {
       showEmpty(ui, "Недостаточно данных: проекты не найдены.");
@@ -2195,7 +2196,7 @@ export async function loadAnalytics() {
       })
     );
 
-    if (runId !== lastRunId) return;
+    if (!isCurrent()) return;
 
     const projectAnalytics = sourcesPerProject.map(({ project, sources }) =>
       calculateProjectAnalytics(project, sources)
@@ -2241,6 +2242,7 @@ export async function loadAnalytics() {
     bindAnalyticsControls(ui);
     renderAnalyticsSelection();
   } catch (error) {
+    if (!isCurrent()) return;
     console.error("[Analytics] loadAnalytics failed", error);
     showError(ui, `Ошибка загрузки аналитики: ${error.message || "неизвестная ошибка"}`);
   }
