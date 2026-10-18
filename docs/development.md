@@ -104,6 +104,7 @@ The additive project field `inspectionSync` has version `1`, a revision token an
 Run the commands listed in [README](../README.md#development-and-tests) before submitting application changes.
 
 - `npm test` rebuilds the client and demo, then runs smoke, core and browser tests.
+- When synthetic checks use `FIREBASE_CONFIG_MODE=test` beside a complete local `.env`, `npm test` restores that local login configuration and refreshes the service worker cache after success or failure. CI without a local `.env` keeps its synthetic runtime. Refresh `login.html` after the checks finish.
 - `npm run test:core` builds the server and runs application, worker and IFC tests.
 - `npm run test:ui` runs browser tests against existing build outputs; build the client and demo first.
 - `npm run test:integration` builds the server and starts a loopback Firestore emulator using [firebase.emulator.json](../firebase.emulator.json). It requires Java 21+ and uses a `demo-` project, not live credentials.

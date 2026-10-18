@@ -206,8 +206,9 @@ function initAuthUi() {
       } catch (err) {
         console.error("Ошибка входа:", err);
         const message = mapAuthError(err) || "Неправильный email или пароль.";
-        setFieldError(loginEmail, true);
-        setFieldError(loginPassword, true);
+        const credentialError = ["auth/invalid-email", "auth/invalid-credential", "auth/user-not-found", "auth/wrong-password"].includes(err?.code);
+        setFieldError(loginEmail, credentialError);
+        setFieldError(loginPassword, credentialError);
         setAuthMessage(message, "error");
       } finally {
         setLoginBusy(false);
@@ -339,7 +340,15 @@ function mapAuthError(err) {
       return "Слишком простой пароль (минимум 6 символов).";
     case "auth/user-not-found":
     case "auth/wrong-password":
+    case "auth/invalid-credential":
       return "Неправильный email или пароль.";
+    case "auth/invalid-api-key":
+    case "auth/api-key-not-valid.-please-pass-a-valid-api-key.":
+    case "auth/configuration-not-found":
+    case "auth/app-not-authorized":
+      return "Некорректная конфигурация входа. Обновите страницу; если ошибка сохраняется, обратитесь к администратору.";
+    case "auth/network-request-failed":
+      return "Не удалось связаться с сервером входа. Проверьте подключение к интернету и повторите попытку.";
     case "auth/operation-not-allowed":
       return "Email/пароль ещё не включены в настройках Firebase Auth.";
     case "auth/unauthorized-domain":
@@ -351,7 +360,7 @@ function mapAuthError(err) {
     case "auth/cancelled-popup-request":
       return ""; // Не показываем ошибку при отмене
     default:
-      return "Неправильный email или пароль.";
+      return "Не удалось войти. Повторите попытку.";
   }
 }
 

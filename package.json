@@ -26,7 +26,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test:smoke": "npm run build:client && npm run build:demo && node ./scripts/checks/run-smoke-tests.mjs",
-    "test": "npm run test:smoke && npm run test:core && npm run test:ui",
+    "test": "node ./scripts/checks/run-test-suite.mjs",
     "audit:root": "npm audit --audit-level=moderate",
     "audit:server": "npm audit --audit-level=moderate --prefix ./server",
     "audit:functions": "npm audit --audit-level=moderate --prefix ./functions",

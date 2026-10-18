@@ -9,6 +9,7 @@ test("email and Google login use the configured Firebase app", async () => {
   const browser = await chromium.launch({ headless: true, ...(process.platform === "win32" ? { channel: "chrome" } : {}) });
   const page = await browser.newPage();
   let emailRequest = false;
+  let emailError = "INVALID_LOGIN_CREDENTIALS";
   await page.route("**/*", async route => {
     const url = new URL(route.request().url());
     if (url.origin === server.url) {
@@ -29,7 +30,7 @@ test("email and Google login use the configured Firebase app", async () => {
       emailRequest = true;
       assert.equal(Boolean(url.searchParams.get("key")), true);
       if (process.env.FIREBASE_CONFIG_MODE !== "test") assert.equal(url.searchParams.get("key") === "demo-api-key", false);
-      return route.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: { message: "INVALID_LOGIN_CREDENTIALS" } }) });
+      return route.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: { message: emailError } }) });
     }
     return route.abort();
   });
@@ -41,6 +42,12 @@ test("email and Google login use the configured Firebase app", async () => {
     await page.click("#btnLogin");
     await page.waitForFunction(() => !document.querySelector("#authMessage").hidden);
     assert.equal(emailRequest, true);
+    emailError = "API key not valid. Please pass a valid API key.";
+    await page.fill("#loginPassword", "another-synthetic-password");
+    await page.click("#btnLogin");
+    await page.waitForFunction(() => !document.querySelector("#authMessage").hidden);
+    assert.match(await page.locator("#authMessage").innerText(), /конфигураци[яи]/u);
+    assert.equal(await page.locator("#loginPassword").getAttribute("aria-invalid"), "false");
     await page.click("#btnGoogleLogin");
     await page.waitForFunction(() => window.googleConfigCheck);
     const check = await page.evaluate(() => window.googleConfigCheck);

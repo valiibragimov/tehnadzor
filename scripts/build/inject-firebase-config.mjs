@@ -53,9 +53,15 @@ async function loadDotenv() {
 }
 
 const dotenv = await loadDotenv();
-const missingKeys = firebaseEnvKeys.filter((key) => !(process.env[key] || dotenv[key]));
+const restoreLocal = process.argv.includes("--restore-local");
+const environment = restoreLocal ? {} : process.env;
+if (restoreLocal && firebaseEnvKeys.some(key => !dotenv[key] || /^(?:demo(?:-|\.)|__|your[-_]|replace[-_])/iu.test(dotenv[key]))) {
+  console.log("[firebase-config] No complete local configuration to restore.");
+  process.exit(0);
+}
+const missingKeys = firebaseEnvKeys.filter((key) => !(environment[key] || dotenv[key]));
 
-if (!existsSync(envPath) && !process.env.FIREBASE_WEB_API_KEY) {
+if (!existsSync(envPath) && !environment.FIREBASE_WEB_API_KEY) {
   throw new Error(
     "[firebase-config] Missing Firebase web config. Copy .env.example to .env " +
       "and fill FIREBASE_WEB_* values from Firebase Console, or provide them as environment variables."
@@ -70,13 +76,13 @@ if (missingKeys.length > 0) {
 }
 
 // Synthetic CI configuration must never silently become a working login build.
-const testConfig = process.env.FIREBASE_CONFIG_MODE === "test";
-const projectId = process.env.FIREBASE_WEB_PROJECT_ID || dotenv.FIREBASE_WEB_PROJECT_ID;
+const testConfig = environment.FIREBASE_CONFIG_MODE === "test";
+const projectId = environment.FIREBASE_WEB_PROJECT_ID || dotenv.FIREBASE_WEB_PROJECT_ID;
 if (testConfig && !projectId.startsWith("demo-")) {
   throw new Error("[firebase-config] Test configuration requires a demo- project ID.");
 }
 const placeholderKeys = firebaseEnvKeys.filter((key) =>
-  /^(?:demo(?:-|\.)|__|your[-_]|replace[-_])/iu.test(process.env[key] || dotenv[key])
+  /^(?:demo(?:-|\.)|__|your[-_]|replace[-_])/iu.test(environment[key] || dotenv[key])
 );
 if (!testConfig && placeholderKeys.length > 0) {
   throw new Error(
@@ -87,12 +93,18 @@ if (!testConfig && placeholderKeys.length > 0) {
 
 let firebaseJs = await readFile(firebaseDistPath, "utf8");
 
-for (const key of firebaseEnvKeys) {
+const configFields = ["apiKey", "authDomain", "projectId", "storageBucket", "messagingSenderId", "appId"];
+for (const [index, key] of firebaseEnvKeys.entries()) {
   const placeholder = `__${key}__`;
-  const value = process.env[key] || dotenv[key];
-  firebaseJs = firebaseJs.replaceAll(placeholder, value);
+  const value = environment[key] || dotenv[key];
+  if (restoreLocal) {
+    const field = new RegExp(`(\\b${configFields[index]}\\s*:\\s*)"(?:[^"\\\\]|\\\\.)*"`);
+    firebaseJs = firebaseJs.replace(field, (_match, prefix) => prefix + JSON.stringify(value));
+  } else {
+    firebaseJs = firebaseJs.replaceAll(JSON.stringify(placeholder), JSON.stringify(value));
+  }
 }
 
 await writeFile(firebaseDistPath, firebaseJs, "utf8");
 
-console.log("[firebase-config] Firebase web config injected from environment.");
+console.log(restoreLocal ? "[firebase-config] Local login configuration restored." : "[firebase-config] Firebase web config injected from environment.");
