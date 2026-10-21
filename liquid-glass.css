@@ -1,4 +1,5 @@
 /* Shared SaaS design system. The filename remains a stable public asset URL. */
+@layer legacy, design;
 @layer design {
   :root {
     --surface: #191d22;
@@ -400,7 +401,11 @@
     .auth-panel { padding: 28px 24px; }
     .auth-footer { flex-wrap: wrap; gap: 12px 20px; }
     body.profile-page > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    body.profile-page > header > .brand, body.profile-page > header .header-actions { display: none; }
+    body.profile-page:not(.profile-edit-page) > header > .brand, body.profile-page:not(.profile-edit-page) > header .header-actions { display: none; }
+    body.profile-edit-page > header .brand { display: flex; width: auto; }
+    body.profile-edit-page > header .brand h1 { font-size: 18px; }
+    body.profile-edit-page > header .header-actions { display: flex; position: static; width: auto; transform: none; gap: 8px; }
+    body.profile-edit-page > header #themeToggleBtn { display: inline-flex; }
     body.profile-page > header .profile-mobile-header-title { display: block; position: static; transform: none; width: auto; }
     body.profile-page > header .profile-mobile-header-brand { display: flex; }
     body.profile-page > header .profile-mobile-header-menu { display: block; position: static; transform: none; }

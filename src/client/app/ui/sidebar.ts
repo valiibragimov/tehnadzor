@@ -87,7 +87,8 @@ export function initSidebar() {
     });
     handle.addEventListener("pointermove", event => {
       if (!drag || event.pointerId !== drag.pointerId) return;
-      const direction = handle.dataset.edge === "left" ? -1 : 1;
+      // The left edge is pinned to the viewport: an inward drag must also open a collapsed rail.
+      const direction = handle.dataset.edge === "left" && !drag.collapsed ? -1 : 1;
       resize(drag.width + (event.clientX - drag.x) * direction);
     });
     handle.addEventListener("pointerup", () => finishDrag());

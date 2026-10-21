@@ -1,6 +1,12 @@
 <!DOCTYPE html>
-<html lang="ru" class="theme-light">
+<html lang="ru">
 <head>
+  <script>
+    let theme = "light";
+    try { theme = localStorage.getItem("app_theme") || "light"; } catch { /* Optional preference. */ }
+    document.documentElement.classList.add(theme === "dark" ? "theme-dark" : "theme-light");
+    document.documentElement.style.colorScheme = theme === "dark" ? "dark" : "light";
+  </script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Страница не найдена — Tehnadzor</title>

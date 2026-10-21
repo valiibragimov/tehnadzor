@@ -65,6 +65,10 @@ test("sidebar resizes from either edge, collapses, restores, and supports keyboa
     assert.equal(await width(), 64);
     await page.locator("#sidebarToggle").click();
     assert.equal(await width(), 240);
+    await drag(left, 160);
+    assert.equal(await width(), 64, "The left edge collapses without leaving the viewport");
+    await drag(left, 176);
+    assert.equal(await width(), 240, "The left edge expands without leaving the viewport");
     await right.press("End");
     assert.equal(await width(), 360);
     await right.press("Home");
@@ -109,7 +113,7 @@ test("sidebar ignores corrupt preferences and works when preference storage is u
   const browser = await launch();
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-    await page.addInitScript(() => localStorage.setItem("workspace_sidebar_v1", "broken-json"));
+    await page.addInitScript(() => { try { localStorage.setItem("workspace_sidebar_v1", "broken-json"); } catch { /* Storage may be unavailable in the second case. */ } });
     await page.goto(server.url + "/demo.html");
     await page.locator("#sidebarToggle").waitFor();
     assert.equal(await page.locator('.sidebar-resize[data-edge="right"]').getAttribute("aria-valuenow"), "240");
@@ -143,6 +147,8 @@ test("public pages share responsive surfaces and auth fields retain accessible n
           await page.setViewportSize({ width, height: 1000 });
           await page.goto(`${server.url}/${route}.html`);
           await noOverflow(page);
+          assert.equal(await page.locator("html").evaluate(e => e.classList.contains(`theme-${localStorage.getItem("app_theme")}`)), true);
+          assert.equal(await page.locator("body").evaluate(e => getComputedStyle(e).backgroundColor), theme === "dark" ? "rgb(17, 21, 25)" : "rgb(247, 248, 250)");
           if (["login", "register"].includes(route)) {
             assert.equal(await page.getByLabel("Email", { exact: true }).isVisible(), true);
             assert.equal(await page.getByLabel("Пароль", { exact: true }).isVisible(), true);
@@ -186,7 +192,11 @@ test("profile and account settings retain usable layouts with synthetic account 
           await page.setViewportSize({ width, height: 1000 });
           await page.goto(`${server.url}/${route}.html`);
           if (route === "profile") await page.locator("#projectsContainer .project-card").first().waitFor();
-          else await page.locator("#profileNameInput").waitFor();
+          else {
+            await page.locator("#profileNameInput").waitFor();
+            assert.equal(await page.getByRole("link", { name: "Вернуться в профиль" }).isVisible(), true);
+            assert.equal(await page.getByRole("button", { name: "Сменить тему" }).isVisible(), true);
+          }
           await noOverflow(page);
           if (width !== 820 && width !== 320) await capture(page, `${route}-${theme}-${width}`);
         }
