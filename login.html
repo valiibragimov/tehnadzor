@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+    <script>
+      let theme = "light";
+      try { theme = localStorage.getItem("app_theme") || "light"; } catch { /* Optional preference. */ }
+      document.documentElement.classList.add(theme === "dark" ? "theme-dark" : "theme-light");
+      document.documentElement.style.colorScheme = theme === "dark" ? "dark" : "light";
+    </script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Вход — Tehnadzor</title>
@@ -13,13 +20,14 @@
 
     <!-- Используем общий style.css, чтобы был единый стиль -->
   <link rel="stylesheet" href="style.css?v=41">
+    <link rel="stylesheet" href="liquid-glass.css?v=2">
 
     <script type="module" src="dist/firebase.js"></script>
     <script type="module" src="dist/auth.js"></script>
 </head>
 <body class="login-page">
 
-<div class="auth-card auth-card--login">
+<main class="auth-card auth-card--login">
     <div class="auth-shell">
         <div class="auth-brand">
             <div class="auth-brand-row">
@@ -32,11 +40,13 @@
             <p class="auth-description">
                 Единая рабочая среда для контроля проектов, фиксации замечаний и ведения строительного надзора.
             </p>
+            <p class="auth-context">Объекты · Проверки · BIM / IFC<br>От измерения до приёмки конструкции.</p>
         </div>
 
         <div class="auth-panel">
             <div class="auth-heading">
                 <h2 class="auth-title">Вход в аккаунт</h2>
+                <p>Продолжите работу с вашими объектами.</p>
             </div>
 
             <div class="auth-field">
@@ -111,7 +121,8 @@
             </p>
         </div>
     </div>
-</div>
+</main>
+<nav class="auth-footer" aria-label="Информация о сервисе"><a href="about.html">О проекте</a><a href="privacy.html">Конфиденциальность</a></nav>
 
 </body>
 </html>

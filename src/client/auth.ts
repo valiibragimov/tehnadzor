@@ -274,6 +274,11 @@ function initAuthUi() {
   const btnRegister      = document.getElementById("btnRegister");
 
   if (btnRegister && registerEmail && registerPassword) {
+    [registerEmail, registerPassword].forEach(input => {
+      input.addEventListener("keydown", event => {
+        if (event.key === "Enter") { event.preventDefault(); btnRegister.click(); }
+      });
+    });
     console.log("[auth] register elements found");
     btnRegister.addEventListener("click", async () => {
       const email = registerEmail.value.trim();

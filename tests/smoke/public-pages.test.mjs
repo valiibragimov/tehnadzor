@@ -46,25 +46,13 @@ test("register page exposes registration controls", async () => {
   assert.match(body, /id="btnRegister"/);
 });
 
-test("about page returns the public product narrative", async () => {
+test("about page offers a readable product workflow and workspace entry", async () => {
   const { response, body } = await fetchText("/about.html");
-  const { body: css } = await fetchText("/style.css");
-
   assert.equal(response.status, 200);
-  assert.match(body, /О проекте — Tehnadzor/);
-  assert.match(body, /Стройконтроль без лишней беготни/);
-  assert.match(body, /class="about-cinematic"/);
-  assert.match(body, /BIM \/ IFC/);
-  assert.match(body, /Нормативный ассистент/);
-  assert.match(body, /Повторный контроль/);
-  assert.match(body, /Проверка идёт по шагам/);
-  assert.match(body, /aboutSceneTitle/);
-  assert.match(body, /import\("\.\/app\/ui\/theme\.js"\)/);
-  assert.match(body, /--story-progress/);
-  assert.doesNotMatch(body, /import \{ initThemeControls \}/);
-  assert.doesNotMatch(body, /class="header-actions"/);
-  assert.match(css, /body\.theme-light \.about-hero-signal__item\s*\{[\s\S]*?color:\s*#0f172a/u);
-  assert.match(css, /@media \(max-width: 520px\)\s*\{[\s\S]*?\.about-copy h2\s*\{[\s\S]*?10vw/u);
+  for (const text of ["О проекте — Tehnadzor", "Стройконтроль без лишней беготни", "BIM / IFC", "Нормативный ассистент", "Повторный контроль", "Проверка идёт по шагам"]) assert.ok(body.includes(text));
+  assert.match(body, /href="index.html">Открыть рабочую среду/);
+  assert.match(body, /<ol class="product-workflow">/);
+  assert.doesNotMatch(body, /data-parallax|about-cinematic|scroll-reveal/);
 });
 
 test("privacy page explains product data handling in plain language", async () => {

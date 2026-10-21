@@ -376,6 +376,7 @@ export function createModuleRuntime({
   const syncDesktopTabState = (target: string | null | undefined) => {
     document.querySelectorAll<HTMLElement>(".tab").forEach((tab) => {
       tab.classList.toggle("active", tab.dataset.target === target);
+      tab.setAttribute("aria-current", tab.dataset.target === target ? "page" : "false");
     });
     document.querySelectorAll<HTMLElement>(".tabs-group").forEach((group) => {
       const isActive = group.dataset.tabsGroup === "inspections" && INSPECTION_TARGETS.has(String(target || ""));

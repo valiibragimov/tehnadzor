@@ -31,6 +31,7 @@
   <link rel="stylesheet" href="style.css?v=83">
   <link rel="stylesheet" href="liquid-glass.css?v=1">
   <style>
+  @layer legacy {
     body.profile-edit-page {
       min-height: 100vh;
       display: flex;
@@ -58,13 +59,13 @@
     }
 
     body.profile-edit-page > header {
-      width: 100% !important;
-      max-width: none !important;
+      width: 100%;
+      max-width: none;
       min-height: var(--profile-header-height);
-      margin: 0 !important;
-      padding: 20px max(20px, calc((100vw - var(--profile-shell-width)) / 2)) 18px !important;
-      border-bottom: none !important;
-      box-shadow: none !important;
+      margin: 0;
+      padding: 20px max(20px, calc((100vw - var(--profile-shell-width)) / 2)) 18px;
+      border-bottom: none;
+      box-shadow: none;
       box-sizing: border-box;
     }
 
@@ -100,9 +101,9 @@
       width: 100%;
       max-width: none;
       min-height: var(--profile-footer-height);
-      margin: auto 0 0 !important;
+      margin: auto 0 0;
       padding: 30px max(20px, calc((100vw - var(--profile-shell-width)) / 2)) 26px;
-      display: flex !important;
+      display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px 24px;
@@ -504,39 +505,39 @@
     }
 
     body.theme-light .account-section-link {
-      color: #000000 !important;
-      background: transparent !important;
-      border: 0 !important;
-      border-radius: 0 !important;
-      box-shadow: none !important;
-      filter: none !important;
-      transform: none !important;
-      outline: none !important;
+      color: #000000;
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      filter: none;
+      transform: none;
+      outline: none;
     }
 
     body.theme-light .account-section-link:hover,
     body.theme-light .account-section-link:focus-visible {
-      color: #000000 !important;
-      background: transparent !important;
-      border: 0 !important;
-      box-shadow: none !important;
-      filter: none !important;
-      transform: none !important;
-      outline: none !important;
+      color: #000000;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      filter: none;
+      transform: none;
+      outline: none;
     }
 
     body.theme-light .account-section-link.is-active {
-      color: #000000 !important;
-      background: transparent !important;
-      border: 0 !important;
-      box-shadow: none !important;
-      filter: none !important;
-      transform: none !important;
+      color: #000000;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      filter: none;
+      transform: none;
     }
 
     body.theme-light .account-section-link span {
-      background: transparent !important;
-      box-shadow: none !important;
+      background: transparent;
+      box-shadow: none;
     }
 
     body.theme-light .account-avatar-trigger.is-empty::before {
@@ -583,9 +584,9 @@
       }
 
       body.profile-edit-page > header {
-        width: 100% !important;
+        width: 100%;
         min-height: auto;
-        padding: 16px 20px 14px !important;
+        padding: 16px 20px 14px;
       }
     }
 
@@ -615,6 +616,7 @@
         text-align: center;
       }
     }
+  }
   </style>
 </head>
 <body class="profile-page profile-edit-page">
@@ -653,22 +655,22 @@
   <main class="profile-main profile-edit-main">
     <div class="profile-shell account-settings-shell">
       <section class="account-settings-header" aria-labelledby="accountSettingsTitle">
-        <h2 id="accountSettingsTitle" class="account-settings-title">Account Settings</h2>
+        <h2 id="accountSettingsTitle" class="account-settings-title">Настройки аккаунта</h2>
       </section>
 
       <nav class="account-section-nav" aria-label="Account sections">
         <button type="button" class="account-section-link is-active" data-account-tab="profile">
-          <span>Profile</span>
+          <span>Профиль</span>
         </button>
         <button type="button" class="account-section-link" data-account-tab="auth">
-          <span>Auth</span>
+          <span>Безопасность</span>
         </button>
       </nav>
 
       <div class="account-panels-stage">
         <section class="account-card" data-account-panel="profile" aria-labelledby="profileSettingsTitle">
           <div class="account-card-header">
-            <h3 id="profileSettingsTitle" class="account-card-title">Profile</h3>
+            <h3 id="profileSettingsTitle" class="account-card-title">Профиль</h3>
           </div>
 
           <form id="profileSettingsForm" class="account-profile-form" novalidate>
@@ -684,9 +686,9 @@
               <input id="accountAvatarInput" class="account-hidden-file" type="file" accept="image/*" />
 
               <div class="account-avatar-copy">
-                <h4 class="account-avatar-title">Avatar</h4>
+                <h4 class="account-avatar-title">Фото профиля</h4>
                 <div class="account-avatar-actions">
-                  <button type="button" id="accountAvatarButton" class="account-action-btn account-action-btn--profile">Change avatar</button>
+                  <button type="button" id="accountAvatarButton" class="account-action-btn account-action-btn--profile">Изменить фото</button>
                 </div>
                 <div id="avatarHelperText" class="account-helper" aria-live="polite"></div>
               </div>
@@ -694,28 +696,28 @@
 
             <div class="account-grid">
               <label class="account-field">
-                <span class="account-label">Name</span>
+                <span class="account-label">Имя</span>
                 <input id="profileNameInput" name="firstName" class="account-input" type="text" autocomplete="given-name" />
               </label>
 
               <label class="account-field">
-                <span class="account-label">Surname</span>
+                <span class="account-label">Фамилия</span>
                 <input id="profileSurnameInput" name="lastName" class="account-input" type="text" autocomplete="family-name" />
               </label>
 
               <label class="account-field account-field--full">
-                <span class="account-label">Email address</span>
+                <span class="account-label">Электронная почта</span>
                 <input id="profileEmailInput" name="email" class="account-input" type="email" autocomplete="email" />
               </label>
 
               <label class="account-field account-field--full">
-                <span class="account-label">Location</span>
+                <span class="account-label">Местоположение</span>
                 <input id="profileLocationInput" name="location" class="account-input" type="text" autocomplete="address-level2" />
               </label>
             </div>
 
             <div class="account-actions">
-              <button id="saveProfileButton" type="submit" class="account-action-btn account-action-btn--profile">Save profile</button>
+              <button id="saveProfileButton" type="submit" class="account-action-btn account-action-btn--profile">Сохранить профиль</button>
             </div>
             <div id="profileStatus" class="account-status" aria-live="polite"></div>
           </form>
@@ -723,22 +725,22 @@
 
         <section class="account-card" data-account-panel="auth" aria-labelledby="authSettingsTitle" hidden>
           <div class="account-card-header">
-            <h3 id="authSettingsTitle" class="account-card-title">Auth</h3>
+            <h3 id="authSettingsTitle" class="account-card-title">Безопасность</h3>
           </div>
 
           <form id="authSettingsForm" class="account-auth-form" novalidate>
             <label class="account-field account-field--full">
-              <span class="account-label">Current password</span>
+              <span class="account-label">Текущий пароль</span>
               <input id="currentPasswordInput" class="account-input" type="password" autocomplete="current-password" />
             </label>
 
             <label class="account-field account-field--full">
-              <span class="account-label">New password</span>
+              <span class="account-label">Новый пароль</span>
               <input id="newPasswordInput" class="account-input" type="password" autocomplete="new-password" />
             </label>
 
             <label class="account-field account-field--full">
-              <span class="account-label">Confirm new password</span>
+              <span class="account-label">Повторите новый пароль</span>
               <input id="confirmPasswordInput" class="account-input" type="password" autocomplete="new-password" />
             </label>
 

@@ -3,6 +3,14 @@ export const resources = {
   "ru": {
     "translation": {
       ...engineering.ru,
+      "workspace": "Рабочая среда",
+      "profile": "Профиль",
+      "expandSidebar": "Развернуть панель",
+      "collapseSidebar": "Свернуть панель",
+      "sidebarCollapsed": "Панель свёрнута",
+      "sidebarWidth": "Ширина {{width}} пикселей",
+      "resizeSidebar": "Ширина панели навигации",
+
       "planTask_done": "Выполнено",
       "planTask_deviation": "Отклонение",
       "planTask_issue_open": "Замечание",
@@ -146,6 +154,14 @@ export const resources = {
   "en": {
     "translation": {
       ...engineering.en,
+      "workspace": "Workspace",
+      "profile": "Profile",
+      "expandSidebar": "Expand sidebar",
+      "collapseSidebar": "Collapse sidebar",
+      "sidebarCollapsed": "Sidebar collapsed",
+      "sidebarWidth": "Width {{width}} pixels",
+      "resizeSidebar": "Navigation panel width",
+
       "planTask_done": "Done",
       "planTask_deviation": "Deviation",
       "planTask_issue_open": "Open issue",

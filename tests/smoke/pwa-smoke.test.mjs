@@ -76,7 +76,7 @@ test("index page still wires PWA registration and manifest link", async () => {
   assert.match(html, /rel="manifest" href="manifest\.json"/);
   assert.match(html, /navigator\.serviceWorker\.register\('sw\.js', \{ updateViaCache: 'none' \}\)/);
   assert.match(html, /window\.__appThemeClass = className/u);
-  assert.match(html, /html\.theme-light body\s*\{\s*background-color:\s*#f1f5f9/u);
+  assert.match(html, /href="liquid-glass\.css\?v=/u);
   assert.match(html, /<body class="home-page">\s*<script>\s*document\.body\.classList\.add\(window\.__appThemeClass/u);
   assert.match(html, /id="appThemeColor"/u);
 });

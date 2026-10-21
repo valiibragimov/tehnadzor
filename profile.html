@@ -133,7 +133,7 @@
           <circle cx="12" cy="7" r="4"/>
         </svg>
       </span>
-      <button id="btnLogout" class="header-icon-btn header-icon-btn--danger" title="Выйти">
+      <button id="btnLogout" aria-label="Выйти" class="header-icon-btn header-icon-btn--danger" title="Выйти">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
           <polyline points="16 17 21 12 16 7"/>
@@ -157,6 +157,7 @@
                 <img id="profileAvatarImage" class="profile-avatar-image" alt="Фото профиля" hidden />
               </div>
               <div class="profile-topbar-copy">
+                <p class="profile-eyebrow">Личный кабинет</p>
                 <h2 id="profileDisplayName" class="profile-display-name"></h2>
               </div>
             </div>
@@ -168,7 +169,7 @@
                 class="btn-small btn-secondary lg-btn lg-btn--pill profile-edit-toggle"
                 aria-label="Перейти к редактированию профиля"
               >
-                <span class="lg-btn__label">Edit Profile</span>
+                <span class="lg-btn__label">Редактировать профиль</span>
                 <span class="lg-btn__glow" aria-hidden="true"></span>
               </a>
 
@@ -217,7 +218,7 @@
             </div>
             <div class="profile-projects-search profile-projects-search--combined">
               <div class="profile-create-input-wrapper profile-create-input-wrapper--combined">
-                <input id="projectSearchInput" class="profile-projects-search-input profile-create-input" placeholder="Поиск объектов или создать новый..." />
+                <input id="projectSearchInput" aria-label="Поиск или название нового объекта" class="profile-projects-search-input profile-create-input" placeholder="Поиск объектов или создать новый..." />
                 <button id="btnCreateProjectProfile" class="btn-small btn-secondary lg-btn lg-btn--pill profile-create-project-btn">
                   <span class="lg-btn__label">Создать объект</span>
                   <span class="lg-btn__glow" aria-hidden="true"></span>
@@ -814,6 +815,7 @@
       }
       if (profileAvatarButton) {
         profileAvatarButton.classList.toggle("preview-empty", !normalized);
+        profileAvatarButton.dataset.initials = initials.toUpperCase();
         profileAvatarButton.classList.toggle("has-image", !!normalized);
       }
       if (profileSettingsAvatarImage) {
