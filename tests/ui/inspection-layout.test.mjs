@@ -97,6 +97,8 @@ test("comments stay bounded and coordinate inputs retain project/actual pairs on
   assert.ok(size.height<=240&&size.width<=390);
   assert.equal(await comment.evaluate(e=>getComputedStyle(e).resize),"vertical");
   await openModule(page,"geo",390);
+  await page.locator("#constructionCategory").selectOption("horizontal_load_bearing");
+  await page.locator("#constructionType").selectOption("floor_slab");
   await page.locator('[data-sheet-target="geoCoordinatesSheet"]').click();
   const x=await page.locator("#projX").boundingBox(), fx=await page.locator("#factX").boundingBox();
   const y=await page.locator("#projY").boundingBox(), fy=await page.locator("#factY").boundingBox();
@@ -109,4 +111,20 @@ test("comments stay bounded and coordinate inputs retain project/actual pairs on
   assert.equal(await page.locator("#projX").inputValue(),"100.001");
   assert.equal(await page.locator("#factX").inputValue(),"100.002");
   await page.screenshot({path:"output/playwright/ux/after-mobile-coordinates.png"});
+  const selectedName = "Длинное-название-класса-поверхности".repeat(100);
+  await page.locator("#geoPlateFlatnessClass").evaluate((select, name)=>{select.selectedOptions[0].textContent=name;},selectedName);
+  const reveal=page.locator("#geoPlateFlatnessClass + .select-full-name");
+  await reveal.waitFor({state:"visible"});
+  await reveal.click();
+  const popover=page.locator("#workspaceHelp");
+  assert.equal(await popover.evaluate(e=>e.closest("dialog:modal")?.id),"geoCoordinatesSheet");
+  assert.equal(await popover.evaluate(e=>{const r=e.getBoundingClientRect(); return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+20));}),true);
+  await popover.hover();
+  await page.mouse.wheel(0,400);
+  await page.waitForFunction(()=>document.getElementById("workspaceHelp").scrollTop>0);
+  await page.keyboard.press("Escape");
+  assert.equal(await popover.evaluate(e=>e.matches(":popover-open")),false);
+  assert.equal(await page.locator("#geoCoordinatesSheet").evaluate(e=>e.matches(":modal")),true);
+  assert.equal(await reveal.evaluate(e=>e===document.activeElement),true);
+
 }));

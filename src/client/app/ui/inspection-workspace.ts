@@ -72,12 +72,20 @@ function initHelpPopover() {
   const show = (button: HTMLElement, content: Node[]) => {
     if (source === button && popover.matches(":popover-open")) { popover.hidePopover(); return; }
     if (source) source.setAttribute("aria-expanded", "false");
+    const host = button.closest<HTMLDialogElement>("dialog:modal") || document.body;
+    if (popover.parentElement !== host) {
+      if (popover.matches(":popover-open")) popover.hidePopover();
+      host.append(popover);
+    }
     source = button;
     popover.replaceChildren(...content);
     button.setAttribute("aria-controls", popover.id);
     button.setAttribute("aria-expanded", "true");
     popover.showPopover();
   };
+  document.addEventListener("close", event => {
+    if (event.target instanceof HTMLDialogElement && event.target.contains(popover) && popover.matches(":popover-open")) popover.hidePopover();
+  }, true);
   initSelectDetails(show);
   document.addEventListener("click", event => {
     const button = event.target instanceof Element ? event.target.closest<HTMLElement>(".module-help-toggle[data-help-target]") : null;
