@@ -110,7 +110,9 @@ export function initSidebar() {
   sidebar.querySelectorAll<HTMLElement>(".tab, .sidebar-link, #sidebarToggle").forEach(control => {
     const showTooltip = () => {
       hideTooltip();
-      if (!collapsed || !desktop.matches || drag) return;
+      const label = control.querySelector<HTMLElement>("[data-i18n]");
+      const clipped = label && label.scrollWidth > label.clientWidth;
+      if ((!collapsed && !clipped) || !desktop.matches || drag) return;
       tooltipSource = control;
       tooltip.textContent = control.getAttribute("aria-label") || control.querySelector("[data-i18n]")?.textContent || control.textContent;
       tooltip.hidden = false;

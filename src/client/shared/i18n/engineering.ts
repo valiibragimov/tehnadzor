@@ -1,5 +1,6 @@
 export const engineering = {
   "ru": {
+    "full_selected_name": "Полное название",
     "element_position": "Точное положение элемента в общих осях",
     "assessment_limits": "Допуски по подтверждённому основанию",
     "assessment_min": "Нижнее отклонение, мм (со знаком)",
@@ -303,6 +304,7 @@ export const engineering = {
     "saved_empty_geometry": "Пока нет сохранённых проверок геометрии."
   },
   "en": {
+    "full_selected_name": "Full name",
     "element_position": "Exact element position within shared axes",
     "assessment_limits": "Limits from a confirmed basis",
     "assessment_min": "Lower deviation, mm (signed)",

@@ -54,7 +54,9 @@ export function mountAcceptanceCriteria(root: HTMLElement, keys: Array<{ key: st
   panel.append(confirmation);
   // Changing the basis/limits invalidates the explicit confirmation.
   panel.addEventListener("input", event => { if (event.target !== checkbox) checkbox.checked = false; });
-  root.prepend(panel);
+  const heading = root.querySelector(".inspection-form-title");
+  if (heading) heading.after(panel);
+  else root.prepend(panel);
 }
 
 export function readAcceptanceCriteria(root: ParentNode | null): AcceptanceCriteria {

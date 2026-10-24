@@ -57,7 +57,7 @@
           </div>
           <div class="geo-bim-mainrow mt8">
             <div>
-              <label data-i18n="form_select_bim_element">Выбор элемента из BIM</label>
+              <label data-i18n="form_select_bim_element" for="geoBimElementSelect">Выбор элемента из BIM</label>
               <select id="geoBimElementSelect" class="ui-select">
                 <option value="" data-i18n="form_manual_entry_without_bim">Ручной ввод без BIM</option>
               </select>
@@ -108,11 +108,11 @@
           </div>
           <div class="geo-bim-meta-row bim-panel-redundant mt8">
             <div>
-              <label data-i18n="form_bim_mark">Марка BIM</label>
+              <label data-i18n="form_bim_mark" for="geoBimMark">Марка BIM</label>
               <input type="text" id="geoBimMark" placeholder="Подставляется из BIM при выборе элемента" data-i18n-placeholder="form_filled_from_the_selected_bim_element" />
             </div>
             <div>
-              <label data-i18n="form_bim_axes">Оси BIM</label>
+              <label data-i18n="form_bim_axes" for="geoBimAxes">Оси BIM</label>
               <input type="text" id="geoBimAxes" placeholder="Подставляются из BIM при наличии" data-i18n-placeholder="form_filled_from_bim_when_available" />
             </div>
           </div>
@@ -130,84 +130,57 @@
         </div>
 
         <div class="split wizard-steps">
-          <div class="col wizard-step" data-step="1">
-            <div class="card">
-              <h3 class="card-title" data-i18n="form_survey_points">Узлы</h3>
-              <div class="nodes" id="nodesList"></div>
-
-              <!-- Кнопки управления -->
-              <div class="actions">
-                <div class="row">
-                  <button id="btnGeo" class="btn-primary lg-btn lg-btn--pill wizard-hide-mobile" data-ignore-lock="1">
-                    <span class="lg-btn__label" data-i18n="form_inspect_and_save">Проверить и сохранить</span>
-                  </button>
-                </div>
-                <div class="row">
-                  <button id="btnClearForm" class="btn-small btn-secondary lg-btn lg-btn--pill">
-                    <span class="lg-btn__label" data-i18n="form_reset_form">Очистить форму</span>
-                  </button>
-                  <button id="btnUpdateNode" class="btn-small btn-secondary" style="display:none;" data-i18n="form_update_selected">Обновить выбранный</button>
-                </div>
-                <div class="row">
-                  <button id="btnClearNodes" class="btn-small btn-secondary lg-btn lg-btn--pill">
-                    <span class="lg-btn__label" data-i18n="form_clear_inspections">Очистить проверки</span>
-                  </button>
-                </div>
-                <button id="btnSaveNode" class="btn-small" style="display:none;" data-i18n="form_save_survey_point">💾 Сохранить узел в меню</button>
-              </div>
-            </div>
-          </div>
-
-      <div class="card wizard-step" data-step="2">
+          <div class="card wizard-step" data-step="2">
+        <h3 class="inspection-form-title" data-i18n="form_parameters">Параметры</h3>
             <div id="geoManualAssistNote" class="geo-manual-note" hidden></div>
             <div id="geoBehaviorMessage" class="geo-manual-note" hidden></div>
             <!-- Поле маркировки для колонны -->
             <div id="columnMarkField" style="display: none;">
-              <label data-i18n="form_column_marking">Маркировка колонны</label>
+              <label data-i18n="form_column_marking" for="columnMark">Маркировка колонны</label>
               <input type="text" id="columnMark" placeholder="Напр.: К 1.12" data-i18n-placeholder="form_e_g_1_12" />
             </div>
             <div id="geoStairNameField" style="display: none;">
-              <label data-i18n="form_stair_name">Наименование лестницы</label>
+              <label data-i18n="form_stair_name" for="geoStairName">Наименование лестницы</label>
               <input type="text" id="geoStairName" placeholder="Напр.: Лестница Л3" data-i18n-placeholder="form_e_g_stair_3" />
             </div>
             <div>
-              <label data-i18n="form_floor">Этаж </label>
+              <label data-i18n="form_floor" for="floor">Этаж </label>
               <input type="text" id="floor" placeholder="Напр.: 1, 2, 3..." data-i18n-placeholder="form_e_g_1_2_3" required />
             </div>
             <div class="grid-3 mt8" id="axisFields">
               <div id="geoStripAxisModeField" style="display: none;">
-                <label data-i18n="form_grid_mode">Режим осей</label>
+                <label data-i18n="form_grid_mode" for="geoStripAxisMode">Режим осей</label>
                 <select id="geoStripAxisMode" class="ui-select">
                   <option value="letter_numbers" data-i18n="form_one_number_axis_and_two_letter_axes">Одна цифровая + две буквенные</option>
                   <option value="number_letters" data-i18n="form_two_number_axes_and_one_letter_axis">Две цифровые + одна буквенная</option>
                 </select>
               </div>
               <div id="axisLetterSingleField">
-                <label data-i18n="form_letter_grid_axis">Буквенная ось</label>
+                <label data-i18n="form_letter_grid_axis" for="axisLetter">Буквенная ось</label>
                 <select id="axisLetter" class="ui-select"></select>
               </div>
               <div id="axisNumberSingleField">
-                <label data-i18n="form_number_grid_axis">Цифровая ось</label>
+                <label data-i18n="form_number_grid_axis" for="axisNumber">Цифровая ось</label>
                 <select id="axisNumber" class="ui-select"></select>
               </div>
               <div id="axisLetterFromField" style="display: none;">
-                <label data-i18n="form_from_letter_grid_axis">От буквенной оси</label>
+                <label data-i18n="form_from_letter_grid_axis" for="axisLetterFrom">От буквенной оси</label>
                 <select id="axisLetterFrom" class="ui-select"></select>
               </div>
               <div id="axisLetterToField" style="display: none;">
-                <label data-i18n="form_to_letter_grid_axis">До буквенной оси</label>
+                <label data-i18n="form_to_letter_grid_axis" for="axisLetterTo">До буквенной оси</label>
                 <select id="axisLetterTo" class="ui-select"></select>
               </div>
               <div id="axisNumberFromField" style="display: none;">
-                <label data-i18n="form_from_number_grid_axis">От цифровой оси</label>
+                <label data-i18n="form_from_number_grid_axis" for="axisNumberFrom">От цифровой оси</label>
                 <select id="axisNumberFrom" class="ui-select"></select>
               </div>
               <div id="axisNumberToField" style="display: none;">
-                <label data-i18n="form_to_number_grid_axis">До цифровой оси</label>
+                <label data-i18n="form_to_number_grid_axis" for="axisNumberTo">До цифровой оси</label>
                 <select id="axisNumberTo" class="ui-select"></select>
               </div>
               <div id="nodeIdField">
-                <label data-i18n="form_point_identifier">Идентификатор узла</label>
+                <label data-i18n="form_point_identifier" for="nodeId">Идентификатор узла</label>
                 <input id="nodeId" placeholder="Авто: А × 1" data-i18n-placeholder="form_auto_1" readonly aria-readonly="true" />
               </div>
             </div>
@@ -278,11 +251,11 @@
                 <div class="wizard-sheet-body">
                   <div class="grid-3 mt8" id="coordinatesBlock">
                     <div>
-                      <label data-i18n="form_design_x">Проектная X</label>
+                      <label data-i18n="form_design_x" for="projX">Проектная X</label>
                       <input type="number" id="projX" inputmode="decimal" placeholder="м" data-i18n-placeholder="form_m" />
                     </div>
                     <div>
-                      <label data-i18n="form_measured_x">Фактическая X</label>
+                      <label data-i18n="form_measured_x" for="factX">Фактическая X</label>
                       <input type="number" id="factX" inputmode="decimal" placeholder="м" data-i18n-placeholder="form_m" />
                     </div>
                     <div>
@@ -291,25 +264,25 @@
                     </div>
 
                     <div>
-                      <label data-i18n="form_design_y">Проектная Y</label>
+                      <label data-i18n="form_design_y" for="projY">Проектная Y</label>
                       <input type="number" id="projY" inputmode="decimal" placeholder="м" data-i18n-placeholder="form_m" />
                     </div>
                     <div>
-                      <label data-i18n="form_measured_y">Фактическая Y</label>
+                      <label data-i18n="form_measured_y" for="factY">Фактическая Y</label>
                       <input type="number" id="factY" inputmode="decimal" placeholder="м" data-i18n-placeholder="form_m" />
                     </div>
                     <div class="coordinate-grid-spacer" aria-hidden="true"></div>
 
                     <div id="projHField">
-                      <label data-i18n="form_design_h">Проектная H</label>
+                      <label data-i18n="form_design_h" for="projH">Проектная H</label>
                       <input type="number" id="projH" inputmode="decimal" placeholder="м" data-i18n-placeholder="form_m" />
                     </div>
                     <div id="factHField">
-                      <label data-i18n="form_measured_h">Фактическая H</label>
+                      <label data-i18n="form_measured_h" for="factH">Фактическая H</label>
                       <input type="number" id="factH" inputmode="decimal" placeholder="м" data-i18n-placeholder="form_m" />
                     </div>
                     <div id="tolHFieldWrap">
-                      <label data-i18n="form_h_tolerance">Допуск H</label>
+                      <label data-i18n="form_h_tolerance" for="tolHField">Допуск H</label>
                       <input value="10 мм" readonly disabled id="tolHField" />
                     </div>
                   </div>
@@ -369,11 +342,42 @@
             </dialog>
 
             <div id="geoResult" class="result"></div>
+
+        <div class="inspection-actions">
+          <div class="row">
+                  <button id="btnGeo" class="btn-primary lg-btn lg-btn--pill wizard-hide-mobile" data-ignore-lock="1">
+                    <span class="lg-btn__label" data-i18n="form_inspect_and_save">Проверить и сохранить</span>
+                  </button>
+                </div>
+          <div class="row">
+                  <button id="btnClearForm" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                    <span class="lg-btn__label" data-i18n="form_reset_form">Очистить форму</span>
+                  </button>
+                  <button id="btnUpdateNode" class="btn-small btn-secondary" style="display:none;" data-i18n="form_update_selected">Обновить выбранный</button>
+                </div>
+        </div>
+      </div>
+
+      <div class="col wizard-step" data-step="1">
+            <div class="card">
+              <h3 class="card-title" data-i18n="form_survey_points">Узлы</h3>
+              <div class="nodes" id="nodesList"></div>
+
+              <!-- Кнопки управления -->
+              <div class="actions">
+            <div class="row">
+                  <button id="btnClearNodes" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                    <span class="lg-btn__label" data-i18n="form_clear_inspections">Очистить проверки</span>
+                  </button>
+                </div>
+                <button id="btnSaveNode" class="btn-small" style="display:none;" data-i18n="form_save_survey_point">💾 Сохранить узел в меню</button>
+              </div>
+            </div>
           </div>
         </div>
 
         <div class="wizard-footer" data-wizard-footer>
-          <button type="button" class="btn-primary lg-btn lg-btn--pill wizard-primary-btn" data-trigger="#btnGeo" data-i18n="form_save">Сохранить</button>
+          <button type="button" class="btn-primary lg-btn lg-btn--pill wizard-primary-btn" data-trigger="#btnGeo" data-i18n="form_inspect_and_save">Проверить и сохранить</button>
         </div>
       </div>
     </section>

@@ -1768,7 +1768,7 @@
       const normalizedValue = String(value || "").trim();
       const displayValue = normalizedValue || "Без названия";
       trigger.textContent = displayValue;
-      trigger.title = "Нажмите, чтобы переименовать";
+      trigger.title = `${displayValue} — нажмите, чтобы переименовать`;
       input.value = normalizedValue;
       input.size = Math.max(10, Math.min(28, displayValue.length + 1));
       card.dataset.projectName = normalizeProjectName(displayValue);

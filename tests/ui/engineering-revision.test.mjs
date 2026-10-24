@@ -119,6 +119,7 @@ test("metre geodesy preserves legacy evidence and concrete acceptance requires a
     await page.locator("#actual").fill("40");
     await page.locator("#btnStrength").click();
     await page.locator("#strengthResult").filter({ hasText: "Требует проверки" }).waitFor();
+    await page.locator("#strength .assessment-group summary").click();
     await page.locator("#strengthAssessmentReference").fill("Laboratory 17: assessed class B25, GOST 18105 applicable scheme");
     await page.locator("#strengthAssessmentResponsible").fill("Laboratory engineer");
     await page.locator("#strengthAssessmentDate").fill("2026-10-20");

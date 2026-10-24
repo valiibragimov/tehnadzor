@@ -56,7 +56,7 @@
       </div>
       <div class="geo-bim-mainrow mt8">
         <div>
-          <label data-i18n="form_select_bim_element">Выбор элемента из BIM</label>
+          <label data-i18n="form_select_bim_element" for="reinfBimElementSelect">Выбор элемента из BIM</label>
           <select id="reinfBimElementSelect" class="ui-select">
             <option value="" data-i18n="form_manual_entry_without_bim">Ручной ввод без BIM</option>
           </select>
@@ -103,11 +103,11 @@
       </div>
       <div class="geo-bim-meta-row bim-panel-redundant mt8">
         <div>
-          <label data-i18n="form_bim_mark">Марка BIM</label>
+          <label data-i18n="form_bim_mark" for="reinfBimMark">Марка BIM</label>
           <input type="text" id="reinfBimMark" placeholder="Подставляется из BIM при выборе элемента" data-i18n-placeholder="form_filled_from_the_selected_bim_element" />
         </div>
         <div>
-          <label data-i18n="form_bim_axes">Оси BIM</label>
+          <label data-i18n="form_bim_axes" for="reinfBimAxes">Оси BIM</label>
           <input type="text" id="reinfBimAxes" placeholder="Подставляются из BIM при наличии" data-i18n-placeholder="form_filled_from_bim_when_available" />
         </div>
       </div>
@@ -126,49 +126,23 @@
     </div>
 
     <div class="split wizard-steps">
-      <div class="col wizard-step" data-step="1">
-        <div class="card">
-          <h3 class="card-title" data-i18n="form_saved_reinforcement_inspections">Сохранённые проверки армирования</h3>
-          <div class="nodes" id="reinfChecksList"></div>
-
-          <!-- Кнопки управления -->
-          <div class="actions">
-            <div class="row">
-              <button id="btnReinf" class="btn-primary lg-btn lg-btn--pill wizard-hide-mobile" data-ignore-lock="1">
-                <span class="lg-btn__label" data-i18n="form_inspect_and_save">Проверить и сохранить</span>
-              </button>
-            </div>
-            <div class="row">
-              <button id="btnClearReinfForm" class="btn-small btn-secondary lg-btn lg-btn--pill">
-                <span class="lg-btn__label" data-i18n="form_reset_form">Очистить форму</span>
-              </button>
-            </div>
-            <div class="row">
-              <button id="btnClearReinfChecks" class="btn-small btn-secondary lg-btn lg-btn--pill">
-                <span class="lg-btn__label" data-i18n="form_clear_inspections">Очистить проверки</span>
-              </button>
-            </div>
-            <button id="btnSaveReinfCheck" class="btn-small" style="display:none;" data-i18n="form_save_inspection">💾 Сохранить проверку</button>
-          </div>
-        </div>
-      </div>
-
       <div class="card wizard-step" data-step="2">
+        <h3 class="inspection-form-title" data-i18n="form_parameters">Параметры</h3>
         <div id="reinfManualAssistNote" class="geo-manual-note" hidden></div>
         <div id="reinfBehaviorMessage" class="geo-manual-note" hidden></div>
         <!-- Поля для плиты и лестницы: этаж и местоположение -->
         <div id="reinfLocationFields" style="display: none;">
           <!-- Поле наименования для лестницы -->
           <div id="reinfStairNameField" style="display: none;">
-            <label data-i18n="form_stair_name">Наименование лестницы</label>
+            <label data-i18n="form_stair_name" for="reinfStairName">Наименование лестницы</label>
             <input type="text" id="reinfStairName" placeholder="Напр.: Лестница Л3" data-i18n-placeholder="form_e_g_stair_3" />
           </div>
           <div>
-            <label data-i18n="form_floor">Этаж </label>
+            <label data-i18n="form_floor" for="reinfFloor">Этаж </label>
             <input type="text" id="reinfFloor" placeholder="Напр.: 1, 2, 3..." data-i18n-placeholder="form_e_g_1_2_3" required />
           </div>
           <div id="reinfStripAxisModeField" class="mt8" style="display: none;">
-            <label data-i18n="form_grid_mode">Режим осей</label>
+            <label data-i18n="form_grid_mode" for="reinfStripAxisMode">Режим осей</label>
             <select id="reinfStripAxisMode" class="ui-select">
               <option value="letter_numbers" data-i18n="form_one_number_axis_and_two_letter_axes">Одна цифровая + две буквенные</option>
               <option value="number_letters" data-i18n="form_two_number_axes_and_one_letter_axis">Две цифровые + одна буквенная</option>
@@ -176,24 +150,24 @@
           </div>
           <div class="grid-4 mt8">
             <div id="reinfAxisLetterFromField">
-              <label id="reinfAxisLetterFromLabel" data-i18n="form_from_letter_grid_axis">От буквенной оси</label>
+              <label id="reinfAxisLetterFromLabel" data-i18n="form_from_letter_grid_axis" for="reinfAxisLetterFrom">От буквенной оси</label>
               <select id="reinfAxisLetterFrom" class="ui-select"></select>
             </div>
             <div id="reinfAxisLetterToField">
-              <label id="reinfAxisLetterToLabel" data-i18n="form_to_letter_grid_axis">До буквенной оси</label>
+              <label id="reinfAxisLetterToLabel" data-i18n="form_to_letter_grid_axis" for="reinfAxisLetterTo">До буквенной оси</label>
               <select id="reinfAxisLetterTo" class="ui-select"></select>
             </div>
             <div id="reinfAxisNumberFromField">
-              <label id="reinfAxisNumberFromLabel" data-i18n="form_from_number_grid_axis">От цифровой оси</label>
+              <label id="reinfAxisNumberFromLabel" data-i18n="form_from_number_grid_axis" for="reinfAxisNumberFrom">От цифровой оси</label>
               <select id="reinfAxisNumberFrom" class="ui-select"></select>
             </div>
             <div id="reinfAxisNumberToField">
-              <label id="reinfAxisNumberToLabel" data-i18n="form_to_number_grid_axis">До цифровой оси</label>
+              <label id="reinfAxisNumberToLabel" data-i18n="form_to_number_grid_axis" for="reinfAxisNumberTo">До цифровой оси</label>
               <select id="reinfAxisNumberTo" class="ui-select"></select>
             </div>
           </div>
           <div class="mt8">
-            <label data-i18n="form_location">Местоположение</label>
+            <label data-i18n="form_location" for="reinfLocation">Местоположение</label>
             <input type="text" id="reinfLocation" placeholder="Автоматически: В-Г, 6-7" data-i18n-placeholder="form_auto_6_7" readonly disabled />
           </div>
           <hr class="sep mt8" />
@@ -202,7 +176,7 @@
         <!-- Поля для колонн: этаж и маркировка -->
         <div id="reinfColumnFields" style="display: none;">
           <div>
-            <label data-i18n="form_floor">Этаж </label>
+            <label data-i18n="form_floor" for="reinfColumnFloor">Этаж </label>
             <input type="text" id="reinfColumnFloor" placeholder="Напр.: 1, 2, 3..." data-i18n-placeholder="form_e_g_1_2_3" required />
           </div>
           <div class="wizard-sheet-trigger-row mt8">
@@ -236,7 +210,7 @@
         <!-- Поля для балок: этаж и маркировка -->
         <div id="reinfBeamFields" style="display: none;">
           <div>
-          <label data-i18n="form_floor">Этаж </label>
+          <label data-i18n="form_floor" for="reinfBeamFloor">Этаж </label>
           <input type="text" id="reinfBeamFloor" placeholder="Напр.: 1, 2, 3..." data-i18n-placeholder="form_e_g_1_2_3" required />
           </div>
           <div class="wizard-sheet-trigger-row mt8">
@@ -270,7 +244,7 @@
         <!-- Поля для стены: этаж и привязка -->
         <div id="reinfWallFields" style="display: none;">
           <div style="margin-bottom: 8px;">
-          <label data-i18n="form_floor">Этаж </label>
+          <label data-i18n="form_floor" for="reinfWallFloor">Этаж </label>
           <input type="text" id="reinfWallFloor" placeholder="Напр.: 1, 2, 3..." data-i18n-placeholder="form_e_g_1_2_3" required />
           </div>
           <div class="wizard-sheet-trigger-row mt8">
@@ -315,35 +289,35 @@
             <div class="wizard-sheet-body">
               <div class="grid-2" id="reinfCommonFields">
                 <div>
-                    <label data-i18n="form_design_bar_diameter">Проектный диаметр арматуры</label>
+                    <label data-i18n="form_design_bar_diameter" for="projDia">Проектный диаметр арматуры</label>
                   <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="projDia" placeholder="мм" data-i18n-placeholder="form_mm" />
                 </div>
                 <div>
-                    <label data-i18n="form_measured_bar_diameter">Фактический диаметр арматуры</label>
+                    <label data-i18n="form_measured_bar_diameter" for="factDia">Фактический диаметр арматуры</label>
                   <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="factDia" placeholder="мм" data-i18n-placeholder="form_mm" />
                 </div>
                 <div>
-                    <label data-i18n="form_design_bar_spacing">Проектный шаг арматуры</label>
+                    <label data-i18n="form_design_bar_spacing" for="projStep">Проектный шаг арматуры</label>
                   <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="projStep" placeholder="мм" data-i18n-placeholder="form_mm" />
                 </div>
                 <div>
-                    <label data-i18n="form_measured_bar_spacing">Фактический шаг арматуры</label>
+                    <label data-i18n="form_measured_bar_spacing" for="factStep">Фактический шаг арматуры</label>
                   <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="factStep" placeholder="мм" data-i18n-placeholder="form_mm" />
                 </div>
                 <div>
-                    <label data-i18n="form_design_concrete_cover">Проектный защитный слой</label>
+                    <label data-i18n="form_design_concrete_cover" for="projCover">Проектный защитный слой</label>
                   <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="projCover" placeholder="мм" data-i18n-placeholder="form_mm" />
                 </div>
                 <div>
-                    <label data-i18n="form_measured_concrete_cover">Фактический защитный слой</label>
+                    <label data-i18n="form_measured_concrete_cover" for="factCover">Фактический защитный слой</label>
                   <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="factCover" placeholder="мм" data-i18n-placeholder="form_mm" />
                 </div>
                 <div id="reinfProjHoopsStepField" style="display: none;">
-                  <label data-i18n="form_design_stirrup_spacing">Проектный шаг хомутов</label>
+                  <label data-i18n="form_design_stirrup_spacing" for="reinfProjHoopsStep">Проектный шаг хомутов</label>
                   <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="reinfProjHoopsStep" placeholder="мм" data-i18n-placeholder="form_mm" />
                 </div>
                 <div id="reinfFactHoopsStepField" style="display: none;">
-                  <label data-i18n="form_measured_stirrup_spacing">Фактический шаг хомутов</label>
+                  <label data-i18n="form_measured_stirrup_spacing" for="reinfFactHoopsStep">Фактический шаг хомутов</label>
                   <input type="text" inputmode="decimal" pattern="^-?\d*(?:[.,]\d+)?$" id="reinfFactHoopsStep" placeholder="мм" data-i18n-placeholder="form_mm" />
                 </div>
               </div>
@@ -355,11 +329,41 @@
         </dialog>
 
         <div id="reinforcementResult" class="result"></div>
+
+        <div class="inspection-actions">
+          <div class="row">
+              <button id="btnReinf" class="btn-primary lg-btn lg-btn--pill wizard-hide-mobile" data-ignore-lock="1">
+                <span class="lg-btn__label" data-i18n="form_inspect_and_save">Проверить и сохранить</span>
+              </button>
+            </div>
+          <div class="row">
+              <button id="btnClearReinfForm" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                <span class="lg-btn__label" data-i18n="form_reset_form">Очистить форму</span>
+              </button>
+            </div>
+        </div>
+      </div>
+
+      <div class="col wizard-step" data-step="1">
+        <div class="card">
+          <h3 class="card-title" data-i18n="form_saved_reinforcement_inspections">Сохранённые проверки армирования</h3>
+          <div class="nodes" id="reinfChecksList"></div>
+
+          <!-- Кнопки управления -->
+          <div class="actions">
+            <div class="row">
+              <button id="btnClearReinfChecks" class="btn-small btn-secondary lg-btn lg-btn--pill">
+                <span class="lg-btn__label" data-i18n="form_clear_inspections">Очистить проверки</span>
+              </button>
+            </div>
+            <button id="btnSaveReinfCheck" class="btn-small" style="display:none;" data-i18n="form_save_inspection">💾 Сохранить проверку</button>
+          </div>
+        </div>
       </div>
     </div>
 
     <div class="wizard-footer" data-wizard-footer>
-      <button type="button" class="btn-primary lg-btn lg-btn--pill wizard-primary-btn" data-trigger="#btnReinf" data-i18n="form_save">Сохранить</button>
+      <button type="button" class="btn-primary lg-btn lg-btn--pill wizard-primary-btn" data-trigger="#btnReinf" data-i18n="form_inspect_and_save">Проверить и сохранить</button>
     </div>
   </div>
 </section>
