@@ -59,6 +59,7 @@ export const engineering = {
     "documents_access_saved": "Права сохранены.",
 
     "engineering_requires_review": "Требует проверки",
+    "engineering_incomplete": "Проверка неполна или часть критериев не подтверждена",
     "engineering_conforms": "Соответствует",
     "engineering_nonconforms": "Не соответствует",
     "strength_assessment": "Подтверждённое основание оценки",
@@ -361,6 +362,7 @@ export const engineering = {
     "documents_access_saved": "Permissions saved.",
 
     "engineering_requires_review": "Requires review",
+    "engineering_incomplete": "Inspection is incomplete or some criteria are unconfirmed",
     "engineering_conforms": "Conforms",
     "engineering_nonconforms": "Does not conform",
     "strength_assessment": "Confirmed assessment basis",

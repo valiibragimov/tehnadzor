@@ -5,7 +5,7 @@ import { mountAcceptanceCriteria, readAcceptanceCriteria, restoreAcceptanceCrite
 import { t, translateEngineeringLabel } from "../../shared/i18n/index.js";
 import { setBimResultHint } from "../ui/bim-result-hint.js";
 import type { WorkspaceContext } from "../workspace-context.js";
-import { APP_CONFIG, TOLERANCES, UI_TEXT } from "../../config.js";
+import { APP_CONFIG, UI_TEXT } from "../../config.js";
 import {
   getConstructionCategoryKey,
   getConstructionEntityLabels,
@@ -29,7 +29,6 @@ import {
   defaultRusLetters,
   defaultNumbers,
   normalizeMarking,
-  formatCheckResult,
   parseDecimal,
   escapeHtml,
   sanitizeHtml,
@@ -331,7 +330,6 @@ function fmtDate(ts) {
   )}:${pad(d.getMinutes())}`;
 }
 
-const OPENING_SIZES_FORMAT_HINT = "Используйте формат Ш×В, Ш×В (например, 1200×900, 800×2100)";
 const FORMWORK_SUBTYPE_LABELS: Record<string, string> = {
   temporary: "Временная",
   permanent: "Несъёмная"
@@ -509,34 +507,6 @@ function formatOpeningSizesForNode(projectValue, actualValue) {
   return projectText || actualText || "";
 }
 
-
-function buildOpeningComparisonRows(comparison, parameterPrefix) {
-  if (!comparison?.hasComparableData) return [];
-  if (comparison.reason === "format" || comparison.reason === "count") {
-    return [`<b>${safeValue(parameterPrefix)}:</b> ${safeValue(comparison.message)}`];
-  }
-
-  return comparison.comparisons.flatMap((item) => [
-    formatCheckResult({
-      parameterName: `${parameterPrefix} ${item.index + 1} ширина`,
-      actual: item.actualWidth,
-      project: item.projectWidth,
-      tolerance: TOLERANCES.OPENING_SIZE,
-      unit: "мм",
-      regulatoryDoc: "SP_70_13330_2012",
-      isStrict: false
-    }),
-    formatCheckResult({
-      parameterName: `${parameterPrefix} ${item.index + 1} высота`,
-      actual: item.actualHeight,
-      project: item.projectHeight,
-      tolerance: TOLERANCES.OPENING_SIZE,
-      unit: "мм",
-      regulatoryDoc: "SP_70_13330_2012",
-      isStrict: false
-    })
-  ]);
-}
 
 function moduleStorageKey(base) {
   const id = getCurrentProjectId() || "no_project";
@@ -3014,6 +2984,7 @@ function loadGeomCheck(id) {
   if (evaluateGeomCheck(d).status === "ok") geometryResult.classList.add("ok");
   if (evaluateGeomCheck(d).status === "exceeded") geometryResult.classList.add("not-ok");
   geometryResult.textContent = t(evaluateGeomCheck(d).status === "ok" ? "engineering_conforms" : evaluateGeomCheck(d).status === "exceeded" ? "engineering_nonconforms" : "engineering_requires_review");
+  if (evaluateGeomCheck(d).status === "exceeded" && evaluateGeomCheck(d).hasIncompleteMeasurements) geometryResult.append(` — ${t("engineering_incomplete")}`);
 }
 
   syncGeomBimSelectionFromCheck(d);
@@ -3205,6 +3176,7 @@ async function saveGeomCheck({ skipJournalOnce = false } = {}) {
   if (geometryResult) {
     geometryResult.className = evaluation.status === "ok" ? "result ok" : evaluation.status === "exceeded" ? "result not-ok" : "result";
     geometryResult.textContent = t(evaluation.status === "ok" ? "engineering_conforms" : evaluation.status === "exceeded" ? "engineering_nonconforms" : "engineering_requires_review");
+    if (evaluation.status === "exceeded" && evaluation.hasIncompleteMeasurements) geometryResult.append(` — ${t("engineering_incomplete")}`);
     const rows = [data, ...(data.columns || []), ...(data.walls || []), ...(data.beams || []), ...(data.stairs || [])];
     for (const [index, row] of rows.entries()) {
       const values = row.physicalDimensions || {};

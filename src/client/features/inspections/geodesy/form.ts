@@ -1,4 +1,5 @@
-import { restoreAcceptanceCriteria } from "../../../app/ui/acceptance-criteria.js";
+import { compareMeasurement, measurementNumber } from "../acceptance.js";
+import { readAcceptanceCriteria, restoreAcceptanceCriteria } from "../../../app/ui/acceptance-criteria.js";
 import {
   getConstructionEntityLabels,
   getConstructionModuleBehavior,
@@ -318,66 +319,32 @@ export function createGeodesyForm({
     bim.updateControls();
   }
 
-  const GEO_PLATE_FLATNESS_LIMITS = {
-    "2": { A3: 7, A4: 10.5, A6: 12, A7: 15 },
-    "3": { A3: 9.5, A4: 14, A6: 15, A7: 15 }
-  };
-
-  function parseDecimalInput(value) {
-    if (value === undefined || value === null) return NaN;
-    return parseFloat(String(value).replace(",", "."));
-  }
-
-  function getGeoPlateFlatnessAutoTolerance(baseValue, classValue) {
-    const base = String(baseValue || "2");
-    const surfaceClass = String(classValue || "project");
-    return GEO_PLATE_FLATNESS_LIMITS[base]?.[surfaceClass] ?? null;
-  }
-
   function updateGeoPlateFlatnessCalculatedFields() {
-    if (!geoPlateFlatnessClassEl || !geoPlateFlatnessBaseEl || !geoPlateFlatnessToleranceEl) {
-      return;
-    }
-
-    const autoTolerance = getGeoPlateFlatnessAutoTolerance(
-      geoPlateFlatnessBaseEl.value,
-      geoPlateFlatnessClassEl.value
-    );
-    const usesProjectTolerance = geoPlateFlatnessClassEl.value === "project";
-
-    geoPlateFlatnessToleranceEl.readOnly = !usesProjectTolerance;
-    geoPlateFlatnessToleranceEl.classList.toggle("geo-flatness-tolerance--auto", !usesProjectTolerance);
-    if (autoTolerance != null) {
-      geoPlateFlatnessToleranceEl.value = String(autoTolerance);
-    }
-
-    const actual = parseDecimalInput(geoPlateFlatnessActualEl?.value);
-    const tolerance = parseDecimalInput(geoPlateFlatnessToleranceEl.value);
-    if (Number.isNaN(actual) || Number.isNaN(tolerance)) {
-      return;
-    }
+    if (!geoPlateFlatnessToleranceEl) return;
+    const limits = readAcceptanceCriteria(document.getElementById("geo")).limits.geoFlatness;
+    // Historical surface class and baseline remain measurement context, never an automatic limit.
+    geoPlateFlatnessToleranceEl.readOnly = true;
+    geoPlateFlatnessToleranceEl.value = String(limits?.max ?? "");
   }
 
   function collectGeoPlateFlatnessData() {
-    const actual = parseDecimalInput(geoPlateFlatnessActualEl?.value);
-    const tolerance = parseDecimalInput(geoPlateFlatnessToleranceEl?.value);
-    const base = geoPlateFlatnessBaseEl?.value || "2";
-    const surfaceClass = geoPlateFlatnessClassEl?.value || "project";
-    const hasActual = !Number.isNaN(actual);
-    const hasTolerance = !Number.isNaN(tolerance);
-    const result = hasActual && hasTolerance
-      ? (Math.abs(actual) <= tolerance ? "ok" : "exceeded")
-      : "";
-
+    const actual = measurementNumber(geoPlateFlatnessActualEl?.value);
+    const criteria = readAcceptanceCriteria(document.getElementById("geo"));
+    const verdict = actual != null && actual >= 0 ? compareMeasurement(0, actual, "geoFlatness", criteria) : "incomplete";
+    const verified = verdict === "ok" || verdict === "exceeded";
     return {
-      actual: hasActual ? actual : null,
-      base,
-      surfaceClass,
-      tolerance: hasTolerance ? tolerance : null,
-      result,
-      checked: Boolean(hasActual && hasTolerance)
+      actual,
+      base: geoPlateFlatnessBaseEl?.value || "2",
+      surfaceClass: geoPlateFlatnessClassEl?.value || "project",
+      tolerance: verified ? criteria.limits.geoFlatness.max : null,
+      result: verified ? verdict : "",
+      checked: verified
     };
   }
+
+  document.getElementById("geo")?.addEventListener("input", event => {
+    if ((event.target as HTMLElement).closest("[data-acceptance]")) updateGeoPlateFlatnessCalculatedFields();
+  });
 
   [
     geoPlateFlatnessActualEl,

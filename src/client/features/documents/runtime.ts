@@ -2,7 +2,7 @@ import { CONSTRUCTION_OPTIONS } from "../../app/construction.js";
 import type { WorkspaceContext } from "../../app/workspace-context.js";
 import { t, translateEngineeringLabel } from "../../shared/i18n/index.js";
 import { createDocumentService, type DocumentKind, type DocumentVersion } from "./service.js";
-import { createFirebaseDocumentRepository, getDocumentAccess, listDocuments, listDocumentVersions, setDocumentMember } from "../../app/repositories/document-repository.js";
+import { createFirebaseDocumentRepository } from "../../app/repositories/document-repository.js";
 
 export function initDocuments(workspace: WorkspaceContext) {
   const root = document.getElementById("documents");
@@ -18,8 +18,8 @@ export function initDocuments(workspace: WorkspaceContext) {
   const more = field<HTMLButtonElement>("documentsMore");
   const moreVersions = field<HTMLButtonElement>("documentVersionsMore");
   const service = createDocumentService(createFirebaseDocumentRepository());
-  let documentPage: Awaited<ReturnType<typeof listDocuments>> | null = null;
-  let versionPage: Awaited<ReturnType<typeof listDocumentVersions>> | null = null;
+  let documentPage: Awaited<ReturnType<typeof service.listDocuments>> | null = null;
+  let versionPage: Awaited<ReturnType<typeof service.listVersions>> | null = null;
   let generation = 0;
   let role = "none";
   let activeProject = "";
@@ -48,8 +48,8 @@ export function initDocuments(workspace: WorkspaceContext) {
     if (!projectId) { message("documents_choose_project"); return; }
     activeProject = projectId;
     try {
-      role = await getDocumentAccess(projectId);
-      const page = await listDocuments(projectId, append ? documentPage?.cursor : undefined);
+      role = await service.getAccess(projectId);
+      const page = await service.listDocuments(projectId, append ? documentPage?.cursor : undefined);
       if (token !== generation || projectId !== project.value.trim()) return;
       documentPage = page;
       upload.hidden = role !== "owner" && role !== "editor";
@@ -67,7 +67,7 @@ export function initDocuments(workspace: WorkspaceContext) {
     moreVersions.hidden = true;
     if (!documentId) return;
     try {
-      const page = await listDocumentVersions(projectId, documentId, append ? versionPage?.cursor : undefined);
+      const page = await service.listVersions(projectId, documentId, append ? versionPage?.cursor : undefined);
       if (token !== generation || documentId !== select.value) return;
       versionPage = page;
       for (const version of page.items) renderVersion(projectId, version);
@@ -151,7 +151,7 @@ export function initDocuments(workspace: WorkspaceContext) {
   access.addEventListener("submit", async event => {
     event.preventDefault();
     try {
-      await setDocumentMember(activeProject, field<HTMLInputElement>("documentMemberUid").value.trim(), field<HTMLSelectElement>("documentMemberRole").value as "editor" | "reader" | "none");
+      await service.setMember(activeProject, field<HTMLInputElement>("documentMemberUid").value.trim(), field<HTMLSelectElement>("documentMemberRole").value as "editor" | "reader" | "none");
       message("documents_access_saved");
     } catch { fail(); }
   });

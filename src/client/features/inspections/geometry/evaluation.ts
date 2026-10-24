@@ -1,4 +1,4 @@
-import { compareMeasurement, measurementNumber, summarizeMeasurements } from "../acceptance.js";
+import { compareMeasurement, comparePhysicalMeasurement, measurementNumber, summarizeMeasurements } from "../acceptance.js";
 import { getConstructionProfile, getConstructionModuleBehavior, normalizeConstructionKey } from "../../../app/construction.js";
 import { getInspectionStatus } from "../../../app/inspection-registry.js";
 import type { GeometryCheckRecord } from "../../../types/module-records.js";
@@ -14,7 +14,7 @@ export function evaluateGeometryCheck(check: GeometryCheckRecord) {
     if (optional && row[project] == null && row[actual] == null) return;
     const p = measurementNumber(row[project]);
     const a = measurementNumber(row[actual]);
-    results.push(p != null && a != null && (p <= 0 || a <= 0) ? "incomplete" : compareMeasurement(p, a, key, criteria));
+    results.push(comparePhysicalMeasurement(p, a, key, criteria));
   };
   const dimensions = (row: Record<string, unknown>, keys: string[]) => {
     const values = row.physicalDimensions as PhysicalDimensions | undefined;
@@ -65,12 +65,12 @@ export function evaluateGeometryCheck(check: GeometryCheckRecord) {
     const a = String(row.factOpeningSizes ?? "").trim();
     if (!p && !a) return;
     // Keep entered order: differently located openings must not be paired by sorted dimensions.
-    const parse = (text: string) => text.split(/[;\n]+/u).map(value => value.trim().split(/[xх×]/iu).map(measurementNumber));
+    const parse = (text: string) => text.split(/[,;\n]+/u).map(value => value.trim().split(/[xх×]/iu).map(measurementNumber));
     const project = parse(p), actual = parse(a);
     if (!p || !a || project.length !== actual.length) { results.push("incomplete"); return; }
     project.forEach((item, index) => {
       if (item.length !== 2 || actual[index].length !== 2) { results.push("incomplete"); return; }
-      for (let i = 0; i < 2; i++) results.push(compareMeasurement(item[i], actual[index][i], "opening", criteria));
+      for (let i = 0; i < 2; i++) results.push(comparePhysicalMeasurement(item[i], actual[index][i], "opening", criteria));
     });
   }
   return summarizeMeasurements(results);

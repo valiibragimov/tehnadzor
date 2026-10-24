@@ -1,4 +1,4 @@
-import { compareMeasurement, measurementNumber, type AcceptanceCriteria } from "../acceptance.js";
+import { comparePhysicalMeasurement, measurementNumber, type AcceptanceCriteria } from "../acceptance.js";
 import { t } from "../../../shared/i18n/index.js";
 import { TOLERANCES } from "../../../config.js";
 import {
@@ -115,7 +115,7 @@ export function buildReinforcementMeasurementResults(measurements: Reinforcement
   return fields.flatMap(([name, project, actual, key]) => {
     const p = measurementNumber(measurements[project]), a = measurementNumber(measurements[actual]);
     if (p == null && a == null) return [];
-    const verdict = key === "diameter" ? p == null || a == null ? "incomplete" : p === a ? "ok" : "exceeded" : compareMeasurement(p, a, key, criteria);
+    const verdict = key === "diameter" ? p == null || a == null || p <= 0 || a <= 0 ? "incomplete" : p === a ? "ok" : "exceeded" : comparePhysicalMeasurement(p, a, key, criteria);
     const text = t(verdict === "ok" ? "engineering_conforms" : verdict === "exceeded" ? "engineering_nonconforms" : "engineering_requires_review");
     return [{ name, ok: verdict === "ok", regulatoryDoc: key === "diameter" ? "PROJECT_DESIGN" : criteria?.reference || "",
       html: `<div>${escapeHtml(name)}: ${escapeHtml(p ?? "—")} / ${escapeHtml(a ?? "—")} mm; Δ=${p == null || a == null ? "—" : (a - p).toFixed(1)} mm — ${escapeHtml(text)}</div>` }];
@@ -359,6 +359,7 @@ export function createReinforcementRuntime(
                   : "Есть несоответствия, требуется корректировка."
               }
             </b>
+            ${evaluation.hasIncompleteMeasurements ? `<p>${t("engineering_incomplete")}</p>` : ""}
             ${renderRegulatoryBasisHtml({
               moduleKey: "reinforcement",
               checkKind: construction || "default",

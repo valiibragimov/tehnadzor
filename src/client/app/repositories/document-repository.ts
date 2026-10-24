@@ -19,6 +19,10 @@ export function createFirebaseDocumentRepository(): DocumentRepository {
     return auth.currentUser.getIdToken();
   };
   return {
+    listDocuments: (projectId, cursor) => listDocuments(projectId, cursor as QueryDocumentSnapshot | undefined),
+    listVersions: (projectId, documentId, cursor) => listDocumentVersions(projectId, documentId, cursor as QueryDocumentSnapshot | undefined),
+    getAccess: getDocumentAccess,
+    setMember: setDocumentMember,
     async prepare(projectId, documentId, versionId, draft, file, sha256, isNew) {
       const uid = auth.currentUser?.uid;
       if (!uid) throw new Error("AUTH_REQUIRED");

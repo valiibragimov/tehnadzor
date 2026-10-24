@@ -45,3 +45,15 @@ test("geodesy respects signed asymmetric elevation limits", () => {
   assert.equal(evaluateGeoNode(node, 8, { min: -20, max: 0 }).status, "ok");
   assert.equal(evaluateGeoNode({ ...node, factH: 100.001 }, 8, { min: -20, max: 0 }).status, "bad");
 });
+test("geometry accepts the advertised comma-separated opening dimensions", () => {
+  const check = { construction: "floor_slab", physicalDimensions: { length: {project: 6000, actual: 6000}, width: {project: 4000, actual: 4000} }, projPlateHeight: 200, factPlateHeight: 200, factPlateFlatness: 0, projOpeningSizes: "1200×900, 800×2100", factOpeningSizes: "1200×900, 800×2100", acceptanceCriteria: {confirmed: true, reference: "Synthetic drawing", limits: {dimensions: {min: -5, max: 5}, thickness: {min: -5,max:5}, flatness: {min:0,max:5}, opening: {min:-5,max:5}}} };
+  assert.equal(evaluateGeometryCheck(check).status, "ok");
+  const partial = evaluateGeometryCheck({...check, physicalDimensions: {}, factPlateHeight: 220});
+  assert.equal(partial.status, "exceeded");
+  assert.match(partial.summaryText, /неполна/u);
+});
+test("nonphysical reinforcement measurements and opening dimensions cannot pass", () => {
+  const acceptanceCriteria = {confirmed:true,reference:"Synthetic drawing",limits:{step:{min:-5,max:5},cover:{min:-5,max:5},dimensions:{min:-5,max:5},thickness:{min:-5,max:5},flatness:{min:0,max:5},opening:{min:-5,max:5}}};
+  assert.notEqual(evaluateReinforcementCheck({construction:"floor_slab",projDia:12,factDia:12,projStep:0,factStep:0,projCover:-30,factCover:-30,acceptanceCriteria}).status,"ok");
+  assert.notEqual(evaluateGeometryCheck({construction:"floor_slab",physicalDimensions:{length:{project:6000,actual:6000},width:{project:4000,actual:4000}},projPlateHeight:200,factPlateHeight:200,factPlateFlatness:0,projOpeningSizes:"-100x-200",factOpeningSizes:"-100x-200",acceptanceCriteria}).status,"ok");
+});

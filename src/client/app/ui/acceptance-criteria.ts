@@ -25,7 +25,7 @@ export function mountAcceptanceCriteria(root: HTMLElement, keys: Array<{ key: st
     const group = document.createElement("fieldset");
     group.dataset.limit = key;
     const legend = document.createElement("legend");
-    const labelKeys = { dimensions: "physical_dimensions", section: "dimension_section", thickness: "dimension_thickness", vertical: "form_vertical_deviation_mm", flatness: "form_measured_flatness_deviation_mm", opening: "dimension_opening", step: "dimension_step", cover: "form_design_concrete_cover", hoopsStep: "form_design_stirrup_spacing" };
+    const labelKeys = { dimensions: "physical_dimensions", section: "dimension_section", thickness: "dimension_thickness", vertical: "form_vertical_deviation_mm", flatness: "form_measured_flatness_deviation_mm", geoFlatness: "form_measured_flatness_deviation_mm", opening: "dimension_opening", step: "dimension_step", cover: "form_design_concrete_cover", hoopsStep: "form_design_stirrup_spacing" };
     if (labelKeys[key]) legend.dataset.i18n = labelKeys[key];
     legend.textContent = title;
     group.append(legend);

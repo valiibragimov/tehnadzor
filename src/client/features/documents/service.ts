@@ -19,7 +19,12 @@ export interface DocumentVersion extends DocumentDraft {
   storagePath: string;
   createdBy: string;
 }
+export interface DocumentPage<T> { items: T[]; cursor?: unknown; hasMore: boolean }
 export interface DocumentRepository {
+  listDocuments(projectId: string, cursor?: unknown): Promise<DocumentPage<{ id: string; title: string; kind: string }>>;
+  listVersions(projectId: string, documentId: string, cursor?: unknown): Promise<DocumentPage<DocumentVersion>>;
+  getAccess(projectId: string): Promise<"owner" | "editor" | "reader" | "none">;
+  setMember(projectId: string, uid: string, role: "editor" | "reader" | "none"): Promise<void>;
   prepare(projectId: string, documentId: string, versionId: string, draft: DocumentDraft, file: File, sha256: string, isNew: boolean): Promise<void>;
   upload(projectId: string, documentId: string, versionId: string, file: File, sha256: string): Promise<void>;
   finalize(projectId: string, documentId: string, versionId: string): Promise<void>;
@@ -39,6 +44,10 @@ export async function pdfDigest(file: Blob) {
 
 export function createDocumentService(repository: DocumentRepository) {
   return {
+    listDocuments: repository.listDocuments,
+    listVersions: repository.listVersions,
+    getAccess: repository.getAccess,
+    setMember: repository.setMember,
     async addVersion(projectId: string, draft: DocumentDraft, file: File, existingDocumentId?: string) {
       await validatePdf(file);
       if (!draft.title.trim() || draft.title.length > 200 || !DOCUMENT_KINDS.includes(draft.kind)) throw new Error("DOCUMENT_INVALID");

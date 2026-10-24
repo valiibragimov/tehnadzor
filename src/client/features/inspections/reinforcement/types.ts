@@ -134,6 +134,7 @@ export interface ReinforcementState {
 }
 
 export interface ReinforcementEvaluation {
+  hasIncompleteMeasurements: boolean;
   status: ReinforcementStatus;
   summaryText: string;
   hasAnyData: boolean;

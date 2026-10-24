@@ -5,7 +5,7 @@ import {
 import { readAcceptanceCriteria, restoreAcceptanceCriteria } from "../../../app/ui/acceptance-criteria.js";
 import { getConfirmedGeoTolerance } from "./evaluation.js";
 import { renderRegulatoryBasisHtml } from "../../../app/services/regulatory-basis.js";
-import { APP_CONFIG, TOLERANCES } from "../../../config.js";
+import { APP_CONFIG } from "../../../config.js";
 import {
   formatCheckResult,
   normalizeMarking,
@@ -116,7 +116,7 @@ export function bindGeodesyHandlers({
     projH,
     factH
   } = dom;
-  const getInspectionToleranceValue = (_construction: unknown, _module: string, key: string, _fallback: number, _subtype: string) =>
+  const confirmedGeoTolerance = (key: string) =>
     getConfirmedGeoTolerance(readAcceptanceCriteria(document.getElementById("geo")), key);
   const {
     buildGeoNodeKey,
@@ -156,6 +156,7 @@ export function bindGeodesyHandlers({
     checked.geo = data.status === "ok" || data.status === "bad";
     geoResult.className = data.status === "ok" ? "result ok" : data.status === "bad" ? "result not-ok" : "result";
     geoResult.textContent = t(data.status === "ok" ? "engineering_conforms" : data.status === "bad" ? "engineering_nonconforms" : "engineering_requires_review");
+    if (data.status === "bad" && data.dataStatus !== "checked") geoResult.append(` — ${t("engineering_incomplete")}`);
     const rows = data.columns || data.walls || data.beams || [data];
     for (const [index, row] of rows.entries()) {
       const suffixes = row.bindingType === "number_letters" ? ["_num_let1", "_num_let2"] : row.bindingType === "letter_numbers" ? ["_let_num1", "_let_num2"] : [""];
@@ -212,13 +213,7 @@ export function bindGeodesyHandlers({
       }
 
       // Вычисляем статус узла колонны с помощью чистой функции
-      const columnToleranceXY = getInspectionToleranceValue(
-        getCurrentConstructionKey(),
-        "geo",
-        "geoPlan",
-        TOLERANCES.PLAN_XY,
-        getCurrentConstructionSubtype()
-      );
+      const columnToleranceXY = confirmedGeoTolerance("geoPlan");
       const evaluation = evaluateGeoColumnNode(columns, columnToleranceXY);
 
       // Определяем dataStatus на основе заполненности
@@ -340,13 +335,7 @@ export function bindGeodesyHandlers({
       }
 
       // Вычисляем статус узла стены с помощью чистой функции
-      const wallToleranceXY = getInspectionToleranceValue(
-        getCurrentConstructionKey(),
-        "geo",
-        "geoPlan",
-        TOLERANCES.PLAN_XY,
-        getCurrentConstructionSubtype()
-      );
+      const wallToleranceXY = confirmedGeoTolerance("geoPlan");
       const evaluation = evaluateGeoWallNode(walls, wallToleranceXY);
 
       // Определяем dataStatus на основе заполненности
@@ -531,13 +520,7 @@ export function bindGeodesyHandlers({
         key = `beams_${floorPart}_${Date.now()}`;
       }
 
-      const beamToleranceXY = getInspectionToleranceValue(
-        getCurrentConstructionKey(),
-        "geo",
-        "geoPlan",
-        TOLERANCES.PLAN_XY,
-        getCurrentConstructionSubtype()
-      );
+      const beamToleranceXY = confirmedGeoTolerance("geoPlan");
       // Вычисляем статус узла балки с помощью чистой функции
       const evaluation = evaluateGeoBeamNode(beams, beamToleranceXY);
 
@@ -728,25 +711,14 @@ export function bindGeodesyHandlers({
     };
 
     // Вычисляем статус узла с помощью чистой функции
-    const geoToleranceXY = getInspectionToleranceValue(
-      getCurrentConstructionKey(),
-      "geo",
-      "geoPlan",
-      TOLERANCES.PLAN_XY,
-      getCurrentConstructionSubtype()
-    );
-    const geoToleranceH = getInspectionToleranceValue(
-      getCurrentConstructionKey(),
-      "geo",
-      "geoHeight",
-      TOLERANCES.HEIGHT,
-      getCurrentConstructionSubtype()
-    );
+    const geoToleranceXY = confirmedGeoTolerance("geoPlan");
+    const geoToleranceH = confirmedGeoTolerance("geoHeight");
     const evaluation = evaluateGeoNode(nodeDataForEval, geoToleranceXY, geoToleranceH);
     if ([projX, projY, projH].some(input => input.dataset.unitUnconfirmed === "1")) evaluation.status = "empty";
 
     const stairNameValue = geoBehavior.showStairName ? (geoStairNameEl?.value?.trim() || "") : "";
-    const plateFlatnessData = geoBehavior.showGeoFlatnessCheck ? collectGeoPlateFlatnessData() : null;
+    const measuredFlatness = geoBehavior.showGeoFlatnessCheck ? collectGeoPlateFlatnessData() : null;
+    const plateFlatnessData = measuredFlatness?.actual != null ? measuredFlatness : null;
     const plateFlatnessComplete = Boolean(
       plateFlatnessData &&
       plateFlatnessData.actual != null &&
@@ -763,7 +735,7 @@ export function bindGeodesyHandlers({
       ? "bad" : evaluation.status === "empty" || (plateFlatnessData && !plateFlatnessComplete) || openingEvaluation?.status === "empty" ? "empty" : evaluation.status;
 
     // Определяем dataStatus на основе заполненности
-    const dataStatus = evaluation.hasAllData && (!plateFlatnessData || plateFlatnessComplete) ? "checked" :
+    const dataStatus = evaluation.hasAllData && (!plateFlatnessData || plateFlatnessComplete) && (!openingEvaluation || openingEvaluation.hasAllData) ? "checked" :
                        (evaluation.hasProjXY ? "project_only" :
                        (evaluation.hasFactXY ? "fact_only" : "empty"));
     const data: GeodesyNodeRecord = {

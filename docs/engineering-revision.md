@@ -31,7 +31,7 @@ Remove normative concrete acceptance based on the universal logarithmic age curv
 
 These are preliminary code findings, not a completed scenario audit.
 
-## Proposed TDD boundaries, awaiting confirmation
+## Confirmed TDD boundaries
 
 - Public evaluation functions: units, completeness, limit boundaries, applicability and normative uncertainty; excludes UI/storage.
 - Public save/load services and emulator rules: stable identities, history, legacy compatibility, document versions and denied foreign access; excludes production.
