@@ -1,3 +1,4 @@
+import type { AcceptanceCriteria } from "../acceptance.js";
 import type {
   GeodesyColumnDraft,
   GeodesyCoordinateDraft,
@@ -13,9 +14,19 @@ const numericValue = (value: string | number | null | undefined) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+export type GeodesyTolerance = number | { min: number; max: number };
+function geoLimits(tolerance: GeodesyTolerance) {
+  const bounds = typeof tolerance === "number" ? { min: -tolerance, max: tolerance } : tolerance;
+  return Number.isFinite(bounds.min) && Number.isFinite(bounds.max) && bounds.min <= bounds.max ? bounds : null;
+}
+function withinGeoTolerance(delta: number, tolerance: GeodesyTolerance) {
+  const bounds = geoLimits(tolerance);
+  return !!bounds && delta >= bounds.min - 1e-7 && delta <= bounds.max + 1e-7;
+}
+
 export function evaluateGeoColumnNode(
   columns: GeodesyColumnDraft[],
-  tolerance = 8
+  tolerance: GeodesyTolerance = NaN
 ): GeodesyEvaluation {
   return evaluateRows(
     columns,
@@ -27,22 +38,22 @@ export function evaluateGeoColumnNode(
 
 export function evaluateGeoWallNode(
   walls: GeodesyLinearDraft[],
-  tolerance = 8
+  tolerance: GeodesyTolerance = NaN
 ): GeodesyEvaluation {
   return evaluateLinearRows(walls, tolerance);
 }
 
 export function evaluateGeoBeamNode(
   beams: GeodesyLinearDraft[],
-  tolerance = 8
+  tolerance: GeodesyTolerance = NaN
 ): GeodesyEvaluation {
   return evaluateLinearRows(beams, tolerance);
 }
 
 export function evaluateGeoNode(
   node: GeodesyCoordinateDraft,
-  toleranceXY = 8,
-  toleranceH = 10
+  toleranceXY: GeodesyTolerance = NaN,
+  toleranceH: GeodesyTolerance = NaN
 ): GeodesyCoordinateEvaluation {
   const projectX = numericValue(node.projX);
   const projectY = numericValue(node.projY);
@@ -53,30 +64,17 @@ export function evaluateGeoNode(
   const hasProjXY = projectX != null && projectY != null;
   const hasFactXY = actualX != null && actualY != null;
 
-  if (!hasProjXY || !hasFactXY) {
-    return {
-      status: "empty",
-      details: [],
-      hasAllData: false,
-      hasProjXY,
-      hasFactXY
-    };
+  const hasAllData = hasProjXY && hasFactXY && projectH != null && actualH != null;
+  const details: GeodesyCoordinateEvaluation["details"] = [];
+  for (const [axis, project, actual, tolerance] of [
+    ["X", projectX, actualX, toleranceXY], ["Y", projectY, actualY, toleranceXY], ["H", projectH, actualH, toleranceH]
+  ] as const) {
+    if (project != null && actual != null) details.push(buildCoordinateCheck(axis, project, actual, tolerance));
   }
-
-  const details: GeodesyCoordinateEvaluation["details"] = [
-    buildCoordinateCheck("X", projectX, actualX, toleranceXY),
-    buildCoordinateCheck("Y", projectY, actualY, toleranceXY)
-  ];
-  if (projectH != null && actualH != null) {
-    details.push(buildCoordinateCheck("H", projectH, actualH, toleranceH));
-  }
-
   return {
-    status: details.every((check) => check.ok) ? "ok" : "bad",
-    details,
-    hasAllData: true,
-    hasProjXY: true,
-    hasFactXY: true
+    status: details.some(check => Number.isFinite(check.tol) && !check.ok) ? "bad" :
+      hasAllData && details.every(check => Number.isFinite(check.tol) && check.ok) ? "ok" : "empty",
+    details, hasAllData, hasProjXY, hasFactXY
   };
 }
 
@@ -109,12 +107,13 @@ export function buildColumnJournalPayload({
       ) {
         return null;
       }
-      return `К${index + 1}: ΔX=${Math.abs(actualX - projectX).toFixed(1)}, ΔY=${Math.abs(actualY - projectY).toFixed(1)}`;
+      return `К${index + 1}: ΔX=${(Math.abs(actualX - projectX) * 1000).toFixed(1)}, ΔY=${(Math.abs(actualY - projectY) * 1000).toFixed(1)}`;
     })
     .filter((detail): detail is string => detail != null)
     .join("; ");
 
   return {
+    evaluationSchemaVersion: 2,
     module: "Геодезия",
     status: status === "ok" ? "ok" : "exceeded",
     context: [columnMark, floor].filter(Boolean).join(", ") || "Колонны",
@@ -169,12 +168,13 @@ export function buildLinearJournalPayload({
       ) {
         return null;
       }
-      return `${entityLabel}${index + 1}: ΔX=${Math.abs(actualX - projectX).toFixed(1)}, ΔY=${Math.abs(actualY - projectY).toFixed(1)}`;
+      return `${entityLabel}${index + 1}: ΔX=${(Math.abs(actualX - projectX) * 1000).toFixed(1)}, ΔY=${(Math.abs(actualY - projectY) * 1000).toFixed(1)}`;
     })
     .filter((detail): detail is string => detail != null)
     .join("; ");
 
   return {
+    evaluationSchemaVersion: 2,
     module: "Геодезия",
     status: status === "ok" ? "ok" : "exceeded",
     context: floor ? `Этаж ${floor}, ${entityPlural}` : entityPlural,
@@ -188,7 +188,7 @@ function evaluateRows<T>(
   rows: T[],
   getProject: (row: T) => Array<string | number | null | undefined>,
   getActual: (row: T) => Array<string | number | null | undefined>,
-  tolerance: number
+  tolerance: GeodesyTolerance
 ): GeodesyEvaluation {
   if (rows.length === 0) {
     return {
@@ -215,19 +215,14 @@ function evaluateRows<T>(
     allHaveProject &&= hasProject;
     allHaveActual &&= hasActual;
 
-    if (hasProject && hasActual) {
-      allOk &&= project.every(
-        (value, index) =>
-          value != null &&
-          actual[index] != null &&
-          Math.abs(actual[index] - value) <= tolerance
-      );
+    for (let index = 0; index < project.length; index++) {
+      if (project[index] != null && actual[index] != null) allOk &&= withinGeoTolerance((actual[index] - project[index]) * 1000, tolerance);
     }
   }
 
   const hasAllData = allHaveProject && allHaveActual;
   return {
-    status: hasAllData ? (allOk ? "ok" : "bad") : "empty",
+    status: !geoLimits(tolerance) ? "empty" : !allOk ? "bad" : hasAllData ? "ok" : "empty",
     hasAllData,
     hasProjXY: hasAnyProject,
     hasFactXY: hasAnyActual
@@ -236,7 +231,7 @@ function evaluateRows<T>(
 
 function evaluateLinearRows(
   rows: GeodesyLinearDraft[],
-  tolerance: number
+  tolerance: GeodesyTolerance
 ) {
   return evaluateRows(
     rows,
@@ -276,13 +271,18 @@ function buildCoordinateCheck(
   axis: "X" | "Y" | "H",
   project: number,
   actual: number,
-  tolerance: number
+  tolerance: GeodesyTolerance
 ) {
-  const deviation = Math.abs(actual - project);
-  return {
-    axis,
-    dev: deviation,
-    ok: deviation <= tolerance,
-    tol: tolerance
-  };
+  const delta = Number(((actual - project) * 1000).toFixed(6));
+  const bounds = geoLimits(tolerance);
+  return { axis, dev: Math.abs(delta), delta,
+    ok: withinGeoTolerance(delta, tolerance),
+    tol: bounds ? Math.max(Math.abs(bounds.min), Math.abs(bounds.max)) : NaN,
+    lower: bounds?.min ?? null, upper: bounds?.max ?? null };
+}
+
+export function getConfirmedGeoTolerance(criteria: AcceptanceCriteria | null | undefined, key: string): GeodesyTolerance {
+  const bounds = criteria?.limits[key];
+  return criteria?.confirmed && criteria.reference.trim() && bounds?.min != null && bounds.max != null &&
+    Number.isFinite(bounds.min) && Number.isFinite(bounds.max) && bounds.min <= bounds.max ? { min: bounds.min, max: bounds.max } : NaN;
 }

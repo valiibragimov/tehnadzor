@@ -7,8 +7,8 @@ function formatNodeValue(value, unit = "") {
   if (value === null || value === undefined || value === "") return "—";
   const num = typeof value === "number" ? value : parseFloat(value);
   if (Number.isNaN(num)) return "—";
-  const rounded = Math.round(num * 10) / 10;
-  const formatted = rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(1);
+  const rounded = unit === "м" ? Math.round(num * 1000) / 1000 : Math.round(num * 10) / 10;
+  const formatted = rounded % 1 === 0 ? rounded.toString() : rounded.toString();
   return formatted + (unit ? ` ${unit}` : "");
 }
 
@@ -159,6 +159,8 @@ export function renderGeoNodesList({
   keys.forEach((k) => {
     const n = typedNodes.get(k);
 
+    const requiresReview = n.coordinateUnit !== "m" || !n.acceptanceCriteria || n.status === "pending";
+    const reviewTag = '<span class="tag" data-i18n="engineering_requires_review">Требует проверки</span>';
     if (n.type === "columns") {
       const colMark = n.columnMark ? safeValue(n.columnMark) : "Без маркировки";
       const floorPart = n.floor ? `, Этаж ${safeValue(n.floor)}` : "";
@@ -206,6 +208,7 @@ export function renderGeoNodesList({
         };
       }
 
+      if (!requiresReview) evaluation.status = n.status === "ok" ? "ok" : n.status === "bad" ? "bad" : "empty";
       let statusTag = "";
       if (evaluation.status === "bad") {
         statusTag = '<span class="tag bad">превышено</span>';
@@ -229,7 +232,7 @@ export function renderGeoNodesList({
               ${colMark}${floorPart}
             </div>
             <div class="node-header-controls">
-              ${statusTag}
+              ${requiresReview ? reviewTag : statusTag}
               ${buildNodeDeleteIconButton("Удалить узел", safeValue)}
             </div>
           </div>
@@ -258,6 +261,7 @@ export function renderGeoNodesList({
       const wallCount = n.walls ? n.walls.length : 0;
       const evaluation = evaluateGeoWallNode(n.walls || []);
 
+      if (!requiresReview) evaluation.status = n.status === "ok" ? "ok" : n.status === "bad" ? "bad" : "empty";
       let statusTag = "";
       if (evaluation.status === "bad") {
         statusTag = '<span class="tag bad">превышено</span>';
@@ -281,7 +285,7 @@ export function renderGeoNodesList({
               Стены${floorPart}
             </div>
             <div class="node-header-controls">
-              ${statusTag}
+              ${requiresReview ? reviewTag : statusTag}
               ${buildNodeDeleteIconButton("Удалить узел", safeValue)}
             </div>
           </div>
@@ -358,6 +362,7 @@ export function renderGeoNodesList({
         };
       }
 
+      if (!requiresReview) evaluation.status = n.status === "ok" ? "ok" : n.status === "bad" ? "bad" : "empty";
       let statusTag = "";
       if (evaluation.status === "bad") {
         statusTag = '<span class="tag bad">превышено</span>';
@@ -381,7 +386,7 @@ export function renderGeoNodesList({
               Балки${floorPart}
             </div>
             <div class="node-header-controls">
-              ${statusTag}
+              ${requiresReview ? reviewTag : statusTag}
               ${buildNodeDeleteIconButton("Удалить узел", safeValue)}
             </div>
           </div>
@@ -415,6 +420,7 @@ export function renderGeoNodesList({
       factH: n.factH
     });
 
+    if (!requiresReview) evaluation.status = n.status === "ok" ? "ok" : n.status === "bad" ? "bad" : "empty";
     let statusTag = "";
     if (evaluation.status === "bad") {
       statusTag = '<span class="tag bad">превышено</span>';
@@ -438,7 +444,7 @@ export function renderGeoNodesList({
             ${safeNodeDisplay}
           </div>
           <div class="node-header-controls">
-            ${statusTag}
+            ${requiresReview ? reviewTag : statusTag}
             ${buildNodeDeleteIconButton("Удалить узел", safeValue)}
           </div>
         </div>

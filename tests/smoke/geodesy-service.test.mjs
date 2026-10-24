@@ -262,9 +262,9 @@ test("geodesy evaluation distinguishes incomplete, accepted and exceeded coordin
       projX: 100,
       projY: 200,
       projH: 300,
-      factX: 105,
-      factY: 193,
-      factH: 309
+      factX: 100.005,
+      factY: 199.993,
+      factH: 300.009
     },
     8,
     10
@@ -274,8 +274,8 @@ test("geodesy evaluation distinguishes incomplete, accepted and exceeded coordin
       projX: 100,
       projY: 200,
       projH: null,
-      factX: 109,
-      factY: 200,
+      factX: 100.009,
+      factY: 200.0,
       factH: null
     },
     8,
@@ -310,21 +310,21 @@ test("geodesy linear evaluation supports both axis binding modes", () => {
     numberAxis1: "1",
     numberAxis2: "2",
     projX_num_let1: "100",
-    factX_num_let1: "104",
+    factX_num_let1: "100.004",
     projY_num_let1: "200",
-    factY_num_let1: "204",
+    factY_num_let1: "200.004",
     projX_num_let2: "300",
-    factX_num_let2: "304",
+    factX_num_let2: "300.004",
     projY_num_let2: "400",
-    factY_num_let2: "404",
+    factY_num_let2: "400.004",
     projX_let_num1: "100",
-    factX_let_num1: "104",
+    factX_let_num1: "100.004",
     projY_let_num1: "200",
-    factY_let_num1: "204",
+    factY_let_num1: "200.004",
     projX_let_num2: "300",
-    factX_let_num2: "304",
+    factX_let_num2: "300.004",
     projY_let_num2: "400",
-    factY_let_num2: "404"
+    factY_let_num2: "400.004"
   };
 
   assert.equal(
@@ -339,7 +339,7 @@ test("geodesy linear evaluation supports both axis binding modes", () => {
       [{
         ...base,
         bindingType: "letter_numbers",
-        factY_let_num2: "412"
+        factY_let_num2: "400.012"
       }],
       8
     ).status,
@@ -360,8 +360,8 @@ test("geodesy journal payload keeps persisted source context and deviations", ()
         mark: "К1",
         projX: "100",
         projY: "200",
-        factX: "110",
-        factY: "204"
+        factX: "100.01",
+        factY: "200.004"
       }
     ]
   });
@@ -384,9 +384,9 @@ test("geodesy journal payload keeps persisted source context and deviations", ()
         numberAxis1: "",
         numberAxis2: "",
         projX_num_let1: "100",
-        factX_num_let1: "104",
+        factX_num_let1: "100.004",
         projY_num_let1: "200",
-        factY_num_let1: "206",
+        factY_num_let1: "200.006",
         projX_num_let2: "",
         factX_num_let2: "",
         projY_num_let2: "",
@@ -404,6 +404,7 @@ test("geodesy journal payload keeps persisted source context and deviations", ()
   });
 
   assert.deepEqual(columnPayload, {
+    evaluationSchemaVersion: 2,
     module: "Геодезия",
     status: "exceeded",
     context: "К1, 2",

@@ -1,7 +1,9 @@
+import { t } from "../../../shared/i18n/index.js";
 import {
   getConstructionModuleBehavior
 } from "../../../app/construction.js";
-import { getInspectionToleranceValue } from "../../../app/inspection-registry.js";
+import { readAcceptanceCriteria, restoreAcceptanceCriteria } from "../../../app/ui/acceptance-criteria.js";
+import { getConfirmedGeoTolerance } from "./evaluation.js";
 import { renderRegulatoryBasisHtml } from "../../../app/services/regulatory-basis.js";
 import { APP_CONFIG, TOLERANCES } from "../../../config.js";
 import {
@@ -114,8 +116,8 @@ export function bindGeodesyHandlers({
     projH,
     factH
   } = dom;
-  const TOL_PLAN = 8;
-  const TOL_H = 10;
+  const getInspectionToleranceValue = (_construction: unknown, _module: string, key: string, _fallback: number, _subtype: string) =>
+    getConfirmedGeoTolerance(readAcceptanceCriteria(document.getElementById("geo")), key);
   const {
     buildGeoNodeKey,
     collectGeoPlateFlatnessData,
@@ -146,626 +148,34 @@ export function bindGeodesyHandlers({
     data
   );
 
-  btnGeo?.addEventListener("click", () => {
-    if (!validateProject(getCurrentProjectId())) return;
-
-    let shouldAutoSave = true;
-    const scheduleAutoSave = () => {
-      if (!shouldAutoSave) return;
-      btnSaveNode?.click();
-    };
-    setTimeout(scheduleAutoSave, 0);
-
-    const geoBehavior = getConstructionModuleBehavior(
-      getCurrentConstructionKey(),
-      "geo",
-      getCurrentConstructionSubtype()
-    );
-
-    if (geoBehavior.floorRequired !== false && !validateRequiredField(floorEl, "Этаж")) {
-      shouldAutoSave = false;
-      return;
-    }
-    const floorValue = geoBehavior.floorVisible === false ? "" : floorEl.value.trim();
-
-    const res = geoResult;
-    const geoFlags = getGeoConstructionFlags();
-
-    if (geoFlags.isUnsupported) {
-      shouldAutoSave = false;
-      setGeoUnsupportedState({ notify: true });
-      return;
-    }
-
-    // Специальная обработка для колонн
-    if (geoFlags.isColumn) {
-      if (columns.length === 0) {
-        res.className = "result not-ok";
-        res.textContent = "Ошибка: необходимо добавить хотя бы одну колонну.";
-        state.geo = false;
-        checked.geo = false;
-        shouldAutoSave = false;
-        return;
-      }
-
-      let allOk = true;
-      let msg = `<div><b>Проверка колонн (${columns.length} шт.)</b></div>`;
-      const columnMark = normalizeMarking(columnMarkEl.value);
-      const floor = floorValue; // Используем уже проверенное значение этажа
-      const geoPlanTolerance = getInspectionToleranceValue(
-        getCurrentConstructionKey(),
-        "geo",
-        "geoPlan",
-        TOLERANCES.PLAN_XY,
-        getCurrentConstructionSubtype()
-      );
-
-      // Сохраняем статус каждой колонны для выделения
-      const columnStatuses = [];
-
-      columns.forEach((col, index) => {
-        const pX = parseFloat(col.projX);
-        const fX = parseFloat(col.factX);
-        const pY = parseFloat(col.projY);
-        const fY = parseFloat(col.factY);
-        const safeColMark = col.mark ? safeValue(col.mark) : "";
-
-        // Проверяем наличие проектных данных
-        if (isNaN(pX) || isNaN(pY)) {
-          msg += `<div style="color: #ef4444;">Колонна ${index + 1}${safeColMark ? ` (${safeColMark})` : ""}: не заполнены проектные координаты</div>`;
-          allOk = false;
-          columnStatuses[index] = false;
-          return;
-        }
-
-        // Если нет фактических данных, пропускаем проверку
-        if (isNaN(fX) || isNaN(fY)) {
-          msg += `<div style="color: #fbbf24;">Колонна ${index + 1}${safeColMark ? ` (${safeColMark})` : ""}: заполнены только проектные данные, фактические отсутствуют</div>`;
-          columnStatuses[index] = null; // null означает "не проверено"
-          return;
-        }
-
-        const dX = Math.abs(fX - pX);
-        const dY = Math.abs(fY - pY);
-        const okX = dX <= geoPlanTolerance;
-        const okY = dY <= geoPlanTolerance;
-        const colOk = okX && okY;
-
-        columnStatuses[index] = colOk;
-        if (!colOk) allOk = false;
-
-        const colStyle = colOk ? "" : "color: #ef4444; font-weight: bold;";
-        msg += `<div style="margin-top: 6px; ${colStyle}"><b>Колонна ${index + 1}${safeColMark ? ` (${safeColMark})` : ""}:</b>`;
-        msg += `<div style="margin-left: 12px;">X: отклонение ${dX.toFixed(1)} мм (допуск ±${geoPlanTolerance} мм) — ${okX ? "в норме" : "превышено"}</div>`;
-        msg += `<div style="margin-left: 12px;">Y: отклонение ${dY.toFixed(1)} мм (допуск ±${geoPlanTolerance} мм) — ${okY ? "в норме" : "превышено"}</div>`;
-        msg += `</div>`;
-      });
-
-      msg += `<div style="margin-top:8px;"><b>Заключение:</b> ${
-        allOk
-          ? "Все колонны соответствуют допускам."
-          : "Есть превышения допусков по СП."
-      }</div>`;
-      msg += renderRegulatoryBasisHtml({
-        moduleKey: "geo",
-        checkKind: getCurrentConstructionKey() || construction.value || "Колонна",
-        subtype: getCurrentConstructionSubtype(),
-        helpTargetId: "geoHelpContent"
-      });
-
-      res.className = "result " + (allOk ? "ok" : "not-ok");
-      res.innerHTML = msg;
-      state.geo = allOk;
-      checked.geo = true;
-
-      // Выделяем несоответствующие колонны в интерфейсе красным цветом
-      setTimeout(() => {
-        columns.forEach((col, index) => {
-          const colCard = columnsList.children[index];
-          if (!colCard) return;
-
-          if (columnStatuses[index] === false) {
-            // Выделяем карточку колонны красной рамкой + glow + бейдж (не соответствует норме)
-            colCard.style.borderColor = "#ef4444";
-            colCard.style.borderWidth = "2px";
-            colCard.style.borderStyle = "solid";
-            colCard.style.boxShadow = "0 0 0 2px rgba(239, 68, 68, 0.2), 0 0 8px rgba(239, 68, 68, 0.3)";
-            colCard.style.backgroundColor = ""; // Не меняем фон карточки
-
-            // Добавляем бейдж "превышено" в заголовок карточки
-            const header = colCard.querySelector('b');
-            if (header && !header.querySelector('.error-badge')) {
-              const badge = document.createElement('span');
-              badge.className = 'error-badge';
-              badge.textContent = 'превышено';
-              badge.style.cssText = 'margin-left: 8px; padding: 2px 8px; background: #ef4444; color: #fff; border-radius: 4px; font-size: 11px; font-weight: 600;';
-              header.appendChild(badge);
-            }
-
-            // Выделяем поля ввода только красной рамкой и лёгким фоном
-            const colInputs = colCard.querySelectorAll(`[data-col-index="${index}"]`);
-            colInputs.forEach(input => {
-              input.style.borderColor = "#ef4444";
-              input.style.borderWidth = "2px";
-              input.style.backgroundColor = "rgba(239, 68, 68, 0.06)"; // Очень слабый красный фон
-            });
-          } else if (columnStatuses[index] === null) {
-            // Выделяем желтым (только проектные данные) - рамка без изменения фона
-            colCard.style.borderColor = "#fbbf24";
-            colCard.style.borderWidth = "2px";
-            colCard.style.borderStyle = "solid";
-            colCard.style.boxShadow = "0 0 0 2px rgba(251, 191, 36, 0.2)";
-            colCard.style.backgroundColor = "";
-          } else {
-            // Сбрасываем выделение (в норме)
-            colCard.style.borderColor = "";
-            colCard.style.borderWidth = "";
-            colCard.style.borderStyle = "";
-            colCard.style.boxShadow = "";
-            colCard.style.backgroundColor = "";
-
-            // Удаляем бейдж "превышено" если есть
-            const header = colCard.querySelector('b');
-            if (header) {
-              const badge = header.querySelector('.error-badge');
-              if (badge) badge.remove();
-            }
-
-            const colInputs = colCard.querySelectorAll(`[data-col-index="${index}"]`);
-            colInputs.forEach(input => {
-              input.style.borderColor = "";
-              input.style.borderWidth = "";
-              input.style.backgroundColor = "";
-            });
-          }
-        });
-      }, 100);
-
-      // НЕ обновляем статус узла при проверке - это side effect!
-      // Статус должен вычисляться только при сохранении/обновлении узла
-
-      return;
-    }
-
-    // Специальная обработка для стен
-    if (geoFlags.isWall) {
-      const wallEntityLabel = getGeoWallEntityLabel();
-      const wallEntityPlural = getGeoWallEntityPlural();
-      const wallEntityPluralGenitive = getGeoWallEntityPluralGenitive();
-      const wallEntityAddText = getGeoWallEntityAddText();
-      const geoPlanTolerance = getInspectionToleranceValue(
-        getCurrentConstructionKey(),
-        "geo",
-        "geoPlan",
-        TOLERANCES.PLAN_XY,
-        getCurrentConstructionSubtype()
-      );
-      if (walls.length === 0) {
-        res.className = "result not-ok";
-        res.textContent = `Ошибка: необходимо добавить хотя бы ${getGeoWallEntityRequiredText()}.`;
-        state.geo = false;
-        checked.geo = false;
-        shouldAutoSave = false;
-        return;
-      }
-
-      let allOk = true;
-      let msg = `<div><b>Проверка ${wallEntityPluralGenitive} (${walls.length} шт.)</b></div>`;
-      const floor = floorValue; // Используем уже проверенное значение этажа
-
-      walls.forEach((wall, index) => {
-        let wallOk = true;
-        let wallMsg = `<div style="margin-top: 6px;"><b>${wallEntityLabel} ${index + 1}:</b>`;
-        const safeWallNumberAxis = safeValue(wall.numberAxis || "?");
-        const safeWallLetterAxis1 = safeValue(wall.letterAxis1 || "?");
-        const safeWallLetterAxis2 = safeValue(wall.letterAxis2 || "?");
-        const safeWallLetterAxis = safeValue(wall.letterAxis || "?");
-        const safeWallNumberAxis1 = safeValue(wall.numberAxis1 || "?");
-        const safeWallNumberAxis2 = safeValue(wall.numberAxis2 || "?");
-
-        if (wall.bindingType === "number_letters") {
-          // Проверка для типа "одна цифровая + две буквенные"
-          const pX1 = parseFloat(wall.projX_num_let1);
-          const fX1 = parseFloat(wall.factX_num_let1);
-          const pY1 = parseFloat(wall.projY_num_let1);
-          const fY1 = parseFloat(wall.factY_num_let1);
-          const pX2 = parseFloat(wall.projX_num_let2);
-          const fX2 = parseFloat(wall.factX_num_let2);
-          const pY2 = parseFloat(wall.projY_num_let2);
-          const fY2 = parseFloat(wall.factY_num_let2);
-
-          const hasProj1 = !isNaN(pX1) && !isNaN(pY1);
-          const hasFact1 = !isNaN(fX1) && !isNaN(fY1);
-          const hasProj2 = !isNaN(pX2) && !isNaN(pY2);
-          const hasFact2 = !isNaN(fX2) && !isNaN(fY2);
-
-          if (!hasProj1 || !hasFact1 || !hasProj2 || !hasFact2) {
-            wallMsg += `<div style="color: #fbbf24;">Не заполнены все координаты для ${safeWallNumberAxis}, ${safeWallLetterAxis1}-${safeWallLetterAxis2}</div>`;
-            wallOk = false;
-          } else {
-            const dX1 = Math.abs(fX1 - pX1);
-            const dY1 = Math.abs(fY1 - pY1);
-            const dX2 = Math.abs(fX2 - pX2);
-            const dY2 = Math.abs(fY2 - pY2);
-            const ok1 = dX1 <= geoPlanTolerance && dY1 <= geoPlanTolerance;
-            const ok2 = dX2 <= geoPlanTolerance && dY2 <= geoPlanTolerance;
-            wallOk = ok1 && ok2;
-
-            const style1 = ok1 ? "" : "color: #ef4444; font-weight: bold;";
-            const style2 = ok2 ? "" : "color: #ef4444; font-weight: bold;";
-            wallMsg += `<div style="margin-left: 12px; ${style1}">${safeWallNumberAxis}, ${safeWallLetterAxis1}: X: ${dX1.toFixed(1)} мм, Y: ${dY1.toFixed(1)} мм — ${ok1 ? "в норме" : "превышено"}</div>`;
-            wallMsg += `<div style="margin-left: 12px; ${style2}">${safeWallNumberAxis}, ${safeWallLetterAxis2}: X: ${dX2.toFixed(1)} мм, Y: ${dY2.toFixed(1)} мм — ${ok2 ? "в норме" : "превышено"}</div>`;
-          }
-        } else {
-          // Проверка для типа "одна буквенная + две цифровые"
-          const pX1 = parseFloat(wall.projX_let_num1);
-          const fX1 = parseFloat(wall.factX_let_num1);
-          const pY1 = parseFloat(wall.projY_let_num1);
-          const fY1 = parseFloat(wall.factY_let_num1);
-          const pX2 = parseFloat(wall.projX_let_num2);
-          const fX2 = parseFloat(wall.factX_let_num2);
-          const pY2 = parseFloat(wall.projY_let_num2);
-          const fY2 = parseFloat(wall.factY_let_num2);
-
-          const hasProj1 = !isNaN(pX1) && !isNaN(pY1);
-          const hasFact1 = !isNaN(fX1) && !isNaN(fY1);
-          const hasProj2 = !isNaN(pX2) && !isNaN(pY2);
-          const hasFact2 = !isNaN(fX2) && !isNaN(fY2);
-
-          if (!hasProj1 || !hasFact1 || !hasProj2 || !hasFact2) {
-            wallMsg += `<div style="color: #fbbf24;">Не заполнены все координаты для ${safeWallLetterAxis}, ${safeWallNumberAxis1}-${safeWallNumberAxis2}</div>`;
-            wallOk = false;
-          } else {
-            const dX1 = Math.abs(fX1 - pX1);
-            const dY1 = Math.abs(fY1 - pY1);
-            const dX2 = Math.abs(fX2 - pX2);
-            const dY2 = Math.abs(fY2 - pY2);
-            const ok1 = dX1 <= geoPlanTolerance && dY1 <= geoPlanTolerance;
-            const ok2 = dX2 <= geoPlanTolerance && dY2 <= geoPlanTolerance;
-            wallOk = ok1 && ok2;
-
-            const style1 = ok1 ? "" : "color: #ef4444; font-weight: bold;";
-            const style2 = ok2 ? "" : "color: #ef4444; font-weight: bold;";
-            wallMsg += `<div style="margin-left: 12px; ${style1}">${safeWallLetterAxis}, ${safeWallNumberAxis1}: X: ${dX1.toFixed(1)} мм, Y: ${dY1.toFixed(1)} мм — ${ok1 ? "в норме" : "превышено"}</div>`;
-            wallMsg += `<div style="margin-left: 12px; ${style2}">${safeWallLetterAxis}, ${safeWallNumberAxis2}: X: ${dX2.toFixed(1)} мм, Y: ${dY2.toFixed(1)} мм — ${ok2 ? "в норме" : "превышено"}</div>`;
-          }
-        }
-
-        wallMsg += `</div>`;
-        msg += wallMsg;
-        if (!wallOk) allOk = false;
-      });
-
-      msg += `<div style="margin-top:8px;"><b>Заключение:</b> ${
-        allOk
-          ? `Все ${wallEntityPlural.toLocaleLowerCase("ru")} соответствуют допускам.`
-          : "Есть превышения допусков по СП."
-      }</div>`;
-      msg += renderRegulatoryBasisHtml({
-        moduleKey: "geo",
-        checkKind: getCurrentConstructionKey() || construction.value || "Стена",
-        subtype: getCurrentConstructionSubtype(),
-        helpTargetId: "geoHelpContent"
-      });
-
-      res.className = "result " + (allOk ? "ok" : "not-ok");
-      res.innerHTML = msg;
-      state.geo = allOk;
-      checked.geo = true;
-
-      // НЕ обновляем статус узла при проверке - это side effect!
-      // Статус должен вычисляться только при сохранении/обновлении узла
-
-      // Сохранение в журнал
-      const details = walls.map((wall, i) => {
-        if (wall.bindingType === "number_letters") {
-          const pX1 = parseFloat(wall.projX_num_let1);
-          const fX1 = parseFloat(wall.factX_num_let1);
-          const pY1 = parseFloat(wall.projY_num_let1);
-          const fY1 = parseFloat(wall.factY_num_let1);
-          const pX2 = parseFloat(wall.projX_num_let2);
-          const fX2 = parseFloat(wall.factX_num_let2);
-          const pY2 = parseFloat(wall.projY_num_let2);
-          const fY2 = parseFloat(wall.factY_num_let2);
-          if (isNaN(pX1) || isNaN(fX1) || isNaN(pY1) || isNaN(fY1) || isNaN(pX2) || isNaN(fX2) || isNaN(pY2) || isNaN(fY2)) {
-            return `С${i+1}: не заполнено`;
-          }
-          const dX1 = Math.abs(fX1 - pX1);
-          const dY1 = Math.abs(fY1 - pY1);
-          const dX2 = Math.abs(fX2 - pX2);
-          const dY2 = Math.abs(fY2 - pY2);
-          return `С${i+1}: ΔX1=${dX1.toFixed(1)}, ΔY1=${dY1.toFixed(1)}, ΔX2=${dX2.toFixed(1)}, ΔY2=${dY2.toFixed(1)}`;
-        } else {
-          const pX1 = parseFloat(wall.projX_let_num1);
-          const fX1 = parseFloat(wall.factX_let_num1);
-          const pY1 = parseFloat(wall.projY_let_num1);
-          const fY1 = parseFloat(wall.factY_let_num1);
-          const pX2 = parseFloat(wall.projX_let_num2);
-          const fX2 = parseFloat(wall.factX_let_num2);
-          const pY2 = parseFloat(wall.projY_let_num2);
-          const fY2 = parseFloat(wall.factY_let_num2);
-          if (isNaN(pX1) || isNaN(fX1) || isNaN(pY1) || isNaN(fY1) || isNaN(pX2) || isNaN(fX2) || isNaN(pY2) || isNaN(fY2)) {
-            return `С${i+1}: не заполнено`;
-          }
-          const dX1 = Math.abs(fX1 - pX1);
-          const dY1 = Math.abs(fY1 - pY1);
-          const dX2 = Math.abs(fX2 - pX2);
-          const dY2 = Math.abs(fY2 - pY2);
-          return `С${i+1}: ΔX1=${dX1.toFixed(1)}, ΔY1=${dY1.toFixed(1)}, ΔX2=${dX2.toFixed(1)}, ΔY2=${dY2.toFixed(1)}`;
-        }
-      }).join("; ");
-
-      return;
-    }
-
-    // Специальная обработка для балок (аналогично стенам)
-    if (geoFlags.isBeam) {
-      if (beams.length === 0) {
-        res.className = "result not-ok";
-        res.textContent = "Ошибка: необходимо добавить хотя бы одну балку.";
-        state.geo = false;
-        checked.geo = false;
-        shouldAutoSave = false;
-        return;
-      }
-
-      let allOk = true;
-      let msg = `<div><b>Проверка балок (${beams.length} шт.)</b></div>`;
-      const floor = floorValue; // Используем уже проверенное значение этажа
-      const beamToleranceXY = getInspectionToleranceValue(
-        getCurrentConstructionKey(),
-        "geo",
-        "geoPlan",
-        TOLERANCES.PLAN_XY,
-        getCurrentConstructionSubtype()
-      );
-
-      beams.forEach((beam, index) => {
-        let beamOk = true;
-        let beamMsg = `<div style="margin-top: 6px;"><b>Балка ${index + 1}:</b>`;
-        const safeBeamNumberAxis = safeValue(beam.numberAxis || "?");
-        const safeBeamLetterAxis1 = safeValue(beam.letterAxis1 || "?");
-        const safeBeamLetterAxis2 = safeValue(beam.letterAxis2 || "?");
-        const safeBeamLetterAxis = safeValue(beam.letterAxis || "?");
-        const safeBeamNumberAxis1 = safeValue(beam.numberAxis1 || "?");
-        const safeBeamNumberAxis2 = safeValue(beam.numberAxis2 || "?");
-
-        if (beam.bindingType === "number_letters") {
-          const pX1 = parseFloat(beam.projX_num_let1);
-          const fX1 = parseFloat(beam.factX_num_let1);
-          const pY1 = parseFloat(beam.projY_num_let1);
-          const fY1 = parseFloat(beam.factY_num_let1);
-          const pX2 = parseFloat(beam.projX_num_let2);
-          const fX2 = parseFloat(beam.factX_num_let2);
-          const pY2 = parseFloat(beam.projY_num_let2);
-          const fY2 = parseFloat(beam.factY_num_let2);
-
-          const hasProj1 = !isNaN(pX1) && !isNaN(pY1);
-          const hasFact1 = !isNaN(fX1) && !isNaN(fY1);
-          const hasProj2 = !isNaN(pX2) && !isNaN(pY2);
-          const hasFact2 = !isNaN(fX2) && !isNaN(fY2);
-
-          if (!hasProj1 || !hasFact1 || !hasProj2 || !hasFact2) {
-            beamMsg += `<div style="color: #fbbf24;">Не заполнены все координаты для ${safeBeamNumberAxis}, ${safeBeamLetterAxis1}-${safeBeamLetterAxis2}</div>`;
-            beamOk = false;
-          } else {
-            const dX1 = Math.abs(fX1 - pX1);
-            const dY1 = Math.abs(fY1 - pY1);
-            const dX2 = Math.abs(fX2 - pX2);
-            const dY2 = Math.abs(fY2 - pY2);
-            const ok1 = dX1 <= beamToleranceXY && dY1 <= beamToleranceXY;
-            const ok2 = dX2 <= beamToleranceXY && dY2 <= beamToleranceXY;
-            beamOk = ok1 && ok2;
-
-            const style1 = ok1 ? "" : "color: #ef4444; font-weight: bold;";
-            const style2 = ok2 ? "" : "color: #ef4444; font-weight: bold;";
-            beamMsg += `<div style="margin-left: 12px; ${style1}">${safeBeamNumberAxis}, ${safeBeamLetterAxis1}: X: ${dX1.toFixed(1)} мм, Y: ${dY1.toFixed(1)} мм — ${ok1 ? "в норме" : "превышено"}</div>`;
-            beamMsg += `<div style="margin-left: 12px; ${style2}">${safeBeamNumberAxis}, ${safeBeamLetterAxis2}: X: ${dX2.toFixed(1)} мм, Y: ${dY2.toFixed(1)} мм — ${ok2 ? "в норме" : "превышено"}</div>`;
-          }
-        } else {
-          const pX1 = parseFloat(beam.projX_let_num1);
-          const fX1 = parseFloat(beam.factX_let_num1);
-          const pY1 = parseFloat(beam.projY_let_num1);
-          const fY1 = parseFloat(beam.factY_let_num1);
-          const pX2 = parseFloat(beam.projX_let_num2);
-          const fX2 = parseFloat(beam.factX_let_num2);
-          const pY2 = parseFloat(beam.projY_let_num2);
-          const fY2 = parseFloat(beam.factY_let_num2);
-
-          const hasProj1 = !isNaN(pX1) && !isNaN(pY1);
-          const hasFact1 = !isNaN(fX1) && !isNaN(fY1);
-          const hasProj2 = !isNaN(pX2) && !isNaN(pY2);
-          const hasFact2 = !isNaN(fX2) && !isNaN(fY2);
-
-          if (!hasProj1 || !hasFact1 || !hasProj2 || !hasFact2) {
-            beamMsg += `<div style="color: #fbbf24;">Не заполнены все координаты для ${safeBeamLetterAxis}, ${safeBeamNumberAxis1}-${safeBeamNumberAxis2}</div>`;
-            beamOk = false;
-          } else {
-            const dX1 = Math.abs(fX1 - pX1);
-            const dY1 = Math.abs(fY1 - pY1);
-            const dX2 = Math.abs(fX2 - pX2);
-            const dY2 = Math.abs(fY2 - pY2);
-            const ok1 = dX1 <= beamToleranceXY && dY1 <= beamToleranceXY;
-            const ok2 = dX2 <= beamToleranceXY && dY2 <= beamToleranceXY;
-            beamOk = ok1 && ok2;
-
-            const style1 = ok1 ? "" : "color: #ef4444; font-weight: bold;";
-            const style2 = ok2 ? "" : "color: #ef4444; font-weight: bold;";
-            beamMsg += `<div style="margin-left: 12px; ${style1}">${safeBeamLetterAxis}, ${safeBeamNumberAxis1}: X: ${dX1.toFixed(1)} мм, Y: ${dY1.toFixed(1)} мм — ${ok1 ? "в норме" : "превышено"}</div>`;
-            beamMsg += `<div style="margin-left: 12px; ${style2}">${safeBeamLetterAxis}, ${safeBeamNumberAxis2}: X: ${dX2.toFixed(1)} мм, Y: ${dY2.toFixed(1)} мм — ${ok2 ? "в норме" : "превышено"}</div>`;
-          }
-        }
-
-        beamMsg += `</div>`;
-        msg += beamMsg;
-        if (!beamOk) allOk = false;
-      });
-
-      msg += `<div style="margin-top:8px;"><b>Заключение:</b> ${
-        allOk
-          ? "Все балки соответствуют допускам."
-          : "Есть превышения допусков по СП."
-      }</div>`;
-      msg += renderRegulatoryBasisHtml({
-        moduleKey: "geo",
-        checkKind: getCurrentConstructionKey() || construction.value || "beam",
-        subtype: getCurrentConstructionSubtype(),
-        helpTargetId: "geoHelpContent"
-      });
-
-      res.className = "result " + (allOk ? "ok" : "not-ok");
-      res.innerHTML = msg;
-      state.geo = allOk;
-      checked.geo = true;
-
-      // НЕ обновляем статус узла при проверке - это side effect!
-      // Статус должен вычисляться только при сохранении/обновлении узла
-
-      // Сохранение в журнал
-      const details = beams.map((beam, i) => {
-        if (beam.bindingType === "number_letters") {
-          const pX1 = parseFloat(beam.projX_num_let1);
-          const fX1 = parseFloat(beam.factX_num_let1);
-          const pY1 = parseFloat(beam.projY_num_let1);
-          const fY1 = parseFloat(beam.factY_num_let1);
-          const pX2 = parseFloat(beam.projX_num_let2);
-          const fX2 = parseFloat(beam.factX_num_let2);
-          const pY2 = parseFloat(beam.projY_num_let2);
-          const fY2 = parseFloat(beam.factY_num_let2);
-          if (isNaN(pX1) || isNaN(fX1) || isNaN(pY1) || isNaN(fY1) || isNaN(pX2) || isNaN(fX2) || isNaN(pY2) || isNaN(fY2)) {
-            return `Б${i+1}: не заполнено`;
-          }
-          const dX1 = Math.abs(fX1 - pX1);
-          const dY1 = Math.abs(fY1 - pY1);
-          const dX2 = Math.abs(fX2 - pX2);
-          const dY2 = Math.abs(fY2 - pY2);
-          return `Б${i+1}: ΔX1=${dX1.toFixed(1)}, ΔY1=${dY1.toFixed(1)}, ΔX2=${dX2.toFixed(1)}, ΔY2=${dY2.toFixed(1)}`;
-        } else {
-          const pX1 = parseFloat(beam.projX_let_num1);
-          const fX1 = parseFloat(beam.factX_let_num1);
-          const pY1 = parseFloat(beam.projY_let_num1);
-          const fY1 = parseFloat(beam.factY_let_num1);
-          const pX2 = parseFloat(beam.projX_let_num2);
-          const fX2 = parseFloat(beam.factX_let_num2);
-          const pY2 = parseFloat(beam.projY_let_num2);
-          const fY2 = parseFloat(beam.factY_let_num2);
-          if (isNaN(pX1) || isNaN(fX1) || isNaN(pY1) || isNaN(fY1) || isNaN(pX2) || isNaN(fX2) || isNaN(pY2) || isNaN(fY2)) {
-            return `Б${i+1}: не заполнено`;
-          }
-          const dX1 = Math.abs(fX1 - pX1);
-          const dY1 = Math.abs(fY1 - pY1);
-          const dX2 = Math.abs(fX2 - pX2);
-          const dY2 = Math.abs(fY2 - pY2);
-          return `Б${i+1}: ΔX1=${dX1.toFixed(1)}, ΔY1=${dY1.toFixed(1)}, ΔX2=${dX2.toFixed(1)}, ΔY2=${dY2.toFixed(1)}`;
-        }
-      }).join("; ");
-
-      return;
-    }
-
-    // Обычная проверка для остальных конструкций
-    const pX = parseFloat(projX.value);
-    const fX = parseFloat(factX.value);
-    const pY = parseFloat(projY.value);
-    const fY = parseFloat(factY.value);
-    const pH = parseFloat(projH.value);
-    const fH = parseFloat(factH.value);
-
-    // Проверка выполняется только если заполнены все необходимые поля
-    const hasProjXY = !isNaN(pX) && !isNaN(pY);
-    const hasFactXY = !isNaN(fX) && !isNaN(fY);
-
-    if (!hasProjXY || !hasFactXY) {
-      res.className = "result";
-      if (!hasProjXY && !hasFactXY) {
-        res.textContent = "Недостаточно данных для проверки. Заполните проектные и фактические значения координат X и Y.";
-      } else if (!hasProjXY) {
-        res.textContent = "Недостаточно данных для проверки. Заполните проектные значения координат X и Y.";
-      } else {
-        res.textContent = "Недостаточно данных для проверки. Заполните фактические значения координат X и Y.";
-      }
-      state.geo = false;
-      checked.geo = false;
-      return;
-    }
-
-    const checks = [];
-
-    // X и Y обязательны
-    const dX = Math.abs(fX - pX);
-    const okX = dX <= TOL_PLAN;
-    checks.push({ axis: "X", dev: dX, ok: okX, tol: TOL_PLAN });
-
-    const dY = Math.abs(fY - pY);
-    const okY = dY <= TOL_PLAN;
-    checks.push({ axis: "Y", dev: dY, ok: okY, tol: TOL_PLAN });
-
-    // H необязательна - проверяем только если заполнена
-    if (!isNaN(pH) && !isNaN(fH)) {
-      const dH = Math.abs(fH - pH);
-      const okH = dH <= TOL_H;
-      checks.push({ axis: "H", dev: dH, ok: okH, tol: TOL_H });
-    }
-
-    const flatnessData = geoBehavior.showGeoFlatnessCheck ? collectGeoPlateFlatnessData() : null;
-    const flatnessComplete = Boolean(flatnessData && flatnessData.actual != null && flatnessData.tolerance != null);
-    const flatnessOk = !flatnessData || (flatnessComplete && flatnessData.result === "ok");
-    const allOk = checks.every(c => c.ok) && flatnessOk;
-    checked.geo = true;
-
-    const floor = floorValue; // Используем уже проверенное значение этажа
-    const floorDisplay = floor ? `Этаж ${safeValue(floor)}, ` : "";
-    const axisState = getGeoAxisState(getCurrentConstructionKey() || construction.value || "floor_slab");
-    const safeNodeLabel = safeValue(axisState.nodeLabel || "без осей");
-    let msg = `<div><b>Узел:</b> ${floorDisplay}${safeNodeLabel}</div>`;
-    checks.forEach(c => {
-      const axisName = c.axis === "X" ? "Координата X" : c.axis === "Y" ? "Координата Y" : "Высота H";
-      const actual = c.axis === "X" ? fX : c.axis === "Y" ? fY : fH;
-      const project = c.axis === "X" ? pX : c.axis === "Y" ? pY : pH;
-      msg += `<div>${formatCheckResult({
-        parameterName: axisName,
-        actual: actual,
-        project: project,
-        tolerance: c.tol,
-        unit: "мм",
-        regulatoryDoc: "SP_70_13330_2012",
-        isStrict: false
-      })}</div>`;
-    });
-    if (flatnessData) {
-      if (flatnessComplete) {
-        const flatnessClassLabel = flatnessData.surfaceClass === "project" ? "по проекту" : flatnessData.surfaceClass;
-        const flatnessResultText = flatnessData.result === "ok" ? "в норме" : "превышено";
-        const flatnessStyle = flatnessData.result === "ok" ? "" : "color: #ef4444; font-weight: bold;";
-        msg += `<div style="${flatnessStyle}">Плоскостность: фактическое отклонение ${flatnessData.actual.toFixed(1)} мм, предельное ${flatnessData.tolerance.toFixed(1)} мм, база ${safeValue(flatnessData.base)} м, ${safeValue(flatnessClassLabel)} — ${flatnessResultText}</div>`;
-      } else {
-        msg += `<div style="color: #fbbf24;">Плоскостность: заполните фактическое отклонение и предельное отклонение для проверки.</div>`;
+  btnGeo?.addEventListener("click", () => btnSaveNode?.click());
+
+  function presentSavedNode(data: GeodesyNodeRecord) {
+    data.createdAt ??= Date.now();
+    state.geo = data.status === "ok";
+    checked.geo = data.status === "ok" || data.status === "bad";
+    geoResult.className = data.status === "ok" ? "result ok" : data.status === "bad" ? "result not-ok" : "result";
+    geoResult.textContent = t(data.status === "ok" ? "engineering_conforms" : data.status === "bad" ? "engineering_nonconforms" : "engineering_requires_review");
+    const rows = data.columns || data.walls || data.beams || [data];
+    for (const [index, row] of rows.entries()) {
+      const suffixes = row.bindingType === "number_letters" ? ["_num_let1", "_num_let2"] : row.bindingType === "letter_numbers" ? ["_let_num1", "_let_num2"] : [""];
+      for (const suffix of suffixes) for (const axis of ["X", "Y", "H"]) {
+        const p = row["proj" + axis + suffix], f = row["fact" + axis + suffix];
+        if (p == null || f == null || p === "" || f === "") continue;
+        const line = document.createElement("div");
+        line.textContent = `${index + 1} ${axis}${suffix ? " " + suffix.slice(-1) : ""}: ${p} / ${f} m; Δ=${((Number(f) - Number(p)) * 1000).toFixed(1)} mm`;
+        geoResult.append(line);
       }
     }
-    msg += `<div style="margin-top:6px;"><b>Заключение:</b> ${
-      allOk
-        ? "Привязка соответствует допускам."
-        : "Есть превышения допусков по СП."
-    }</div>`;
-    msg += renderRegulatoryBasisHtml({
-      moduleKey: "geo",
-      checkKind: getCurrentConstructionKey() || construction.value || "default",
-      subtype: getCurrentConstructionSubtype(),
-      helpTargetId: "geoHelpContent"
-    });
-
-    res.className = "result " + (allOk ? "ok" : "not-ok");
-    res.innerHTML = msg;
-    state.geo = allOk;
-    checked.geo = true;
-
-    // ВАЖНО: Кнопка "Проверить" НЕ должна изменять состояние узла
-    // Она только показывает расчёт в нижнем блоке без side effects
-
-  });
+    data.lastMsg = geoResult.innerHTML;
+  }
 
   btnSaveNode?.addEventListener("click", async () => {
     if (!validateProject(getCurrentProjectId())) return;
+    if (geoResult.dataset.legacyUnits === "1") {
+      showNotification("Единицы старой записи не определены. Исходная запись сохранена; создайте новую проверку после очистки формы.", "warning");
+      return;
+    }
     const geoFlags = getGeoConstructionFlags();
     const geoBehavior = getConstructionModuleBehavior(
       getCurrentConstructionKey(),
@@ -777,6 +187,8 @@ export function bindGeodesyHandlers({
       setGeoUnsupportedState({ notify: true });
       return;
     }
+
+    if (geoBehavior.floorRequired !== false && !validateRequiredField(floorEl, "Этаж")) return;
 
     // Специальная обработка для колонн
     if (geoFlags.isColumn) {
@@ -815,6 +227,9 @@ export function bindGeodesyHandlers({
                          (evaluation.hasFactXY ? "fact_only" : "empty"));
 
       const data: GeodesyNodeRecord = {
+        acceptanceCriteria: readAcceptanceCriteria(document.getElementById("geo")),
+        evaluationSchemaVersion: 2,
+        coordinateUnit: "m", deviationUnit: "mm", measurementSchemaVersion: 2,
         type: "columns",
         ...buildCurrentConstructionPayload(),
         columnMark: columnMark || null,
@@ -839,7 +254,11 @@ export function bindGeodesyHandlers({
         lastMsg: geoResult.innerHTML || ""
       };
 
-      nodes.set(key, data);
+      if (nodes.has(key) && nodes.get(key)?.coordinateUnit !== "m") key = `${key}_${Date.now()}`;
+    data.createdAt = nodes.get(key)?.createdAt || Date.now();
+    geoResult.dataset.loadedKey = key;
+    presentSavedNode(data);
+    nodes.set(key, data);
       geodesyNodeState.currentNodeKeys.column = key; // Сохраняем ключ для возможного следующего обновления
       renderNodes();
       saveNodes();
@@ -936,6 +355,9 @@ export function bindGeodesyHandlers({
                          (evaluation.hasFactXY ? "fact_only" : "empty"));
 
       const data: GeodesyNodeRecord = {
+        acceptanceCriteria: readAcceptanceCriteria(document.getElementById("geo")),
+        evaluationSchemaVersion: 2,
+        coordinateUnit: "m", deviationUnit: "mm", measurementSchemaVersion: 2,
         type: "walls",
         ...buildCurrentConstructionPayload(),
         floor: floor || null,
@@ -1010,7 +432,11 @@ export function bindGeodesyHandlers({
         lastMsg: geoResult.innerHTML || ""
       };
 
-      nodes.set(key, data);
+      if (nodes.has(key) && nodes.get(key)?.coordinateUnit !== "m") key = `${key}_${Date.now()}`;
+    data.createdAt = nodes.get(key)?.createdAt || Date.now();
+    geoResult.dataset.loadedKey = key;
+    presentSavedNode(data);
+    nodes.set(key, data);
       geodesyNodeState.currentNodeKeys.wall = key;
       renderNodes();
       saveNodes();
@@ -1121,6 +547,9 @@ export function bindGeodesyHandlers({
                          (evaluation.hasFactXY ? "fact_only" : "empty"));
 
       const data: GeodesyNodeRecord = {
+        acceptanceCriteria: readAcceptanceCriteria(document.getElementById("geo")),
+        evaluationSchemaVersion: 2,
+        coordinateUnit: "m", deviationUnit: "mm", measurementSchemaVersion: 2,
         type: "beams",
         ...buildCurrentConstructionPayload(),
         floor: floor || null,
@@ -1180,7 +609,11 @@ export function bindGeodesyHandlers({
         lastMsg: geoResult.innerHTML || ""
       };
 
-      nodes.set(key, data);
+      if (nodes.has(key) && nodes.get(key)?.coordinateUnit !== "m") key = `${key}_${Date.now()}`;
+    data.createdAt = nodes.get(key)?.createdAt || Date.now();
+    geoResult.dataset.loadedKey = key;
+    presentSavedNode(data);
+    nodes.set(key, data);
       geodesyNodeState.currentNodeKeys.beam = key;
       renderNodes();
       saveNodes();
@@ -1273,7 +706,7 @@ export function bindGeodesyHandlers({
     if (axisState.isPlate && !validateGeoPlateAxisRange({ showWarning: true })) {
       return;
     }
-    const key = buildGeoNodeKey({
+    let key = geoResult.dataset.loadedKey || buildGeoNodeKey({
       constructionValue: getCurrentConstructionKey(),
       floorValue: floor,
       letterValue: axisState.isPlate ? "" : axisState.letter,
@@ -1310,6 +743,7 @@ export function bindGeodesyHandlers({
       getCurrentConstructionSubtype()
     );
     const evaluation = evaluateGeoNode(nodeDataForEval, geoToleranceXY, geoToleranceH);
+    if ([projX, projY, projH].some(input => input.dataset.unitUnconfirmed === "1")) evaluation.status = "empty";
 
     const stairNameValue = geoBehavior.showStairName ? (geoStairNameEl?.value?.trim() || "") : "";
     const plateFlatnessData = geoBehavior.showGeoFlatnessCheck ? collectGeoPlateFlatnessData() : null;
@@ -1323,15 +757,19 @@ export function bindGeodesyHandlers({
       plateFlatnessComplete &&
       plateFlatnessData.result === "exceeded"
     );
-    const finalEvaluationStatus = plateFlatnessBlocksOkStatus
-      ? "not-ok"
-      : evaluation.status;
+    const openingEvaluation = geoBehavior.showOpeningPoints && plateOpeningPoints.length
+      ? evaluateGeoColumnNode(plateOpeningPoints.map(point => ({ ...point, id: Number(point.id), mark: "" })), geoToleranceXY) : null;
+    const finalEvaluationStatus = plateFlatnessBlocksOkStatus || evaluation.status === "bad" || openingEvaluation?.status === "bad"
+      ? "bad" : evaluation.status === "empty" || (plateFlatnessData && !plateFlatnessComplete) || openingEvaluation?.status === "empty" ? "empty" : evaluation.status;
 
     // Определяем dataStatus на основе заполненности
     const dataStatus = evaluation.hasAllData && (!plateFlatnessData || plateFlatnessComplete) ? "checked" :
                        (evaluation.hasProjXY ? "project_only" :
                        (evaluation.hasFactXY ? "fact_only" : "empty"));
     const data: GeodesyNodeRecord = {
+        acceptanceCriteria: readAcceptanceCriteria(document.getElementById("geo")),
+        evaluationSchemaVersion: 2,
+        coordinateUnit: "m", deviationUnit: "mm", measurementSchemaVersion: 2,
       ...buildCurrentConstructionPayload(),
       ...bim.collectNodeData(),
       floor: geoBehavior.floorVisible === false ? null : (floor || null),
@@ -1374,6 +812,10 @@ export function bindGeodesyHandlers({
       lastMsg: geoResult.innerHTML || ""
     };
 
+    if (nodes.has(key) && nodes.get(key)?.coordinateUnit !== "m") key = `${key}_${Date.now()}`;
+    data.createdAt = nodes.get(key)?.createdAt || Date.now();
+    geoResult.dataset.loadedKey = key;
+    presentSavedNode(data);
     nodes.set(key, data);
     renderNodes();
     saveNodes();
@@ -1388,14 +830,15 @@ export function bindGeodesyHandlers({
       const contextLabel = axisState.location || axisState.nodeLabel || "узел";
       const context = floor ? `${floor}-${contextLabel}` : contextLabel;
       const detailsParts = [];
-      if (!isNaN(pX) && !isNaN(fX)) detailsParts.push(`ΔX=${Math.abs(fX - pX).toFixed(1)} мм`);
-      if (!isNaN(pY) && !isNaN(fY)) detailsParts.push(`ΔY=${Math.abs(fY - pY).toFixed(1)} мм`);
-      if (!isNaN(pH) && !isNaN(fH)) detailsParts.push(`ΔH=${Math.abs(fH - pH).toFixed(1)} мм`);
+      if (!isNaN(pX) && !isNaN(fX)) detailsParts.push(`ΔX=${(Math.abs(fX - pX) * 1000).toFixed(1)} мм`);
+      if (!isNaN(pY) && !isNaN(fY)) detailsParts.push(`ΔY=${(Math.abs(fY - pY) * 1000).toFixed(1)} мм`);
+      if (!isNaN(pH) && !isNaN(fH)) detailsParts.push(`ΔH=${(Math.abs(fH - pH) * 1000).toFixed(1)} мм`);
       if (plateFlatnessData && plateFlatnessComplete) {
         detailsParts.push(`Плоскостность=${plateFlatnessData.actual.toFixed(1)} мм при допуске ${plateFlatnessData.tolerance.toFixed(1)} мм`);
       }
 
       await upsertJournalEntry({
+        evaluationSchemaVersion: 2,
         module: "Геодезия",
         status: allOk ? "ok" : "exceeded",
         context: context,
@@ -1454,7 +897,7 @@ export function bindGeodesyHandlers({
     if (axisState.isPlate && !validateGeoPlateAxisRange({ showWarning: true })) {
       return;
     }
-    const key = buildGeoNodeKey({
+    let key = geoResult.dataset.loadedKey || buildGeoNodeKey({
       constructionValue: getCurrentConstructionKey(),
       floorValue: floor,
       letterValue: axisState.isPlate ? "" : axisState.letter,
@@ -1472,6 +915,9 @@ export function bindGeodesyHandlers({
   });
 
   btnClearForm?.addEventListener("click", async () => {
+    delete geoResult.dataset.legacyUnits;
+    delete geoResult.dataset.loadedKey;
+    restoreAcceptanceCriteria(document.getElementById("geo"));
     const geoFlags = getGeoConstructionFlags();
     floorEl.value = "";
     columnMarkEl.value = "";

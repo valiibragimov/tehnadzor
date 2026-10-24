@@ -56,6 +56,7 @@ export function createFirestoreGeodesyService(
         nodeData.constructionLabel || context.getCurrentConstructionLabel(),
       constructionType:
         nodeData.constructionType || context.getCurrentConstructionType() || "Плита",
+      evaluationSchemaVersion: nodeData.evaluationSchemaVersion || null,
       checkStatus: normalizedStatus,
       summaryText: nodeData.summaryText || "",
       createdAt: nodeData.createdAt || Date.now(),

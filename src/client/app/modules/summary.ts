@@ -1,3 +1,4 @@
+import { currentAssessmentStatus } from "../../features/inspections/assessment-status.js";
 import { taskLabel, taskStatus, rowStatus, actionLabel } from "../../features/control-plan/index.js";
 import type { WorkspaceContext } from "../workspace-context.js";
 let workspace: Pick<WorkspaceContext, "getProjectId" | "getEngineerName" | "projectSelector" | "construction" | "dateInput" | "nodes" | "geometryChecks">;
@@ -540,7 +541,7 @@ function finalizeSummaryAggregate(aggregate) {
 }
 
 function tryBuildSummaryStatsFromAnalyticsCurrent(analyticsCurrent) {
-  if (!analyticsCurrent || typeof analyticsCurrent !== "object") return null;
+  if (!analyticsCurrent || typeof analyticsCurrent !== "object" || analyticsCurrent.evaluationSchemaVersion !== 2) return null;
   const byModule = analyticsCurrent.byModule;
   if (!byModule || typeof byModule !== "object") return null;
 
@@ -614,7 +615,7 @@ async function refreshSummaryStatsFromInspections(projectId) {
     const moduleKey = resolveSummaryModuleKey(inspection);
     if (!moduleKey) return;
 
-    const status = normalizeSummaryStatus(inspection?.checkStatus ?? inspection?.status);
+    const status = currentAssessmentStatus(inspection);
     const timestampMs = resolveSummaryTimestampMs(inspection);
     addRecordToSummaryAggregate(aggregate, moduleKey, inspection, status, timestampMs);
   });
@@ -630,7 +631,7 @@ async function refreshSummaryStatsFromInspections(projectId) {
       if (docs) collections[collectionName] = docs;
       (docs || []).forEach((doc: SummaryRecord) => {
         if (doc?.deleted) return;
-        const status = normalizeSummaryStatus(doc?.status ?? doc?.checkStatus);
+        const status = currentAssessmentStatus(doc);
         const timestampMs = resolveSummaryTimestampMs(doc);
         addRecordToSummaryAggregate(aggregate, moduleKey, doc, status, timestampMs);
       });

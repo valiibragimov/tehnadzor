@@ -202,12 +202,14 @@ function resolveRecordTimestampMs(record: Record<string, unknown>) {
 }
 
 function resolveRecordStatus(record: Record<string, unknown>) {
+  if (getRecordModuleKey(record) === "geo" && record.evaluationSchemaVersion !== 2) return "";
   const normalized = normalizeLower(record.checkStatus ?? record.status ?? record.summaryText);
   const compact = normalized.replace(/\s+/g, "");
   if (["exceeded", "bad", "ошибка", "недобор", "fail", "failed"].includes(compact) ||
       /не\s*соответ|не\s*в\s*норм|несоответств|превыш|отклон/u.test(normalized)) {
     return "exceeded";
   }
+  if (record.evaluationSchemaVersion !== 2) return "";
   if (["ok", "внорме", "соответствует"].includes(compact) || /^(?:в\s*норме|соответствует)(?:\s|$)/u.test(normalized)) return "ok";
   return "";
 }
@@ -388,8 +390,8 @@ function repeatControlSucceeded(issue: IssueRecord, original: Record<string, unk
   if (issue.repeatControlStatus && issue.repeatControlStatus !== "ok") return false;
   const sourceInspectionId = normalizeText(issue.repeatControlInspectionId);
   const sourceJournalEntryId = normalizeText(issue.repeatControlJournalEntryId);
-  // Legacy closures without repeat-control IDs remain readable.
-  if (!sourceInspectionId && !sourceJournalEntryId) return true;
+  // Historical closures remain stored, but cannot prove a successful repeat control.
+  if (!sourceInspectionId && !sourceJournalEntryId) return false;
   const repeat = findIssueInspection({ moduleKey: getRecordModuleKey(issue), sourceInspectionId, sourceJournalEntryId }, inspections);
   return Boolean(repeat && repeat !== original && resolveRecordStatus(repeat[0]) === "ok");
 }

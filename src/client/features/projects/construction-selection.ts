@@ -263,12 +263,7 @@ export function createConstructionSelectionRuntime(
     subtypeKey: string,
     selectedPileElement = getCurrentPileElement()
   ) {
-    const showPileElement = hasInspectionField(
-      constructionKey,
-      "geo",
-      "constructionPileElement",
-      subtypeKey
-    );
+    const showPileElement = constructionKey === "pile_grillage";
     if (!pileElementShell || !pileElement) {
       return showPileElement ? selectedPileElement : "";
     }
@@ -340,14 +335,7 @@ export function createConstructionSelectionRuntime(
     construction.dataset.subtypeLabel = selection.subtypeLabel || "";
     construction.dataset.subtypeControlLabel =
       selection.subtypeControlLabel || "";
-    construction.dataset.pileElementKey = hasInspectionField(
-      selection.key,
-      "geo",
-      "constructionPileElement",
-      selection.subtypeKey
-    )
-      ? currentPileElement
-      : "";
+    construction.dataset.pileElementKey = selection.key === "pile_grillage" ? currentPileElement : "";
     construction.dataset.pileElementLabel =
       construction.dataset.pileElementKey
         ? currentPileElement === "grillage"

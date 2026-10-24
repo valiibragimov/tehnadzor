@@ -23,7 +23,7 @@ const bundle = await build({
           const geomChecks = {}, inspections = {};
           for (let i=0;i<count;i++) {
             const sourceId = id + '-' + i;
-            const record = { projectId:id, module:'Геометрия', moduleKey:'geometry', construction:'foundation_slab',
+            const record = { evaluationSchemaVersion:2, projectId:id, module:'Геометрия', moduleKey:'geometry', construction:'foundation_slab',
               context:name+' position', location:name+' position', status, createdAt:Date.UTC(2026,6,24),
               projThick:500, factThick:status==='ok'?500:514 };
             geomChecks[sourceId] = record;

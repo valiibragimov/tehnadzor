@@ -1,3 +1,4 @@
+import type { AcceptanceCriteria } from "../acceptance.js";
 import type { BimElement } from "../../../types/domain.js";
 
 export type ReinforcementStatus = "empty" | "ok" | "exceeded";
@@ -93,6 +94,7 @@ export interface ReinforcementBimBindingSnapshot {
 
 export interface ReinforcementCheckRecord
   extends ReinforcementBimFields, ReinforcementMeasurements {
+  acceptanceCriteria?: AcceptanceCriteria | null;
   id?: string | null;
   projectId?: string | null;
   module?: string | null;
@@ -133,7 +135,7 @@ export interface ReinforcementState {
 
 export interface ReinforcementEvaluation {
   status: ReinforcementStatus;
-  summaryText: "Не заполнено" | "в норме" | "превышено";
+  summaryText: string;
   hasAnyData: boolean;
   hasRequiredData: boolean;
   allOk: boolean;
@@ -142,7 +144,7 @@ export interface ReinforcementEvaluation {
 export interface ReinforcementJournalPayload
   extends Record<string, unknown> {
   module: "Армирование";
-  status: "ok" | "exceeded";
+  status: "empty" | "ok" | "exceeded";
   context: string;
   details: string;
   construction: string;

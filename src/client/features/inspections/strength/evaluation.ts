@@ -1,3 +1,5 @@
+import { normalizeConstructionKey } from "../../../app/construction.js";
+import { getInspectionStatus } from "../../../app/inspection-registry.js";
 import type {
   StrengthCheckRecord,
   StrengthEvaluation,
@@ -10,7 +12,7 @@ function numericValue(value: unknown) {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : null;
   }
-  const parsed = Number.parseFloat(String(value).trim().replace(",", "."));
+  const parsed = Number(String(value).trim().replace(",", "."));
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -21,78 +23,37 @@ export function parseConcreteStrengthValue(value: unknown) {
   }
 
   const normalized = String(value).trim();
-  const classMatch = normalized.match(/B(\d+(?:\.\d+)?)/iu);
-  if (classMatch) return Number.parseFloat(classMatch[1]);
+  const classMatch = normalized.match(/^[BВ](\d+(?:[.,]\d+)?)(?:\([MМ]\d+\))?$/iu);
+  if (classMatch) return Number(classMatch[1].replace(",", "."));
 
-  const markMatch = normalized.match(/М(\d+(?:\.\d+)?)/iu);
-  if (markMatch) return Number.parseFloat(markMatch[1]) / 7.5;
-
-  const parsed = Number.parseFloat(normalized.replace(/[^\d.-]/gu, ""));
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  // A historical M grade cannot be converted into an acceptance class by a fixed ratio.
+  return null;
 }
 
-export function getNormativeStrength(
-  markValue: unknown,
-  daysValue: unknown
-) {
-  const mark = numericValue(markValue);
-  const days = numericValue(daysValue);
-  if (mark == null || mark <= 0 || days == null || days <= 0) return null;
-  if (days < 1) return mark * 0.2;
-  if (days >= 28) return mark;
-  return mark * Math.log10(days) / Math.log10(28);
+// Kept for callers of older clients; age alone is not an acceptance criterion.
+export function getNormativeStrength(_markValue: unknown, _daysValue: unknown): number | null {
+  return null;
 }
 
-export function evaluateStrengthCheck(
-  check: Pick<StrengthCheckRecord, "mark" | "markValue" | "days" | "actual">
-): StrengthEvaluation {
-  const markValue =
-    parseConcreteStrengthValue(check.mark) ??
-    parseConcreteStrengthValue(check.markValue);
+export function evaluateStrengthCheck(check: Partial<StrengthCheckRecord>): StrengthEvaluation {
+  const markValue = parseConcreteStrengthValue(check.mark) ?? parseConcreteStrengthValue(check.markValue);
   const days = numericValue(check.days);
   const actual = numericValue(check.actual);
-  const normativeStrength = getNormativeStrength(markValue, days);
-  const hasRequiredData =
-    markValue != null &&
-    markValue > 0 &&
-    days != null &&
-    days > 0 &&
-    normativeStrength != null;
-  const hasActual = actual != null;
-
-  if (!hasRequiredData || !hasActual) {
-    return {
-      status: "empty",
-      summaryText: "Не заполнено",
-      markValue,
-      days,
-      actual,
-      normativeStrength,
-      hasRequiredData,
-      hasActual,
-      isCompliant: null,
-      normativePercent:
-        markValue && normativeStrength != null
-          ? normativeStrength / markValue * 100
-          : null,
-      actualPercent:
-        markValue && actual != null ? actual / markValue * 100 : null
-    };
-  }
-
-  const isCompliant = actual >= normativeStrength;
+  const assessment = check.assessment;
+  const applicable = getInspectionStatus(normalizeConstructionKey(check.construction || check.constructionType, ""), "strength", check.constructionSubtype || "", check.constructionPileElement || "") === "object";
+  const hasActual = actual != null && actual > 0;
+  const hasRequiredData = markValue != null && markValue > 0 && days != null && days > 0;
+  const confirmed = applicable && hasRequiredData && hasActual && assessment?.confirmed === true &&
+    !!assessment.reference?.trim() && !!assessment.responsible?.trim() &&
+    /^\d{4}-\d{2}-\d{2}$/u.test(assessment.date || "") && Number.isFinite(Date.parse(assessment.date)) && new Date(assessment.date).toISOString().slice(0, 10) === assessment.date &&
+    ["conforms", "nonconforms"].includes(assessment.verdict || "");
+  const isCompliant = confirmed ? assessment?.verdict === "conforms" : null;
   return {
-    status: isCompliant ? "ok" : "exceeded",
-    summaryText: isCompliant ? "в норме" : "превышено",
-    markValue,
-    days,
-    actual,
-    normativeStrength,
-    hasRequiredData,
-    hasActual,
-    isCompliant,
-    normativePercent: normativeStrength / markValue * 100,
-    actualPercent: actual / markValue * 100
+    status: isCompliant == null ? "empty" : isCompliant ? "ok" : "exceeded",
+    summaryText: isCompliant == null ? "Требует проверки" : isCompliant ? "в норме" : "превышено",
+    markValue, days, actual, normativeStrength: null, hasRequiredData, hasActual, isCompliant,
+    normativePercent: null,
+    actualPercent: markValue && actual != null ? actual / markValue * 100 : null
   };
 }
 
@@ -108,15 +69,7 @@ export function buildStrengthResultSeries(
     return { labels: [], normative: [], actual: [] };
   }
 
-  const wholeDays = Math.max(7, Math.ceil(days));
-  const labels = Array.from({ length: wholeDays }, (_, index) => index + 1);
-  return {
-    labels,
-    normative: labels.map((day) => getNormativeStrength(mark, day) ?? 0),
-    actual: labels.map((day) =>
-      actual != null && day === days ? actual : null
-    )
-  };
+  return { labels: [days], normative: [], actual: [actual] };
 }
 
 export function buildStrengthJournalPayload(
@@ -130,7 +83,7 @@ export function buildStrengthJournalPayload(
   if (
     !evaluation.hasRequiredData ||
     !evaluation.hasActual ||
-    evaluation.normativeStrength == null ||
+    evaluation.isCompliant == null ||
     evaluation.actual == null
   ) {
     return null;
@@ -140,6 +93,7 @@ export function buildStrengthJournalPayload(
   if (check.floor) contextParts.push(`Этаж ${check.floor}`);
   if (check.days) contextParts.push(`день=${check.days}`);
   const payload: StrengthJournalPayload = {
+    evaluationSchemaVersion: 2,
     module: "Прочность",
     status: options.runtimeStatus
       ? evaluation.isCompliant
@@ -150,7 +104,7 @@ export function buildStrengthJournalPayload(
         : "exceeded",
     context: contextParts.join(", ") || "Прочность бетона",
     details:
-      `норма=${evaluation.normativeStrength.toFixed(1)} МПа; ` +
+      `основание=${check.assessment?.reference || ""}; ` +
       `факт=${evaluation.actual.toFixed(1)} МПа`,
     construction: String(check.construction || "")
   };

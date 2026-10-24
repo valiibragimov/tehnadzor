@@ -1,3 +1,4 @@
+import { completeSlabAcceptance } from "./helpers/engineering-forms.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -58,7 +59,7 @@ test("real IFC import, engineering localization, bounded model selection and rep
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, reducedMotion: "reduce" });
     const errors = []; page.on("pageerror", e => errors.push(e.message));
     await page.goto(server.url + "/demo.html");
-    await page.locator("#overviewReadinessValue").filter({ hasText: "25%" }).waitFor();
+    await page.locator("#overviewReadinessValue").filter({ hasText: "0%" }).waitFor();
     await page.locator("#bimModelManager summary").click();
     await page.locator("#ifcFileInput").setInputFiles({ name: "review.ifc", mimeType: "application/octet-stream", buffer: Buffer.from(modelFixture()) });
     await page.locator("#btnImportIfc").click();
@@ -114,6 +115,7 @@ test("real IFC import, engineering localization, bounded model selection and rep
     await page.locator("#geometry.active").waitFor();
     await page.waitForFunction(() => document.getElementById("factPlateHeight").value === "514");
     await page.locator("#factPlateHeight").fill("500");
+    await completeSlabAcceptance(page);
     await page.locator("#btnGeom").click();
     await page.waitForFunction(() => {
       const state = JSON.parse(localStorage.getItem("tehnadzor-demo:v2:database")).projectCollections["demo-project"];
@@ -136,7 +138,7 @@ test("engineering forms update legacy records and save a survey point", { timeou
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     const errors = []; page.on("pageerror", e => errors.push(e.message));
     await page.goto(server.url + "/demo.html");
-    await page.locator("#overviewReadinessValue").filter({ hasText: "25%" }).waitFor();
+    await page.locator("#overviewReadinessValue").filter({ hasText: "0%" }).waitFor();
     for (const [tab, list, button, collection, id, field, value] of [
       ["reinforcement", "reinfChecksList", "btnReinf", "reinfChecks", "reinf-demo-1", "factCover", "42"],
       ["strength", "strengthChecksList", "btnStrength", "strengthChecks", "strength-demo-1", "actual", "28.5"]

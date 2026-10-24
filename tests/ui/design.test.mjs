@@ -25,7 +25,7 @@ test("sidebar resizes from either edge, collapses, restores, and supports keyboa
   page.on("pageerror", e => errors.push(e.message));
   try {
     await page.goto(server.url + "/demo.html");
-    await page.locator("#overviewReadinessValue").filter({ hasText: "25%" }).waitFor();
+    await page.locator("#overviewReadinessValue").filter({ hasText: "0%" }).waitFor();
     const sidebar = page.locator("#workspaceSidebar");
     const right = page.locator('.sidebar-resize[data-edge="right"]');
     const left = page.locator('.sidebar-resize[data-edge="left"]');
@@ -212,7 +212,7 @@ test("all workspace sections fit beside the widest sidebar on a tablet", async (
   try {
     const page = await browser.newPage({ viewport: { width: 820, height: 1000 }, reducedMotion: "reduce" });
     await page.goto(server.url + "/demo.html");
-    await page.locator("#overviewReadinessValue").filter({ hasText: "25%" }).waitFor();
+    await page.locator("#overviewReadinessValue").filter({ hasText: "0%" }).waitFor();
     await page.locator('.sidebar-resize[data-edge="right"]').press("End");
     for (const target of ["overview", "controlPlan", "journal", "geo", "reinforcement", "geometry", "strength", "summary", "knowledge"]) {
       await page.locator(`.tabs [data-target="${target}"]`).click();

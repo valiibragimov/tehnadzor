@@ -21,7 +21,7 @@ import {
   normalizeMarking,
   sanitizeHtml
 } from "../../../utils.js";
-import { parseConcreteStrengthValue } from "./evaluation.js";
+import { parseConcreteStrengthValue, evaluateStrengthCheck } from "./evaluation.js";
 import type { StrengthDomBindings } from "./dom.js";
 import type { StrengthCheckRecord } from "./types.js";
 
@@ -124,7 +124,8 @@ export function createStrengthForm({
     const behavior = getConstructionModuleBehavior(
       value,
       "strength",
-      getSelectedConstructionSubtype()
+      getSelectedConstructionSubtype(),
+      dom.construction?.dataset.pileElementKey || ""
     );
     const profile =
       behavior.profile || getConstructionProfile(value, "strength");
@@ -377,6 +378,22 @@ export function createStrengthForm({
     return true;
   }
 
+  const assessmentField = (name: string) => dom.document.getElementById("strengthAssessment" + name) as HTMLInputElement | HTMLSelectElement | null;
+  function readAssessment() {
+    return { reference: assessmentField("Reference")?.value.trim() || "",
+      responsible: assessmentField("Responsible")?.value.trim() || "",
+      date: assessmentField("Date")?.value || "",
+      verdict: assessmentField("Verdict")?.value || "",
+      confirmed: (assessmentField("Confirmed") as HTMLInputElement | null)?.checked === true };
+  }
+  function restoreAssessment(check: StrengthCheckRecord) {
+    for (const name of ["Reference", "Responsible", "Date", "Verdict"]) {
+      const field = assessmentField(name);
+      if (field) field.value = String(check.assessment?.[name.toLowerCase()] || "");
+    }
+    const confirmed = assessmentField("Confirmed") as HTMLInputElement | null;
+    if (confirmed) confirmed.checked = check.assessment?.confirmed === true;
+  }
   function readCheck(existing: StrengthCheckRecord | null = null) {
     const construction = getSelectedConstructionKey();
     const flags = getConstructionFlags(
@@ -460,6 +477,8 @@ export function createStrengthForm({
       wallNumberAxis,
       wallLetterAxis1,
       wallLetterAxis2,
+      evaluationSchemaVersion: 2,
+      assessment: readAssessment(),
       mark: dom.mark?.value.trim() || null,
       markValue: parseConcreteStrengthValue(dom.mark?.value),
       days: dom.days?.value === "" ? null : Number(dom.days?.value),
@@ -551,18 +570,17 @@ export function createStrengthForm({
     if (dom.days) dom.days.value = String(check.days ?? "");
     if (dom.actual) dom.actual.value = String(check.actual ?? "");
     if (dom.result) {
-      dom.result.className = "result";
-      if (check.status === "ok") dom.result.classList.add("ok");
-      if (check.status === "bad" || check.status === "exceeded") {
-        dom.result.classList.add("not-ok");
-      }
-      dom.result.innerHTML = sanitizeHtml(check.lastMsg || "");
-      dom.result.style.display = dom.result.innerHTML ? "block" : "none";
+      const evaluation = evaluateStrengthCheck(check);
+      dom.result.className = evaluation.status === "ok" ? "result ok" : "result";
+      dom.result.textContent = evaluation.summaryText;
+      dom.result.style.display = "block";
     }
+    restoreAssessment(check);
     bim.restoreSelection(check);
   }
 
   function clear() {
+    restoreAssessment({});
     bim.clearSelection({ keepManualFields: false });
     if (dom.floor) dom.floor.value = "";
     if (dom.mark) dom.mark.value = "";
@@ -579,6 +597,12 @@ export function createStrengthForm({
   function init() {
     if (initialized) return;
     initialized = true;
+    dom.document.getElementById("strength")?.addEventListener("input", event => {
+      if ((event.target as HTMLElement).id !== "strengthAssessmentConfirmed") {
+        const confirmed = assessmentField("Confirmed") as HTMLInputElement | null;
+        if (confirmed) confirmed.checked = false;
+      }
+    });
     fillSelect(dom.document, dom.axisLetterFrom, defaultRusLetters);
     fillSelect(dom.document, dom.axisLetterTo, defaultRusLetters);
     fillSelect(dom.document, dom.axisNumberFrom, defaultNumbers);
@@ -676,7 +700,7 @@ export function createStrengthForm({
       updateWallBindingDisplay
     );
     updateWallBindingDisplay();
-    dom.construction?.addEventListener("change", updateFieldsVisibility);
+    dom.construction?.addEventListener("change", () => { restoreAssessment({}); updateFieldsVisibility(); });
   }
 
   return {

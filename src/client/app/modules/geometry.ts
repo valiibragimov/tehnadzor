@@ -1,3 +1,7 @@
+import { evaluateGeometryCheck as evaluateGeomCheck } from "../../features/inspections/geometry/evaluation.js";
+import { commonDimensionKeys, elementDimensionKeys, type PhysicalDimensions } from "../../features/inspections/geometry/dimensions.js";
+import { mountPhysicalDimensions } from "../ui/physical-dimensions.js";
+import { mountAcceptanceCriteria, readAcceptanceCriteria, restoreAcceptanceCriteria } from "../ui/acceptance-criteria.js";
 import { t, translateEngineeringLabel } from "../../shared/i18n/index.js";
 import { setBimResultHint } from "../ui/bim-result-hint.js";
 import type { WorkspaceContext } from "../workspace-context.js";
@@ -134,6 +138,7 @@ async function saveGeomInspection(projectId, inspectionId, checkData) {
     construction: checkData?.construction || "",
     constructionSubtype: checkData?.constructionSubtype || "",
     constructionSubtypeLabel: checkData?.constructionSubtypeLabel || "",
+    evaluationSchemaVersion: checkData.evaluationSchemaVersion || null,
     checkStatus: checkData?.status || null,
     summaryText: checkData?.summaryText || "",
     createdAt: checkData?.createdAt || Date.now(),
@@ -156,6 +161,19 @@ async function clearGeomInspectionDualWrite(projectId) {
   });
 }
 
+let commonPhysicalDimensions: PhysicalDimensions = {};
+function renderCommonDimensions() {
+  const root = document.querySelector<HTMLElement>("#geometry [data-step='2']");
+  if (!root) return;
+  root.querySelector(":scope > [data-physical-dimensions]")?.remove();
+  mountPhysicalDimensions(root, commonPhysicalDimensions, commonDimensionKeys(getSelectedConstructionKey(), getSelectedPileElement()));
+  mountAcceptanceCriteria(root, [
+    { key: "dimensions", label: t("physical_dimensions") }, { key: "section", label: t("dimension_section") },
+    { key: "thickness", label: t("dimension_thickness") }, { key: "vertical", label: t("form_vertical_deviation_mm") },
+    { key: "flatness", label: t("form_measured_flatness_deviation_mm") }, { key: "opening", label: t("dimension_opening") },
+    { key: "step", label: t("dimension_step") }
+  ]);
+}
 let geomChecks: Map<string, GeometryCheckRecord>;
 let geometryInitialized = false;
 let geomAxesInitialized = false;
@@ -348,39 +366,6 @@ function formatFormworkBasisLabel(value: unknown) {
   return FORMWORK_BASIS_LABELS[key] || key || "Не указано";
 }
 
-function getFormworkResultFromValues(verticalDeviation: unknown, verticalTolerance: unknown) {
-  let hasComparableData = false;
-  let allOk = true;
-
-  const verticalDev = parseDecimal(verticalDeviation);
-  const verticalTol = parseDecimal(verticalTolerance);
-  if (verticalDev != null && verticalTol != null) {
-    hasComparableData = true;
-    if (Math.abs(verticalDev) > Math.abs(verticalTol)) {
-      allOk = false;
-    }
-  }
-
-  if (!hasComparableData) {
-    return {
-      status: "empty" as const,
-      label: "—"
-    };
-  }
-
-  return {
-    status: allOk ? "ok" as const : "exceeded" as const,
-    label: allOk ? "в норме" : "превышено"
-  };
-}
-
-function updateGeomFormworkCalculatedResult() {
-  return getFormworkResultFromValues(
-    geomFormworkVerticalDeviationEl?.value,
-    geomFormworkVerticalToleranceEl?.value
-  );
-}
-
 function clearGeomFormworkFields() {
   setTextInputValue(geomFormworkTypeEl, getSelectedConstructionSubtype() || "temporary");
   [
@@ -398,7 +383,6 @@ function clearGeomFormworkFields() {
     geomFormworkNoteEl
   ].forEach((element) => setTextInputValue(element, ""));
   setTextInputValue(geomFormworkBasisEl, "project");
-  updateGeomFormworkCalculatedResult();
 }
 
 function getNextDifferentOption(options, currentValue) {
@@ -525,146 +509,6 @@ function formatOpeningSizesForNode(projectValue, actualValue) {
   return projectText || actualText || "";
 }
 
-function parseOpeningSizesList(value) {
-  const raw = normalizeOpeningSizesText(value);
-  if (!raw) {
-    return {
-      raw,
-      isEmpty: true,
-      isValid: true,
-      items: []
-    };
-  }
-
-  const chunks = raw
-    .split(/[\n;,]+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  if (!chunks.length) {
-    return {
-      raw,
-      isEmpty: true,
-      isValid: true,
-      items: []
-    };
-  }
-
-  const items = [];
-
-  for (const chunk of chunks) {
-    const normalizedChunk = chunk.replace(/[xх]/gi, "×");
-    const match = normalizedChunk.match(/^(-?\d+(?:[.,]\d+)?)\s*×\s*(-?\d+(?:[.,]\d+)?)$/);
-    if (!match) {
-      return {
-        raw,
-        isEmpty: false,
-        isValid: false,
-        items: [],
-        invalidEntry: chunk,
-        error: `${OPENING_SIZES_FORMAT_HINT}.`
-      };
-    }
-
-    const width = parseDecimal(match[1]);
-    const height = parseDecimal(match[2]);
-    if (width == null || height == null) {
-      return {
-        raw,
-        isEmpty: false,
-        isValid: false,
-        items: [],
-        invalidEntry: chunk,
-        error: `${OPENING_SIZES_FORMAT_HINT}.`
-      };
-    }
-
-    items.push({ width, height });
-  }
-
-  items.sort((left, right) => {
-    if (left.width !== right.width) return left.width - right.width;
-    return left.height - right.height;
-  });
-
-  return {
-    raw,
-    isEmpty: false,
-    isValid: true,
-    items
-  };
-}
-
-function compareOpeningSizeSets(projectValue, actualValue, tolerance, label) {
-  const project = parseOpeningSizesList(projectValue);
-  const actual = parseOpeningSizesList(actualValue);
-  const hasAnyData = !project.isEmpty || !actual.isEmpty;
-
-  if (!hasAnyData) {
-    return {
-      hasAnyData: false,
-      hasComparableData: false,
-      ok: true,
-      comparisons: [],
-      label
-    };
-  }
-
-  if ((!project.isEmpty && !project.isValid) || (!actual.isEmpty && !actual.isValid)) {
-    return {
-      hasAnyData: true,
-      hasComparableData: true,
-      ok: false,
-      reason: "format",
-      comparisons: [],
-      label,
-      message: `${label}: ${OPENING_SIZES_FORMAT_HINT}.`
-    };
-  }
-
-  if (project.isEmpty || actual.isEmpty) {
-    return {
-      hasAnyData: true,
-      hasComparableData: false,
-      ok: true,
-      comparisons: [],
-      label
-    };
-  }
-
-  if (project.items.length !== actual.items.length) {
-    return {
-      hasAnyData: true,
-      hasComparableData: true,
-      ok: false,
-      reason: "count",
-      comparisons: [],
-      label,
-      message: `${label}: количество проёмов не совпадает (${project.items.length} / ${actual.items.length}).`
-    };
-  }
-
-  const comparisons = project.items.map((projectItem, index) => {
-    const actualItem = actual.items[index];
-    return {
-      index,
-      projectWidth: projectItem.width,
-      actualWidth: actualItem.width,
-      projectHeight: projectItem.height,
-      actualHeight: actualItem.height,
-      widthCheck: checkTolerance(actualItem.width, projectItem.width, tolerance),
-      heightCheck: checkTolerance(actualItem.height, projectItem.height, tolerance)
-    };
-  });
-
-  return {
-    hasAnyData: true,
-    hasComparableData: true,
-    ok: comparisons.every((item) => item.widthCheck.ok && item.heightCheck.ok),
-    comparisons,
-    label
-  };
-}
 
 function buildOpeningComparisonRows(comparison, parameterPrefix) {
   if (!comparison?.hasComparableData) return [];
@@ -754,7 +598,7 @@ function getGeometryConstructionProfile(value = getSelectedConstructionKey() || 
 }
 
 function getGeometryConstructionFlags(value = getSelectedConstructionKey() || construction?.value || "") {
-  const behavior = getConstructionModuleBehavior(value, "geometry", getSelectedConstructionSubtype());
+  const behavior = getConstructionModuleBehavior(value, "geometry", getSelectedConstructionSubtype(), getSelectedPileElement());
   const profile = behavior.profile || getGeometryConstructionProfile(value);
   return {
     profile,
@@ -1377,6 +1221,7 @@ function applyDefaultGeomAxesSelection(force = false) {
 }
 
 function updateGeomFieldsVisibility() {
+  renderCommonDimensions();
   if (!construction) return;
 
   const {
@@ -1390,12 +1235,7 @@ function updateGeomFieldsVisibility() {
     isUnsupported
   } = getGeometryConstructionFlags();
   const isStripFoundation = behavior.locationMode === "strip_foundation";
-  const isBoredPileFoundation = hasInspectionField(
-    getSelectedConstructionKey(),
-    "geometry",
-    "constructionPileElement",
-    getSelectedConstructionSubtype()
-  );
+  const isBoredPileFoundation = getSelectedConstructionKey() === "pile_grillage";
   const boredPileElement = getSelectedPileElement();
   const showRangeLocation =
     behavior.locationMode === "plate_range" || behavior.locationMode === "strip_foundation";
@@ -1423,7 +1263,6 @@ function updateGeomFieldsVisibility() {
   if (isFormwork && geomFormworkTypeEl && getSelectedConstructionSubtype()) {
     geomFormworkTypeEl.value = getSelectedConstructionSubtype();
   }
-  updateGeomFormworkCalculatedResult();
 
   if (geomFloorField) {
     geomFloorField.style.display = behavior.floorVisible === false || isFormwork ? "none" : "block";
@@ -1520,8 +1359,8 @@ function updateGeomFieldsVisibility() {
     geomPlateFactOpeningSizesEl.setAttribute("placeholder", isStripFoundation || isBoredPileFoundation ? "Напр.: 400" : "Ш×В, Ш×В");
   }
 
-  if (geomProjOpeningSizesField) geomProjOpeningSizesField.style.display = behavior.showOpeningSizes ? "block" : "none";
-  if (geomFactOpeningSizesField) geomFactOpeningSizesField.style.display = behavior.showOpeningSizes ? "block" : "none";
+  if (geomProjOpeningSizesField) geomProjOpeningSizesField.style.display = behavior.showOpeningSizes && !isBoredPileFoundation && !isStripFoundation ? "block" : "none";
+  if (geomFactOpeningSizesField) geomFactOpeningSizesField.style.display = behavior.showOpeningSizes && !isBoredPileFoundation && !isStripFoundation ? "block" : "none";
   if (geomPlateFlatnessValueField) geomPlateFlatnessValueField.style.display = behavior.showPlateFlatness ? "block" : "none";
 
   if (showRangeLocation && !isUnsupported) {
@@ -1693,6 +1532,27 @@ function markGeomDynamicBimFields(snapshot = geomBimBindingSnapshot) {
 }
 
 function applyGeomBimDimensionPrefill(element, { overwrite = false } = {}) {
+  if (element) {
+    const assign = (values: PhysicalDimensions, key: string, source: unknown) => {
+      const value = typeof source === "number" && Number.isFinite(source) && source > 0 ? source : null;
+      if (value == null) return;
+      values[key] ||= { project: "", actual: "" };
+      if (overwrite || values[key].project === "" || values[key].project == null) values[key].project = value;
+    };
+    const constructionKey = getSelectedConstructionKey();
+    for (const key of commonDimensionKeys(constructionKey, getSelectedPileElement())) {
+      if (key === "length" || key === "width") assign(commonPhysicalDimensions, key, element[key]);
+    }
+    const flags = getGeometryConstructionFlags();
+    const row = flags.isWall ? geomGetWalls()[0] : flags.isColumn ? ensureGeomColumnPrefillRow() : flags.isBeam ? ensureGeomBeamPrefillRow() : flags.isStair ? geomGetStairs()[0] : null;
+    if (row) {
+      row.physicalDimensions ||= {};
+      if (flags.isWall || flags.isBeam || flags.isStair) assign(row.physicalDimensions, "length", element.length);
+      if (flags.isWall || flags.isColumn) assign(row.physicalDimensions, "height", element.height);
+    }
+    renderCommonDimensions(); renderGeomWalls(); renderGeomStairs();
+  }
+
   if (!element) {
     markGeomDynamicBimFields(null);
     return;
@@ -2027,6 +1887,8 @@ function renderGeomColumns() {
       </div>
     `;
 
+    column.physicalDimensions ||= {};
+    mountPhysicalDimensions(colDiv, column.physicalDimensions, elementDimensionKeys("columns"));
     colDiv.querySelectorAll("input").forEach(input => {
       input.addEventListener("input", (e) => {
         const geomColumns = geomGetColumns();
@@ -2347,6 +2209,9 @@ function renderGeomWalls() {
       });
     });
 
+    wallDiv.querySelectorAll<HTMLInputElement>('[class*="OpeningHeight"]').forEach(input => { input.closest("div")!.hidden = true; });
+    wall.physicalDimensions ||= {};
+    mountPhysicalDimensions(wallDiv, wall.physicalDimensions, elementDimensionKeys("walls"));
     wallDiv.querySelectorAll("input").forEach(input => {
       input.addEventListener("input", (e) => {
         const geomWalls = geomGetWalls();
@@ -2489,11 +2354,11 @@ function renderGeomStairs() {
           <input type="number" inputmode="decimal" class="geom-stair-factStepWidth" data-id="${safeValue(stair.id)}" placeholder="мм" value="${safeValue(stair.factStepWidth || "")}" />
         </div>
         <div>
-          <label>Проектная ширина марша</label>
+          <label data-i18n="form_design_width_mm">Проектная ширина, мм</label>
           <input type="number" inputmode="decimal" class="geom-stair-projFlightWidth" data-id="${safeValue(stair.id)}" placeholder="мм" value="${safeValue(stair.projFlightWidth || "")}" />
         </div>
         <div>
-          <label>Фактическая ширина марша</label>
+          <label data-i18n="form_measured_width_mm">Фактическая ширина, мм</label>
           <input type="number" inputmode="decimal" class="geom-stair-factFlightWidth" data-id="${safeValue(stair.id)}" placeholder="мм" value="${safeValue(stair.factFlightWidth || "")}" />
         </div>
       </div>
@@ -2540,6 +2405,31 @@ function renderGeomStairs() {
       renderGeomStairs();
     });
 
+    stair.physicalDimensions ||= {};
+    mountPhysicalDimensions(stairDiv, stair.physicalDimensions, elementDimensionKeys("stairs"));
+    const elementType = document.createElement("select");
+    elementType.setAttribute("aria-label", t("stair_element_type"));
+    for (const value of ["flight", "landing"]) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = t("stair_" + value);
+      elementType.append(option);
+    }
+    elementType.value = String(stair.elementType || "flight");
+    elementType.addEventListener("change", () => { stair.elementType = elementType.value; renderGeomStairs(); });
+    stairDiv.prepend(elementType);
+    stairDiv.querySelectorAll<HTMLElement>('[class*="geom-stair-"]').forEach(control => {
+      if (/binding|axis/u.test(control.className)) control.closest("div")!.hidden = true;
+    });
+    const positionLabel = document.createElement("label");
+    positionLabel.textContent = t("element_position");
+    const position = document.createElement("input");
+    position.value = String(stair.position || "");
+    position.addEventListener("input", () => { stair.position = position.value; });
+    positionLabel.append(position);
+    stairDiv.prepend(positionLabel);
+
+    if (elementType.value === "landing") stairDiv.querySelectorAll<HTMLInputElement>('[class*="Step"]').forEach(input => { input.closest("div")!.hidden = true; });
     stairDiv.querySelectorAll("select").forEach(select => {
       if (select.classList.contains("geom-stair-binding-type")) return;
 
@@ -2702,6 +2592,8 @@ function renderGeomBeams() {
       </div>
     `;
 
+    beam.physicalDimensions ||= {};
+    mountPhysicalDimensions(beamDiv, beam.physicalDimensions, elementDimensionKeys("beams"));
     beamDiv.querySelectorAll("input").forEach(input => {
       input.addEventListener("input", (e) => {
         const geomBeams = geomGetBeams();
@@ -2922,14 +2814,7 @@ function renderGeomChecks() {
       dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_floor">Этаж:</span><span class="node-values">${safeValue(d.floor)}</span></div>`;
     }
 
-    let evaluation;
-    if (d.status && d.status !== "empty" && d.status !== "ok" && d.status !== "exceeded") {
-      evaluation = evaluateGeomCheck(d);
-    } else if (d.status) {
-      evaluation = { status: d.status, summaryText: d.summaryText || "" };
-    } else {
-      evaluation = evaluateGeomCheck(d);
-    }
+    const evaluation = evaluateGeomCheck(d);
 
     let statusTag = "";
     if (evaluation.status === "exceeded") {
@@ -3011,8 +2896,7 @@ function loadGeomCheck(id) {
     setTextInputValue(geomFormworkVerticalToleranceEl, d.formworkVerticalTolerance);
     setTextInputValue(geomFormworkBasisEl, d.formworkBasis || "project");
     setTextInputValue(geomFormworkNoteEl, d.note || d.formworkNote);
-    updateGeomFormworkCalculatedResult();
-  } else if (flags.isPlate) {
+    } else if (flags.isPlate) {
     if (geomStripAxisModeEl && flags.behavior.locationMode === "strip_foundation") {
       geomStripAxisModeEl.value = d.axisMode || (d.axisNumberTo ? "number_letters" : "letter_numbers");
       updateGeomFieldsVisibility();
@@ -3031,7 +2915,8 @@ function loadGeomCheck(id) {
   } else if (flags.isColumn) {
     if (d.columns && Array.isArray(d.columns)) {
       const newColumns = d.columns.map((col: GeometryColumnRecord, idx) => ({
-        id: Date.now() + idx,
+        id: col.id ?? Date.now() + idx,
+        physicalDimensions: structuredClone(col.physicalDimensions || {}),
         marking: normalizeMarking(col.marking) || "",
         projSize1: col.projSize1?.toString() || "",
         factSize1: col.factSize1?.toString() || "",
@@ -3050,7 +2935,8 @@ function loadGeomCheck(id) {
       const legacyOpeningSizes = d.openingSizes ?? "";
       const legacyWallFlatness = d.factWallFlatness ?? "";
       const newWalls = d.walls.map((wall: GeometryWallRecord, idx) => ({
-        id: Date.now() + idx,
+        id: wall.id ?? Date.now() + idx,
+        physicalDimensions: structuredClone(wall.physicalDimensions || {}),
         bindingType: wall.bindingType || "number_letters",
         numberAxis: wall.numberAxis?.toString() || "",
         letterAxis1: wall.letterAxis1?.toString() || "",
@@ -3074,7 +2960,8 @@ function loadGeomCheck(id) {
     if (geomStairNameEl && d.stairName) geomStairNameEl.value = d.stairName;
     if (d.stairs && Array.isArray(d.stairs)) {
       const newStairs = d.stairs.map((stair: GeometryStairRecord, idx) => ({
-        id: Date.now() + idx,
+        id: stair.id ?? Date.now() + idx,
+        physicalDimensions: structuredClone(stair.physicalDimensions || {}),
         bindingType: stair.bindingType || "number_letters",
         numberAxis: stair.numberAxis?.toString() || "",
         letterAxis1: stair.letterAxis1?.toString() || "",
@@ -3082,6 +2969,8 @@ function loadGeomCheck(id) {
         letterAxis: stair.letterAxis?.toString() || "",
         numberAxis1: stair.numberAxis1?.toString() || "",
         numberAxis2: stair.numberAxis2?.toString() || "",
+        elementType: stair.elementType || "flight",
+        position: stair.position || [stair.numberAxis, stair.letterAxis1, stair.letterAxis2, stair.letterAxis, stair.numberAxis1, stair.numberAxis2].filter(Boolean).join(" / "),
         projStepHeight: stair.projStepHeight?.toString() || "",
         factStepHeight: stair.factStepHeight?.toString() || "",
         projStepWidth: stair.projStepWidth?.toString() || "",
@@ -3095,7 +2984,8 @@ function loadGeomCheck(id) {
   } else if (flags.isBeam) {
     if (d.beams && Array.isArray(d.beams)) {
       const newBeams = d.beams.map((beam: GeometryBeamRecord, idx) => ({
-        id: Date.now() + idx,
+        id: beam.id ?? Date.now() + idx,
+        physicalDimensions: structuredClone(beam.physicalDimensions || {}),
         marking: normalizeMarking(beam.marking) || "",
         projBeamWidth: beam.projBeamWidth?.toString() || "",
         factBeamWidth: beam.factBeamWidth?.toString() || "",
@@ -3121,13 +3011,16 @@ function loadGeomCheck(id) {
 
   if (geometryResult) {
   geometryResult.className = "result";
-  if (d.status === "ok") geometryResult.classList.add("ok");
-  if (d.status === "bad" || d.status === "exceeded") geometryResult.classList.add("not-ok");
-  geometryResult.innerHTML = sanitizeHtml(d.lastMsg || "");
+  if (evaluateGeomCheck(d).status === "ok") geometryResult.classList.add("ok");
+  if (evaluateGeomCheck(d).status === "exceeded") geometryResult.classList.add("not-ok");
+  geometryResult.textContent = t(evaluateGeomCheck(d).status === "ok" ? "engineering_conforms" : evaluateGeomCheck(d).status === "exceeded" ? "engineering_nonconforms" : "engineering_requires_review");
 }
 
   syncGeomBimSelectionFromCheck(d);
   // Restoring construction emits change and clears edit IDs; restore identity last.
+  commonPhysicalDimensions = structuredClone(d.physicalDimensions || {});
+  renderCommonDimensions();
+  restoreAcceptanceCriteria(document.getElementById("geometry"), d.acceptanceCriteria);
   setCurrentGeomCheckId(id);
   document.querySelector<HTMLButtonElement>('#geometry [data-wizard-step="2"]')?.click();
 }
@@ -3156,12 +3049,7 @@ async function saveGeomCheck({ skipJournalOnce = false } = {}) {
   const isStair = flags.isStair;
   const isBeam = flags.isBeam;
   const isStripFoundation = behavior.locationMode === "strip_foundation";
-  const isBoredPileFoundation = hasInspectionField(
-    getSelectedConstructionKey(),
-    "geometry",
-    "constructionPileElement",
-    getSelectedConstructionSubtype()
-  );
+  const isBoredPileFoundation = getSelectedConstructionKey() === "pile_grillage";
   const stripAxisMode = geomStripAxisModeEl?.value || "letter_numbers";
   const formworkType = isFormwork ? (readTextInputValue(geomFormworkTypeEl) || getSelectedConstructionSubtype() || "temporary") : "";
   const formworkTypeLabel = isFormwork ? formatFormworkSubtypeLabel(formworkType) : "";
@@ -3184,6 +3072,10 @@ async function saveGeomCheck({ skipJournalOnce = false } = {}) {
     : null;
 
   const data: GeometryCheckRecord = {
+    ...existing,
+    evaluationSchemaVersion: 2,
+    physicalDimensions: structuredClone(commonPhysicalDimensions),
+    acceptanceCriteria: readAcceptanceCriteria(document.getElementById("geometry")),
     createdAt: existing?.createdAt || Date.now(),
     construction: getSelectedConstructionKey(),
     constructionCategory: getSelectedConstructionCategory(),
@@ -3229,9 +3121,9 @@ async function saveGeomCheck({ skipJournalOnce = false } = {}) {
     factPlateFlatness: behavior.showPlateFlatness
       ? (factPlateFlatnessEl ? (factPlateFlatnessEl.value === "" ? null : +factPlateFlatnessEl.value) : null)
       : null,
-    projThick: isFormwork ? null : (projThick ? (projThick.value === "" ? null : +projThick.value) : null),
-    factThick: isFormwork ? null : (factThick ? (factThick.value === "" ? null : +factThick.value) : null),
-    vertDev: isFormwork ? null : (vertDev ? (vertDev.value === "" ? null : +vertDev.value) : null),
+    projThick: getSelectedConstructionKey() === "elevator_shaft" ? existing?.projThick ?? null : isFormwork ? null : (projThick ? (projThick.value === "" ? null : +projThick.value) : null),
+    factThick: getSelectedConstructionKey() === "elevator_shaft" ? existing?.factThick ?? null : isFormwork ? null : (factThick ? (factThick.value === "" ? null : +factThick.value) : null),
+    vertDev: getSelectedConstructionKey() === "elevator_shaft" ? existing?.vertDev ?? null : isFormwork ? null : (vertDev ? (vertDev.value === "" ? null : +vertDev.value) : null),
     note: isFormwork ? (readTextInputValue(geomFormworkNoteEl) || null) : (geomNoteEl ? (geomNoteEl.value.trim() || null) : null),
     formworkType: isFormwork ? formworkType : null,
     formworkElementName: isFormwork ? (readTextInputValue(geomFormworkElementNameEl) || null) : null,
@@ -3245,8 +3137,9 @@ async function saveGeomCheck({ skipJournalOnce = false } = {}) {
     formworkVerticalDeviation: isFormwork ? readDecimalInputValue(geomFormworkVerticalDeviationEl) : null,
     formworkVerticalTolerance: isFormwork ? readDecimalInputValue(geomFormworkVerticalToleranceEl) : null,
     formworkBasis: isFormwork ? (readTextInputValue(geomFormworkBasisEl) || "project") : null,
-    formworkResult: isFormwork ? updateGeomFormworkCalculatedResult().label : null,
+    formworkResult: null,
     columns: isColumn ? geomGetColumns().map(c => ({
+      id: c.id, physicalDimensions: c.physicalDimensions || {},
       marking: c.marking || "",
       projSize1: c.projSize1 === "" ? null : +c.projSize1,
       factSize1: c.factSize1 === "" ? null : +c.factSize1,
@@ -3255,6 +3148,7 @@ async function saveGeomCheck({ skipJournalOnce = false } = {}) {
       vertDev: c.vertDev === "" ? null : +c.vertDev
     })) : null,
     walls: isWall ? wallItems.map(w => ({
+      id: w.id, physicalDimensions: w.physicalDimensions || {},
       bindingType: w.bindingType || "number_letters",
       numberAxis: w.numberAxis || "",
       letterAxis1: w.letterAxis1 || "",
@@ -3275,6 +3169,9 @@ async function saveGeomCheck({ skipJournalOnce = false } = {}) {
     factWallFlatness: wallFlatnessAlias,
     stairName: isStair ? (geomStairNameEl ? geomStairNameEl.value.trim() || null : null) : null,
     stairs: isStair ? geomGetStairs().map(s => ({
+      id: s.id, physicalDimensions: s.physicalDimensions || {},
+      elementType: s.elementType || "flight",
+      position: s.position || "",
       bindingType: s.bindingType || "number_letters",
       numberAxis: s.numberAxis || "",
       letterAxis1: s.letterAxis1 || "",
@@ -3290,6 +3187,7 @@ async function saveGeomCheck({ skipJournalOnce = false } = {}) {
       factFlightWidth: s.factFlightWidth === "" ? null : +s.factFlightWidth
     })) : null,
     beams: isBeam ? geomGetBeams().map(b => ({
+      id: b.id, physicalDimensions: b.physicalDimensions || {},
       marking: b.marking || "",
       projBeamWidth: b.projBeamWidth === "" ? null : +b.projBeamWidth,
       factBeamWidth: b.factBeamWidth === "" ? null : +b.factBeamWidth,
@@ -3301,6 +3199,29 @@ async function saveGeomCheck({ skipJournalOnce = false } = {}) {
   const evaluation = evaluateGeomCheck(data);
   data.status = evaluation.status === "empty" ? "empty" : (evaluation.status === "ok" ? "ok" : "exceeded");
   data.summaryText = evaluation.summaryText;
+  if (isFormwork) data.formworkResult = evaluation.summaryText;
+  getState().geometry = evaluation.status === "ok";
+  getChecked().geometry = evaluation.status !== "empty";
+  if (geometryResult) {
+    geometryResult.className = evaluation.status === "ok" ? "result ok" : evaluation.status === "exceeded" ? "result not-ok" : "result";
+    geometryResult.textContent = t(evaluation.status === "ok" ? "engineering_conforms" : evaluation.status === "exceeded" ? "engineering_nonconforms" : "engineering_requires_review");
+    const rows = [data, ...(data.columns || []), ...(data.walls || []), ...(data.beams || []), ...(data.stairs || [])];
+    for (const [index, row] of rows.entries()) {
+      const values = row.physicalDimensions || {};
+      for (const [key, pair] of Object.entries(values)) {
+        const line = document.createElement("div");
+        line.textContent = `${index || ""} ${t("dimension_" + key)}: ${pair.project || "—"} / ${pair.actual || "—"} mm`;
+        geometryResult.append(line);
+      }
+      for (const [project, actual] of [["projPlateHeight", "factPlateHeight"], ["projThick", "factThick"], ["projSize1", "factSize1"], ["projSize2", "factSize2"], ["projBeamWidth", "factBeamWidth"], ["projBeamHeight", "factBeamHeight"], ["projFlightWidth", "factFlightWidth"], ["projStepHeight", "factStepHeight"], ["projStepWidth", "factStepWidth"]]) {
+        if (row[project] == null && row[actual] == null) continue;
+        const line = document.createElement("div");
+        line.textContent = `${row[project] ?? "—"} / ${row[actual] ?? "—"} mm`;
+        geometryResult.append(line);
+      }
+    }
+
+  }
   data.lastMsg = geometryResult ? (geometryResult.innerHTML || "") : "";
 
   data.projectId = getCurrentProjectId();
@@ -3340,6 +3261,7 @@ async function saveGeomCheck({ skipJournalOnce = false } = {}) {
       if (!context) context = "Геометрия";
 
       await upsertJournalEntrySafe({
+        evaluationSchemaVersion: 2,
         module: "Геометрия",
         status: data.status === "ok" ? "ok" : "exceeded",
         context: context,
@@ -3361,1186 +3283,14 @@ async function saveGeomCheck({ skipJournalOnce = false } = {}) {
  * @param {Object} checkData - Данные проверки геометрии
  * @returns {Object} - { status: "ok"|"exceeded"|"empty", summaryText: string }
  */
-function evaluateGeomCheck(checkData: GeometryCheckRecord) {
-  const constructionProfile = getGeometryConstructionProfile(checkData.construction || checkData.constructionType || "");
-  const registryConstruction = checkData.construction || checkData.constructionType || checkData.checkKind || "";
-  const registrySubtype = checkData.constructionSubtype || "";
-  let hasAnyData = false;
-  let allOk = true;
-  let hasRequiredData = false;
-
-  if (constructionProfile === "formwork") {
-    const dimensionalValues = [
-      checkData.formworkProjHeight,
-      checkData.formworkFactHeight,
-      checkData.formworkProjWidth,
-      checkData.formworkFactWidth,
-      checkData.formworkProjThickness,
-      checkData.formworkFactThickness
-    ];
-    if (dimensionalValues.some((value) => parseDecimal(value) != null)) {
-      hasAnyData = true;
-    }
-
-    const verticalResult = getFormworkResultFromValues(
-      checkData.formworkVerticalDeviation,
-      checkData.formworkVerticalTolerance
-    );
-    if (verticalResult.status !== "empty") {
-      hasAnyData = true;
-      hasRequiredData = true;
-      if (verticalResult.status === "exceeded") allOk = false;
-    } else if (parseDecimal(checkData.formworkVerticalDeviation) != null || parseDecimal(checkData.formworkVerticalTolerance) != null) {
-      hasAnyData = true;
-    }
-  }
-  else if (constructionProfile === "plate") {
-    const TOL_THICKNESS = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "plateHeight",
-      TOLERANCES.PLATE_HEIGHT,
-      registrySubtype
-    );
-    const TOL_FLATNESS = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "plateFlatness",
-      TOLERANCES.PLATE_FLATNESS,
-      registrySubtype
-    );
-    const TOL_OPENING_SIZE = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "openingSize",
-      TOLERANCES.OPENING_SIZE,
-      registrySubtype
-    );
-
-    const pH = parseDecimal(checkData.projPlateHeight);
-    const fH = parseDecimal(checkData.factPlateHeight);
-    const fF = parseDecimal(checkData.factPlateFlatness);
-    const openingComparison = compareOpeningSizeSets(
-      checkData.projOpeningSizes ?? checkData.openingSizes,
-      checkData.factOpeningSizes,
-      TOL_OPENING_SIZE,
-      "Размеры проёмов плиты"
-    );
-
-    if (pH != null && fH != null) {
-      hasAnyData = true;
-      hasRequiredData = true;
-      const dev = Math.abs(fH - pH);
-      if (dev > TOL_THICKNESS) allOk = false;
-    } else if (pH != null || fH != null) {
-      hasAnyData = true;
-    }
-
-    if (fF != null) {
-      hasAnyData = true;
-      hasRequiredData = true;
-      if (Math.abs(fF) > TOL_FLATNESS) allOk = false;
-    }
-
-    if (openingComparison.hasAnyData) {
-      hasAnyData = true;
-      if (openingComparison.hasComparableData) {
-        hasRequiredData = true;
-        if (!openingComparison.ok) allOk = false;
-      }
-    }
-  }
-  else if (constructionProfile === "column" && checkData.columns) {
-    const TOL_SIZE = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "columnSize",
-      TOLERANCES.COLUMN_SIZE,
-      registrySubtype
-    );
-    const TOL_VERT = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "columnVerticality",
-      TOLERANCES.COLUMN_VERT,
-      registrySubtype
-    );
-
-    for (const column of checkData.columns) {
-      const pS1 = parseDecimal(column.projSize1);
-      const fS1 = parseDecimal(column.factSize1);
-      const pS2 = parseDecimal(column.projSize2);
-      const fS2 = parseDecimal(column.factSize2);
-      const vD = parseDecimal(column.vertDev);
-
-      if (pS1 != null && fS1 != null) {
-        hasAnyData = true;
-        hasRequiredData = true;
-        const dev = Math.abs(fS1 - pS1);
-        if (dev > TOL_SIZE) allOk = false;
-      } else if (pS1 != null || fS1 != null) {
-        hasAnyData = true;
-      }
-
-      if (pS2 != null && fS2 != null) {
-        hasAnyData = true;
-        hasRequiredData = true;
-        const dev = Math.abs(fS2 - pS2);
-        if (dev > TOL_SIZE) allOk = false;
-      } else if (pS2 != null || fS2 != null) {
-        hasAnyData = true;
-      }
-
-      if (vD != null) {
-        hasAnyData = true;
-        hasRequiredData = true;
-        if (Math.abs(vD) > TOL_VERT) allOk = false;
-      }
-    }
-  }
-  else if (constructionProfile === "wall" && checkData.walls) {
-    const wallEntityLabel = getConstructionEntityLabels(
-      registryConstruction,
-      "geometry",
-      registrySubtype
-    ).singularGenitive;
-    const TOL_THICK = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "wallThickness",
-      TOLERANCES.WALL_THICK,
-      registrySubtype
-    );
-    const TOL_VERT = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "wallVerticality",
-      TOLERANCES.WALL_VERT,
-      registrySubtype
-    );
-    const TOL_FLATNESS = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "wallFlatness",
-      TOLERANCES.WALL_FLATNESS || TOLERANCES.PLATE_FLATNESS,
-      registrySubtype
-    );
-    const TOL_OPENING_SIZE = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "openingSize",
-      TOLERANCES.OPENING_SIZE,
-      registrySubtype
-    );
-    const TOL_OPENING_HEIGHT = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "openingHeight",
-      TOLERANCES.OPENING_HEIGHT,
-      registrySubtype
-    );
-
-    for (const wall of checkData.walls) {
-      const pT = parseDecimal(wall.projThick);
-      const fT = parseDecimal(wall.factThick);
-      const vD = parseDecimal(wall.vertDev);
-      const pOH = parseDecimal(wall.projOpeningHeight);
-      const fOH = parseDecimal(wall.factOpeningHeight);
-      const wallFlatness = parseDecimal(
-        wall.factWallFlatness != null
-          ? wall.factWallFlatness
-          : (checkData.walls.length === 1 ? checkData.factWallFlatness : null)
-      );
-      const openingComparison = compareOpeningSizeSets(
-        wall.projOpeningSizes ?? wall.openingSizes,
-        wall.factOpeningSizes,
-        TOL_OPENING_SIZE,
-        `Размеры проёмов ${wallEntityLabel}`
-      );
-
-      if (pT != null && fT != null) {
-        hasAnyData = true;
-        hasRequiredData = true;
-        const dev = Math.abs(fT - pT);
-        if (dev > TOL_THICK) allOk = false;
-      } else if (pT != null || fT != null) {
-        hasAnyData = true;
-      }
-
-      if (vD != null) {
-        hasAnyData = true;
-        hasRequiredData = true;
-        if (Math.abs(vD) > TOL_VERT) allOk = false;
-      }
-
-      if (wallFlatness != null) {
-        hasAnyData = true;
-        hasRequiredData = true;
-        if (Math.abs(wallFlatness) > TOL_FLATNESS) allOk = false;
-      }
-
-      if (pOH != null && fOH != null) {
-        hasAnyData = true;
-        hasRequiredData = true;
-        if (Math.abs(fOH - pOH) > TOL_OPENING_HEIGHT) allOk = false;
-      } else if (pOH != null || fOH != null) {
-        hasAnyData = true;
-      }
-
-      if (openingComparison.hasAnyData) {
-        hasAnyData = true;
-        if (openingComparison.hasComparableData) {
-          hasRequiredData = true;
-          if (!openingComparison.ok) allOk = false;
-        }
-      }
-    }
-  }
-  else if (constructionProfile === "stair" && checkData.stairs) {
-    const TOL_STEP_HEIGHT = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "stairStepHeight",
-      TOLERANCES.STAIR_STEP_HEIGHT,
-      registrySubtype
-    );
-    const TOL_STEP_WIDTH = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "stairStepWidth",
-      TOLERANCES.STAIR_STEP_WIDTH,
-      registrySubtype
-    );
-
-    for (const stair of checkData.stairs) {
-      const pSH = parseDecimal(stair.projStepHeight);
-      const fSH = parseDecimal(stair.factStepHeight);
-      const pSW = parseDecimal(stair.projStepWidth);
-      const fSW = parseDecimal(stair.factStepWidth);
-      const pFW = parseDecimal(stair.projFlightWidth);
-      const fFW = parseDecimal(stair.factFlightWidth);
-
-      if (pSH != null && fSH != null) {
-        hasAnyData = true;
-        hasRequiredData = true;
-        const dev = Math.abs(fSH - pSH);
-        if (dev > TOL_STEP_HEIGHT) allOk = false;
-      } else if (pSH != null || fSH != null) {
-        hasAnyData = true;
-      }
-
-      if (pSW != null && fSW != null) {
-        hasAnyData = true;
-        hasRequiredData = true;
-        const dev = Math.abs(fSW - pSW);
-        if (dev > TOL_STEP_WIDTH) allOk = false;
-      } else if (pSW != null || fSW != null) {
-        hasAnyData = true;
-      }
-
-      if (pFW != null && fFW != null) {
-        hasAnyData = true;
-        hasRequiredData = true;
-        const dev = Math.abs(fFW - pFW);
-        if (dev > TOL_STEP_WIDTH) allOk = false;
-      } else if (pFW != null || fFW != null) {
-        hasAnyData = true;
-      }
-    }
-  }
-  else if (constructionProfile === "beam" && checkData.beams) {
-    const TOL_SIZE = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "beamSize",
-      TOLERANCES.BEAM_SIZE,
-      registrySubtype
-    );
-
-    for (const beam of checkData.beams) {
-      const pW = parseDecimal(beam.projBeamWidth);
-      const fW = parseDecimal(beam.factBeamWidth);
-      const pH = parseDecimal(beam.projBeamHeight);
-      const fH = parseDecimal(beam.factBeamHeight);
-
-      if (pW != null && fW != null) {
-        hasAnyData = true;
-        hasRequiredData = true;
-        const dev = Math.abs(fW - pW);
-        if (dev > TOL_SIZE) allOk = false;
-      } else if (pW != null || fW != null) {
-        hasAnyData = true;
-      }
-
-      if (pH != null && fH != null) {
-        hasAnyData = true;
-        hasRequiredData = true;
-        const dev = Math.abs(fH - pH);
-        if (dev > TOL_SIZE) allOk = false;
-      } else if (pH != null || fH != null) {
-        hasAnyData = true;
-      }
-    }
-  }
-  else {
-    const pT = parseDecimal(checkData.projThick);
-    const fT = parseDecimal(checkData.factThick);
-    const vD = parseDecimal(checkData.vertDev);
-
-    if (pT != null && fT != null) {
-      hasAnyData = true;
-      hasRequiredData = true;
-      const tol = parseDecimal(checkData.tolThick) || 10;
-      const dev = Math.abs(fT - pT);
-      if (dev > tol) allOk = false;
-    } else if (pT != null || fT != null) {
-      hasAnyData = true;
-    }
-
-    if (vD != null) {
-      hasAnyData = true;
-      hasRequiredData = true;
-      const tol = parseDecimal(checkData.tolVert) || 8;
-      if (Math.abs(vD) > tol) allOk = false;
-    }
-  }
-
-  if (!hasAnyData) {
-    return {
-      status: "empty",
-      summaryText: "Не заполнено"
-    };
-  }
-
-  if (!hasRequiredData) {
-    return {
-      status: "empty",
-      summaryText: "Не заполнено"
-    };
-  }
-
-  return {
-    status: allOk ? "ok" : "exceeded",
-    summaryText: allOk ? "в норме" : "превышено"
-  };
-}
-
-function decodeBasicHtmlEntities(value) {
-  const entities = {
-    amp: "&",
-    lt: "<",
-    gt: ">",
-    quot: '"',
-    apos: "'",
-    "#39": "'",
-    nbsp: " "
-  };
-
-  return String(value || "").replace(/&([a-z0-9#]+);/gi, (match, entity) => {
-    const normalized = String(entity || "").toLowerCase();
-    return entities[normalized] || match;
-  });
-}
-
-function htmlSummaryToPlainText(value) {
-  const source = String(value || "");
-  let output = "";
-  let inTag = false;
-  let tagName = "";
-  let readingTagName = false;
-
-  for (let index = 0; index < source.length; index += 1) {
-    const char = source[index];
-
-    if (inTag) {
-      if (readingTagName && isAsciiAlphaNumeric(char)) {
-        tagName += char.toLowerCase();
-        continue;
-      }
-      readingTagName = false;
-      if (char === ">") {
-        if (tagName === "br" || tagName === "div" || tagName === "p") output += "\n";
-        inTag = false;
-        tagName = "";
-      }
-      continue;
-    }
-
-    if (char === "<") {
-      inTag = true;
-      tagName = "";
-      const next = source[index + 1] || "";
-      readingTagName = next !== "/" && next !== "!" && next !== "?";
-      continue;
-    }
-
-    output += char;
-  }
-
-  return decodeBasicHtmlEntities(output)
-    .split(/\n+/u)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .join("\n");
-}
-
-function isAsciiAlphaNumeric(char) {
-  const code = String(char || "").charCodeAt(0);
-  return (code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
-}
-
-function appendTextLines(container, text) {
-  const lines = String(text || "").split(/\n/u);
-  lines.forEach((line, index) => {
-    if (index > 0) container.appendChild(document.createElement("br"));
-    container.appendChild(document.createTextNode(line));
-  });
-}
-
-function appendGeometryResult(container, resultParts, allOk, regulatoryOptions) {
-  container.textContent = "";
-
-  resultParts.forEach((part, index) => {
-    if (index > 0) container.appendChild(document.createElement("br"));
-    appendTextLines(container, htmlSummaryToPlainText(part));
-  });
-
-  container.appendChild(document.createElement("br"));
-
-  const status = document.createElement("b");
-  status.textContent = allOk
-    ? "Геометрия соответствует допускам."
-    : "Есть превышения допусков.";
-  container.appendChild(status);
-
-  const entries = getRegulatoryBasisEntries(
-    regulatoryOptions.moduleKey,
-    regulatoryOptions.checkKind,
-    regulatoryOptions.subtype
-  );
-  if (!entries.length) return;
-
-  const wrapper = document.createElement("div");
-  wrapper.className = "reg-basis";
-
-  const title = document.createElement("div");
-  title.className = "reg-basis-title";
-  title.textContent = "Нормативное основание";
-  wrapper.appendChild(title);
-
-  const list = document.createElement("div");
-  list.className = "reg-basis-list";
-
-  entries.forEach((entry) => {
-    const item = document.createElement("div");
-    item.className = "reg-basis-item";
-
-    [
-      ["Документ:", entry.document || "—"],
-      ["Пункт:", entry.clause || "—"],
-      entry.tolerance ? ["Допуск:", entry.tolerance] : null
-    ].filter(Boolean).forEach(([label, value]) => {
-      const field = document.createElement("span");
-      field.className = "reg-basis-item-field";
-
-      const labelEl = document.createElement("span");
-      labelEl.className = "reg-basis-item-label";
-      labelEl.textContent = label;
-
-      const valueEl = document.createElement("span");
-      valueEl.className = "reg-basis-item-value";
-      valueEl.textContent = value;
-
-      field.append(labelEl, valueEl);
-      item.appendChild(field);
-    });
-
-    const source = document.createElement("span");
-    source.className = "reg-basis-item-field reg-basis-source";
-    const sourceUrl = typeof entry.url === "string" ? entry.url.trim() : "";
-    if (sourceUrl) {
-      const link = document.createElement("a");
-      link.className = "reg-basis-source-link reg-basis-more";
-      link.href = sourceUrl;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.title = "Открыть нормативный документ";
-      link.textContent = "Подробнее";
-      source.appendChild(link);
-    } else {
-      const fallback = document.createElement("span");
-      fallback.className = "reg-basis-source-fallback";
-      fallback.textContent = "Источник не задан";
-      source.appendChild(fallback);
-    }
-    item.appendChild(source);
-    list.appendChild(item);
-  });
-
-  wrapper.appendChild(list);
-  container.appendChild(wrapper);
-}
-
 function runGeomCheck() {
-  const projectId = getCurrentProjectId();
-  if (!validateProject(projectId)) return;
-
-  const state = getState();
-  const checked = getChecked();
-  let shouldAutoSave = true;
-  let journalAdded = false;
-  const scheduleAutoSave = () => {
-    if (!shouldAutoSave) return;
-    void saveGeomCheck({ skipJournalOnce: journalAdded });
-  };
-  setTimeout(scheduleAutoSave, 0);
-
-  const res = geometryResult;
-  if (!res) return;
-
-  let anyCheck = false;
-  let allOk = true;
-  const parts = [];
-  const detailsParts = [];
-  const flags = getGeometryConstructionFlags();
-
-  if (flags.isUnsupported) {
-    shouldAutoSave = false;
-    setGeometryUnsupportedState({ notify: true });
-    return;
-  }
-
-  if (flags.isFormwork) {
-    const verticalDeviation = readDecimalInputValue(geomFormworkVerticalDeviationEl);
-    const verticalTolerance = readDecimalInputValue(geomFormworkVerticalToleranceEl);
-    const result = updateGeomFormworkCalculatedResult();
-
-    if (verticalDeviation != null && verticalTolerance != null) {
-      const ok = Math.abs(verticalDeviation) <= Math.abs(verticalTolerance);
-      anyCheck = true;
-      allOk = allOk && ok;
-      parts.push(formatCheckResult({
-        parameterName: "Отклонение от вертикали опалубки",
-        actual: Math.abs(verticalDeviation),
-        project: 0,
-        tolerance: Math.abs(verticalTolerance),
-        unit: "мм",
-        regulatoryDoc: "SP_70_13330_2012",
-        isStrict: false
-      }));
-      detailsParts.push(`вертикаль=${Math.abs(verticalDeviation).toFixed(1)} мм при допуске ${Math.abs(verticalTolerance).toFixed(1)} мм`);
-    }
-
-    [
-      ["Высота", geomFormworkProjHeightEl, geomFormworkFactHeightEl],
-      ["Ширина", geomFormworkProjWidthEl, geomFormworkFactWidthEl],
-      ["Толщина", geomFormworkProjThicknessEl, geomFormworkFactThicknessEl]
-    ].forEach(([label, projectEl, factEl]) => {
-      const project = readTextInputValue(projectEl as HTMLInputElement | null);
-      const fact = readTextInputValue(factEl as HTMLInputElement | null);
-      if (project || fact) {
-        detailsParts.push(`${label}: ${project || "—"}/${fact || "—"} мм`);
-      }
-    });
-
-    if (result.status === "empty") {
-      shouldAutoSave = false;
-      res.className = "result";
-      res.textContent = "Заполните отклонение и допуск по вертикали, чтобы получить результат проверки опалубки.";
-      state.geometry = false;
-      checked.geometry = false;
-      return;
-    }
-  }
-
-  else if (flags.isPlate) {
-    const registryConstruction = getSelectedConstructionKey() || construction?.value || "";
-    const registrySubtype = getSelectedConstructionSubtype();
-    const TOL_THICKNESS = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "plateHeight",
-      TOLERANCES.PLATE_HEIGHT,
-      registrySubtype
-    );
-    const TOL_FLATNESS = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "plateFlatness",
-      TOLERANCES.PLATE_FLATNESS,
-      registrySubtype
-    );
-    const TOL_OPENING_SIZE = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "openingSize",
-      TOLERANCES.OPENING_SIZE,
-      registrySubtype
-    );
-
-    const pH = parseDecimal(projPlateHeightEl ? projPlateHeightEl.value : null);
-    const fH = parseDecimal(factPlateHeightEl ? factPlateHeightEl.value : null);
-    const fF = parseDecimal(factPlateFlatnessEl ? factPlateFlatnessEl.value : null);
-    const openingComparison = compareOpeningSizeSets(
-      geomPlateOpeningSizesEl ? geomPlateOpeningSizesEl.value : null,
-      geomPlateFactOpeningSizesEl ? geomPlateFactOpeningSizesEl.value : null,
-      TOL_OPENING_SIZE,
-      "Размеры проёмов плиты"
-    );
-
-    if (pH != null && fH != null) {
-      const { dev, ok } = checkTolerance(fH, pH, TOL_THICKNESS);
-      anyCheck = true;
-      allOk = allOk && ok;
-      parts.push(formatCheckResult({
-        parameterName: "Толщина плиты",
-        actual: fH,
-        project: pH,
-        tolerance: TOL_THICKNESS,
-        unit: "мм",
-        regulatoryDoc: "GOST_9561_2016",
-        isStrict: false
-      }));
-      detailsParts.push(`Δтолщина=${dev.toFixed(1)} мм`);
-    }
-
-    if (fF != null) {
-      const { dev, ok } = checkTolerance(Math.abs(fF), 0, TOL_FLATNESS);
-      anyCheck = true;
-      allOk = allOk && ok;
-      parts.push(formatCheckResult({
-        parameterName: "Плоскостность плиты",
-        actual: Math.abs(fF),
-        project: 0,
-        tolerance: TOL_FLATNESS,
-        unit: "мм",
-        regulatoryDoc: "SP_70_13330_2012",
-        isStrict: false
-      }));
-      detailsParts.push(`плоскостность=${dev.toFixed(1)} мм`);
-    }
-
-    if (openingComparison.hasComparableData) {
-      anyCheck = true;
-      allOk = allOk && openingComparison.ok;
-      parts.push(...buildOpeningComparisonRows(openingComparison, "Проём плиты"));
-
-      if (openingComparison.reason === "format" || openingComparison.reason === "count") {
-        detailsParts.push(openingComparison.message);
-      } else {
-        const maxOpeningDeviation = Math.max(
-          ...openingComparison.comparisons.map((item) => Math.max(item.widthCheck.dev, item.heightCheck.dev))
-        );
-        detailsParts.push(`проёмы плиты: maxΔ=${maxOpeningDeviation.toFixed(1)} мм`);
-      }
-    }
-  }
-
-  else if (flags.isColumn) {
-    const geomColumns = geomGetColumns();
-    if (geomColumns.length === 0) {
-      res.className = "result";
-      res.textContent = "Добавьте хотя бы одну колонну для проверки.";
-      state.geometry = false;
-      checked.geometry = false;
-      shouldAutoSave = false;
-      return;
-    }
-
-    const registryConstruction = getSelectedConstructionKey() || construction?.value || "";
-    const registrySubtype = getSelectedConstructionSubtype();
-    const TOL_SIZE = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "columnSize",
-      TOLERANCES.COLUMN_SIZE,
-      registrySubtype
-    );
-    const TOL_VERT = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "columnVerticality",
-      TOLERANCES.COLUMN_VERT,
-      registrySubtype
-    );
-
-    geomColumns.forEach((column, index) => {
-      const colParts = [];
-      const marking = column.marking || `Колонна ${index + 1}`;
-      const safeMarking = safeValue(marking);
-
-      const pS1 = parseDecimal(column.projSize1);
-      const fS1 = parseDecimal(column.factSize1);
-      const pS2 = parseDecimal(column.projSize2);
-      const fS2 = parseDecimal(column.factSize2);
-      const vD = parseDecimal(column.vertDev);
-
-      if (pS1 != null && fS1 != null) {
-        const { dev, ok } = checkTolerance(fS1, pS1, TOL_SIZE);
-        anyCheck = true;
-        allOk = allOk && ok;
-        colParts.push(formatCheckResult({
-          parameterName: "Размер сечения 1 колонны",
-          actual: fS1,
-          project: pS1,
-          tolerance: TOL_SIZE,
-          unit: "мм",
-          regulatoryDoc: "SP_70_13330_2012",
-          isStrict: false
-        }));
-        detailsParts.push(`${marking}: Δсечение1=${dev.toFixed(1)} мм`);
-      }
-
-      if (pS2 != null && fS2 != null) {
-        const { dev, ok } = checkTolerance(fS2, pS2, TOL_SIZE);
-        anyCheck = true;
-        allOk = allOk && ok;
-        colParts.push(formatCheckResult({
-          parameterName: "Размер сечения 2 колонны",
-          actual: fS2,
-          project: pS2,
-          tolerance: TOL_SIZE,
-          unit: "мм",
-          regulatoryDoc: "SP_70_13330_2012",
-          isStrict: false
-        }));
-        detailsParts.push(`${marking}: Δсечение2=${dev.toFixed(1)} мм`);
-      }
-
-      if (!isNaN(vD)) {
-        const { dev, ok } = checkTolerance(Math.abs(vD), 0, TOL_VERT);
-        anyCheck = true;
-        allOk = allOk && ok;
-        colParts.push(formatCheckResult({
-          parameterName: "Фактическое отклонение по вертикали колонны",
-          actual: Math.abs(vD),
-          project: 0,
-          tolerance: TOL_VERT,
-          unit: "мм",
-          regulatoryDoc: "SP_70_13330_2012",
-          isStrict: false
-        }));
-        detailsParts.push(`${marking}: откл. по вертикали=${dev.toFixed(1)} мм`);
-      }
-
-      if (colParts.length > 0) {
-        parts.push(`<b>${safeMarking}:</b><br/>${colParts.join("<br/>")}`);
-      }
-    });
-  }
-
-  else if (flags.isWall) {
-    const geomWalls = geomGetWalls();
-    if (geomWalls.length === 0) {
-      res.className = "result";
-      res.textContent = `Добавьте хотя бы ${getGeomWallEntityRequiredText()} для проверки.`;
-      state.geometry = false;
-      checked.geometry = false;
-      shouldAutoSave = false;
-      return;
-    }
-
-    const registryConstruction = getSelectedConstructionKey() || construction?.value || "";
-    const registrySubtype = getSelectedConstructionSubtype();
-    const wallEntityLabel = getGeomWallEntityLabel().toLocaleLowerCase("ru");
-    const TOL_THICK = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "wallThickness",
-      TOLERANCES.WALL_THICK,
-      registrySubtype
-    );
-    const TOL_VERT = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "wallVerticality",
-      TOLERANCES.WALL_VERT,
-      registrySubtype
-    );
-    const TOL_FLATNESS = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "wallFlatness",
-      TOLERANCES.WALL_FLATNESS || TOLERANCES.PLATE_FLATNESS,
-      registrySubtype
-    );
-    const TOL_OPENING_SIZE = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "openingSize",
-      TOLERANCES.OPENING_SIZE,
-      registrySubtype
-    );
-    const TOL_OPENING_HEIGHT = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "openingHeight",
-      TOLERANCES.OPENING_HEIGHT,
-      registrySubtype
-    );
-
-    geomWalls.forEach((wall, index) => {
-      const wallParts = [];
-      let wallLabel = `${getGeomWallEntityLabel()} ${index + 1}`;
-      if (wall.bindingType === "number_letters" && wall.numberAxis && wall.letterAxis1 && wall.letterAxis2) {
-        wallLabel = `${wall.numberAxis}, ${wall.letterAxis1}-${wall.letterAxis2}`;
-      } else if (wall.bindingType === "letter_numbers" && wall.letterAxis && wall.numberAxis1 && wall.numberAxis2) {
-        wallLabel = `${wall.letterAxis}, ${wall.numberAxis1}-${wall.numberAxis2}`;
-      }
-      const safeWallLabel = safeValue(wallLabel);
-
-      const pT = parseDecimal(wall.projThick);
-      const fT = parseDecimal(wall.factThick);
-      const vD = parseDecimal(wall.vertDev);
-      const pOH = parseDecimal(wall.projOpeningHeight);
-      const fOH = parseDecimal(wall.factOpeningHeight);
-      const wallFlatness = parseDecimal(wall.factWallFlatness);
-      const openingComparison = compareOpeningSizeSets(
-        wall.projOpeningSizes ?? wall.openingSizes,
-        wall.factOpeningSizes,
-        TOL_OPENING_SIZE,
-        `Размеры проёмов (${wallLabel})`
-      );
-
-      if (pT != null && fT != null) {
-        const { dev, ok } = checkTolerance(fT, pT, TOL_THICK);
-        anyCheck = true;
-        allOk = allOk && ok;
-        wallParts.push(formatCheckResult({
-          parameterName: `Толщина ${wallEntityLabel}`,
-          actual: fT,
-          project: pT,
-          tolerance: TOL_THICK,
-          unit: "мм",
-          regulatoryDoc: "SP_70_13330_2012",
-          isStrict: false
-        }));
-        detailsParts.push(`${wallLabel}: Δтолщина=${dev.toFixed(1)} мм`);
-      }
-
-      if (!isNaN(vD)) {
-        const { dev, ok } = checkTolerance(Math.abs(vD), 0, TOL_VERT);
-        anyCheck = true;
-        allOk = allOk && ok;
-        wallParts.push(formatCheckResult({
-          parameterName: `Фактическое отклонение по вертикали ${wallEntityLabel}`,
-          actual: Math.abs(vD),
-          project: 0,
-          tolerance: TOL_VERT,
-          unit: "мм",
-          regulatoryDoc: "SP_70_13330_2012",
-          isStrict: false
-        }));
-        detailsParts.push(`${wallLabel}: откл. по вертикали=${dev.toFixed(1)} мм`);
-      }
-
-      if (!isNaN(wallFlatness)) {
-        const { dev, ok } = checkTolerance(Math.abs(wallFlatness), 0, TOL_FLATNESS);
-        anyCheck = true;
-        allOk = allOk && ok;
-        wallParts.push(formatCheckResult({
-          parameterName: `Фактическая плоскостность ${wallEntityLabel}`,
-          actual: Math.abs(wallFlatness),
-          project: 0,
-          tolerance: TOL_FLATNESS,
-          unit: "мм",
-          regulatoryDoc: "SP_70_13330_2012",
-          isStrict: false
-        }));
-        detailsParts.push(`${wallLabel}: плоскостность=${dev.toFixed(1)} мм`);
-      }
-
-      if (pOH != null && fOH != null) {
-        const { dev, ok } = checkTolerance(fOH, pOH, TOL_OPENING_HEIGHT);
-        anyCheck = true;
-        allOk = allOk && ok;
-        wallParts.push(formatCheckResult({
-          parameterName: `Высота расположения проёмов ${wallEntityLabel}`,
-          actual: fOH,
-          project: pOH,
-          tolerance: TOL_OPENING_HEIGHT,
-          unit: "мм",
-          regulatoryDoc: "SP_70_13330_2012",
-          isStrict: false
-        }));
-        detailsParts.push(`${wallLabel}: Δвысота проёмов=${dev.toFixed(1)} мм`);
-      }
-
-      if (openingComparison.hasComparableData) {
-        anyCheck = true;
-        allOk = allOk && openingComparison.ok;
-        wallParts.push(...buildOpeningComparisonRows(openingComparison, `Проём ${wallEntityLabel}`));
-
-        if (openingComparison.reason === "format" || openingComparison.reason === "count") {
-          detailsParts.push(openingComparison.message);
-        } else {
-          const maxOpeningDeviation = Math.max(
-            ...openingComparison.comparisons.map((item) => Math.max(item.widthCheck.dev, item.heightCheck.dev))
-          );
-          detailsParts.push(`${wallLabel}: проёмы maxΔ=${maxOpeningDeviation.toFixed(1)} мм`);
-        }
-      }
-
-      if (wallParts.length > 0) {
-        parts.push(`<b>${safeWallLabel}:</b><br/>${wallParts.join("<br/>")}`);
-      }
-    });
-  }
-
-  else if (flags.isStair) {
-    const geomStairs = geomGetStairs();
-    if (geomStairs.length === 0) {
-      res.className = "result";
-      res.textContent = "Добавьте хотя бы одну лестницу для проверки.";
-      state.geometry = false;
-      checked.geometry = false;
-      shouldAutoSave = false;
-      return;
-    }
-
-    const registryConstruction = getSelectedConstructionKey() || construction?.value || "";
-    const registrySubtype = getSelectedConstructionSubtype();
-    const TOL_STEP_HEIGHT = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "stairStepHeight",
-      TOLERANCES.STAIR_STEP_HEIGHT,
-      registrySubtype
-    );
-    const TOL_STEP_WIDTH = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "stairStepWidth",
-      TOLERANCES.STAIR_STEP_WIDTH,
-      registrySubtype
-    );
-
-    const stairName = geomStairNameEl ? geomStairNameEl.value.trim() : "";
-
-    geomStairs.forEach((stair, index) => {
-      const stairParts = [];
-      let stairLabel = `Лестница ${index + 1}`;
-      if (stair.bindingType === "number_letters" && stair.numberAxis && stair.letterAxis1 && stair.letterAxis2) {
-        stairLabel = `${stair.numberAxis}, ${stair.letterAxis1}-${stair.letterAxis2}`;
-      } else if (stair.bindingType === "letter_numbers" && stair.letterAxis && stair.numberAxis1 && stair.numberAxis2) {
-        stairLabel = `${stair.letterAxis}, ${stair.numberAxis1}-${stair.numberAxis2}`;
-      }
-      if (stairName) {
-        stairLabel = `${stairName}, ${stairLabel}`;
-      }
-
-      const pSH = parseDecimal(stair.projStepHeight);
-      const fSH = parseDecimal(stair.factStepHeight);
-      const pSW = parseDecimal(stair.projStepWidth);
-      const fSW = parseDecimal(stair.factStepWidth);
-      const pFW = parseDecimal(stair.projFlightWidth);
-      const fFW = parseDecimal(stair.factFlightWidth);
-
-      if (pSH != null && fSH != null) {
-        const { dev, ok } = checkTolerance(fSH, pSH, TOL_STEP_HEIGHT);
-        anyCheck = true;
-        allOk = allOk && ok;
-        stairParts.push(formatCheckResult({
-          parameterName: "Высота подступенка / ступени",
-          actual: fSH,
-          project: pSH,
-          tolerance: TOL_STEP_HEIGHT,
-          unit: "мм",
-          regulatoryDoc: "SP_70_13330_2012",
-          isStrict: false
-        }));
-        detailsParts.push(`${stairLabel}: Δвысота подступенка=${dev.toFixed(1)} мм`);
-      }
-
-      if (pSW != null && fSW != null) {
-        const { dev, ok } = checkTolerance(fSW, pSW, TOL_STEP_WIDTH);
-        anyCheck = true;
-        allOk = allOk && ok;
-        stairParts.push(formatCheckResult({
-          parameterName: "Ширина проступи",
-          actual: fSW,
-          project: pSW,
-          tolerance: TOL_STEP_WIDTH,
-          unit: "мм",
-          regulatoryDoc: "SP_70_13330_2012",
-          isStrict: false
-        }));
-        detailsParts.push(`${stairLabel}: Δширина проступи=${dev.toFixed(1)} мм`);
-      }
-
-      if (pFW != null && fFW != null) {
-        const { dev, ok } = checkTolerance(fFW, pFW, TOL_STEP_WIDTH);
-        anyCheck = true;
-        allOk = allOk && ok;
-        stairParts.push(formatCheckResult({
-          parameterName: "Ширина марша",
-          actual: fFW,
-          project: pFW,
-          tolerance: TOL_STEP_WIDTH,
-          unit: "мм",
-          regulatoryDoc: "SP_70_13330_2012",
-          isStrict: false
-        }));
-        detailsParts.push(`${stairLabel}: Δширина марша=${dev.toFixed(1)} мм`);
-      }
-
-      if (stairParts.length > 0) {
-        parts.push(`<b>${stairLabel}:</b><br/>${stairParts.join("<br/>")}`);
-      }
-    });
-  }
-
-  else if (flags.isBeam) {
-    const geomBeams = geomGetBeams();
-    if (geomBeams.length === 0) {
-      res.className = "result";
-      res.textContent = "Добавьте хотя бы одну балку для проверки.";
-      state.geometry = false;
-      checked.geometry = false;
-      shouldAutoSave = false;
-      return;
-    }
-
-    const registryConstruction = getSelectedConstructionKey() || construction?.value || "";
-    const registrySubtype = getSelectedConstructionSubtype();
-    const TOL_SIZE = getInspectionToleranceValue(
-      registryConstruction,
-      "geometry",
-      "beamSize",
-      TOLERANCES.BEAM_SIZE,
-      registrySubtype
-    );
-
-    geomBeams.forEach((beam, index) => {
-      const beamParts = [];
-      const marking = beam.marking || `Балка ${index + 1}`;
-      const safeMarking = safeValue(marking);
-
-      const pBW = parseFloat(beam.projBeamWidth);
-      const fBW = parseFloat(beam.factBeamWidth);
-      const pBH = parseFloat(beam.projBeamHeight);
-      const fBH = parseFloat(beam.factBeamHeight);
-
-      if (!isNaN(pBW) && !isNaN(fBW)) {
-        const { dev, ok } = checkTolerance(fBW, pBW, TOL_SIZE);
-        anyCheck = true;
-        allOk = allOk && ok;
-        beamParts.push(formatCheckResult({
-          parameterName: "Ширина балки",
-          actual: fBW,
-          project: pBW,
-          tolerance: TOL_SIZE,
-          unit: "мм",
-          regulatoryDoc: "SP_70_13330_2012",
-          isStrict: false
-        }));
-        detailsParts.push(`${marking}: Δширина=${dev.toFixed(1)} мм`);
-      }
-
-      if (!isNaN(pBH) && !isNaN(fBH)) {
-        const { dev, ok } = checkTolerance(fBH, pBH, TOL_SIZE);
-        anyCheck = true;
-        allOk = allOk && ok;
-        beamParts.push(formatCheckResult({
-          parameterName: "Высота балки",
-          actual: fBH,
-          project: pBH,
-          tolerance: TOL_SIZE,
-          unit: "мм",
-          regulatoryDoc: "SP_70_13330_2012",
-          isStrict: false
-        }));
-        detailsParts.push(`${marking}: Δвысота=${dev.toFixed(1)} мм`);
-      }
-
-      if (beamParts.length > 0) {
-        parts.push(`<b>${safeMarking}:</b><br/>${beamParts.join("<br/>")}`);
-      }
-    });
-  }
-
-  else {
-    const tTol = 10;
-    const vTol = 8;
-    const pT = parseDecimal(projThick ? projThick.value : null);
-    const fT = parseDecimal(factThick ? factThick.value : null);
-    const vD = parseDecimal(vertDev ? vertDev.value : null);
-
-    if (pT != null && fT != null) {
-      const { dev, ok } = checkTolerance(fT, pT, tTol);
-      anyCheck = true;
-      allOk = allOk && ok;
-      parts.push(formatCheckResult({
-        parameterName: "Толщина",
-        actual: fT,
-        project: pT,
-        tolerance: tTol,
-        unit: "мм",
-        regulatoryDoc: "SP_70_13330_2012",
-        isStrict: false
-      }));
-      detailsParts.push(`Δтолщина=${dev.toFixed(1)} мм`);
-    }
-
-    if (vD != null) {
-      const { dev, ok } = checkTolerance(Math.abs(vD), 0, vTol);
-      anyCheck = true;
-      allOk = allOk && ok;
-      parts.push(formatCheckResult({
-        parameterName: "Вертикальность",
-        actual: Math.abs(vD),
-        project: 0,
-        tolerance: vTol,
-        unit: "мм",
-        regulatoryDoc: "SP_70_13330_2012",
-        isStrict: false
-      }));
-      detailsParts.push(`откл. по вертикали=${dev.toFixed(1)} мм`);
-    }
-  }
-
-  if (!anyCheck) {
-    res.className = "result";
-    res.textContent = "Нет данных для проверки геометрии. Можно сохранить проектные значения и вернуться позже.";
-    state.geometry = false;
-    checked.geometry = false;
-    return;
-  }
-
-  res.className = "result " + (allOk ? "ok" : "not-ok");
-
-  const constructionValue = construction ? construction.value : "";
-  appendGeometryResult(res, parts, allOk, {
-    moduleKey: "geometry",
-    checkKind: getSelectedConstructionKey() || constructionValue || "default",
-    subtype: getSelectedConstructionSubtype()
-  });
-  state.geometry = allOk;
-  checked.geometry = true;
-
-  const floor = geomFloorEl ? geomFloorEl.value.trim() : "";
-  let context = floor ? `Этаж ${floor}` : "—";
-
-  if (constructionValue === "Плита" && geomLocationEl && geomLocationEl.value) {
-    context = floor ? `Этаж ${floor}, ${geomLocationEl.value}` : geomLocationEl.value;
-  }
-  if (flags.isFormwork) {
-    const target = readTextInputValue(geomFormworkElementNameEl) || readTextInputValue(geomFormworkAreaEl);
-    const formworkFloor = readTextInputValue(geomFormworkFloorEl);
-    context = ["Опалубка", target, formworkFloor ? `этаж ${formworkFloor}` : ""].filter(Boolean).join(", ");
-  }
-
-  addJournalEntrySafe({
-    module: "Геометрия",
-    status: allOk ? "в норме" : "превышено",
-    context: context,
-    details: detailsParts.join("; "),
-    construction: getSelectedConstructionKey()
-  });
-  journalAdded = true;
+  void saveGeomCheck();
 }
 
 function clearGeomForm() {
+  commonPhysicalDimensions = {};
+  renderCommonDimensions();
+  restoreAcceptanceCriteria(document.getElementById("geometry"));
   setCurrentGeomCheckId(null);
   clearGeomBimSelection({ keepManualFields: false });
   const flags = getGeometryConstructionFlags();
@@ -4639,13 +3389,6 @@ function initGeometryHandlers() {
   if (btnAddGeomBeam) {
     btnAddGeomBeam.addEventListener("click", addGeomBeam);
   }
-  [
-    geomFormworkVerticalDeviationEl,
-    geomFormworkVerticalToleranceEl
-  ].forEach((element) => {
-    element?.addEventListener("input", updateGeomFormworkCalculatedResult);
-    element?.addEventListener("change", updateGeomFormworkCalculatedResult);
-  });
 
   const btnGeom = document.getElementById("btnGeom");
   if (btnGeom) {
@@ -4671,7 +3414,7 @@ function initGeometryHandlers() {
     });
   }
 
-  document.addEventListener("app:language-changed", () => { renderGeomBimFilterOptions(); renderGeomBimElementOptions(); });
+  document.addEventListener("app:language-changed", () => { renderGeomBimFilterOptions(); renderGeomBimElementOptions(); renderCommonDimensions(); renderGeomColumns(); renderGeomWalls(); renderGeomStairs(); renderGeomBeams(); });
   if (geomBimElementSelect) {
     geomBimElementSelect.addEventListener("change", (event) => {
       const nextId = event.target?.value || "";
@@ -4721,7 +3464,15 @@ function initGeometryHandlers() {
   }
 
   if (construction) {
+    let previousConstruction = `${getSelectedConstructionKey()}:${getSelectedConstructionSubtype()}:${getSelectedPileElement()}`;
     construction.addEventListener("change", () => {
+      const current = `${getSelectedConstructionKey()}:${getSelectedConstructionSubtype()}:${getSelectedPileElement()}`;
+      if (current !== previousConstruction) {
+        commonPhysicalDimensions = {};
+        restoreAcceptanceCriteria(document.getElementById("geometry"));
+        setCurrentGeomCheckId(null);
+      }
+      previousConstruction = current;
       updateGeomFieldsVisibility();
       markGeomDynamicBimFields(geomBimBindingSnapshot);
     });

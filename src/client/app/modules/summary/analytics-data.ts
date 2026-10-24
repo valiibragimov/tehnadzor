@@ -1,3 +1,5 @@
+import { currentAssessmentStatus } from "../../../features/inspections/assessment-status.js";
+import { getConfirmedGeoTolerance } from "../../../features/inspections/geodesy/evaluation.js";
 import { TOLERANCES } from "../../../config.js";
 import {
   calculateQualityIndex,
@@ -258,7 +260,8 @@ function buildTrendPoint({
 
   const normalizedModule = normalizeModuleName(moduleName, "Прочее");
   const normalizedConstruction = normalizeConstructionName(construction, "Не указано");
-  const status = normalizeCheckStatus(source?.status ?? source?.checkStatus);
+  const status = currentAssessmentStatus(source);
+  if (!status) return null;
 
   const ratios = Array.isArray(measurements)
     ? measurements.map((item) => Number(item?.relativeDeviation)).filter((value) => Number.isFinite(value))
@@ -369,7 +372,7 @@ function normalizeMeasurement(measurement, defaults: AnalyticsMeasurementDefault
 }
 
 function extractMeasurements(inspectionData, defaults: AnalyticsMeasurementDefaults = {}) {
-  if (!inspectionData) return [];
+  if (!inspectionData || inspectionData.evaluationSchemaVersion !== 2) return [];
 
   const candidates = [
     inspectionData.measurements,
@@ -399,27 +402,28 @@ function extractMeasurements(inspectionData, defaults: AnalyticsMeasurementDefau
 
 function extractGeoNodeMeasurements(geoNode) {
   const measurements = [];
-  if (!geoNode || typeof geoNode !== "object") return measurements;
+  if (!geoNode || typeof geoNode !== "object" || geoNode.coordinateUnit !== "m" || !currentAssessmentStatus(geoNode)) return measurements;
 
-  const tolXY = TOLERANCES.PLAN_XY || 8;
-  const tolH = TOLERANCES.HEIGHT || 10;
+  const tolXY = getConfirmedGeoTolerance(geoNode.acceptanceCriteria, "geoPlan");
+  const tolH = getConfirmedGeoTolerance(geoNode.acceptanceCriteria, "geoHeight");
   const type = geoNode.type || "";
   const defaultConstruction = resolveGeoConstruction(geoNode);
 
+  const toleranceAt = (bounds, project, actual) => typeof bounds === "number" ? bounds : parseNumber(actual) < parseNumber(project) ? Math.abs(bounds.min) : Math.abs(bounds.max);
   const addXY = (prefix, projX, factX, projY, factY, constructionName = defaultConstruction) => {
     pushMeasurement(measurements, {
       parameterName: `${prefix} X`,
-      designValue: projX,
-      actualValue: factX,
-      tolerance: tolXY,
+      designValue: parseNumber(projX) == null ? null : parseNumber(projX) * 1000,
+      actualValue: parseNumber(factX) == null ? null : parseNumber(factX) * 1000,
+      tolerance: toleranceAt(tolXY, projX, factX),
       moduleName: "Геодезия",
       construction: constructionName
     });
     pushMeasurement(measurements, {
       parameterName: `${prefix} Y`,
-      designValue: projY,
-      actualValue: factY,
-      tolerance: tolXY,
+      designValue: parseNumber(projY) == null ? null : parseNumber(projY) * 1000,
+      actualValue: parseNumber(factY) == null ? null : parseNumber(factY) * 1000,
+      tolerance: toleranceAt(tolXY, projY, factY),
       moduleName: "Геодезия",
       construction: constructionName
     });
@@ -446,9 +450,9 @@ function extractGeoNodeMeasurements(geoNode) {
   addXY("Узел", geoNode.projX, geoNode.factX, geoNode.projY, geoNode.factY);
   pushMeasurement(measurements, {
     parameterName: "Узел H",
-    designValue: geoNode.projH,
-    actualValue: geoNode.factH,
-    tolerance: tolH,
+    designValue: parseNumber(geoNode.projH) == null ? null : parseNumber(geoNode.projH) * 1000,
+    actualValue: parseNumber(geoNode.factH) == null ? null : parseNumber(geoNode.factH) * 1000,
+    tolerance: toleranceAt(tolH, geoNode.projH, geoNode.factH),
     moduleName: "Геодезия",
     construction: defaultConstruction
   });
@@ -456,240 +460,39 @@ function extractGeoNodeMeasurements(geoNode) {
   return measurements;
 }
 
-function extractReinfMeasurements(reinfCheck) {
-  const measurements = [];
-  if (!reinfCheck || typeof reinfCheck !== "object") return measurements;
-
-  const tolStep = TOLERANCES.STEP || 20;
-  const tolCover = TOLERANCES.COVER || 5;
-  const tolHoops = TOLERANCES.HOOPS_STEP || 20;
-  const defaultConstruction = resolveReinfConstruction(reinfCheck);
-
-  const addItem = (item, label, constructionName = defaultConstruction) => {
-    pushMeasurement(measurements, {
-      parameterName: `${label} шаг арматуры`,
-      designValue: item?.projStep,
-      actualValue: item?.factStep,
-      tolerance: tolStep,
-      moduleName: "Армирование",
-      construction: constructionName
-    });
-    pushMeasurement(measurements, {
-      parameterName: `${label} защитный слой`,
-      designValue: item?.projCover,
-      actualValue: item?.factCover,
-      tolerance: tolCover,
-      moduleName: "Армирование",
-      construction: constructionName
-    });
-    pushMeasurement(measurements, {
-      parameterName: `${label} шаг хомутов`,
-      designValue: item?.projHoopsStep,
-      actualValue: item?.factHoopsStep,
-      tolerance: tolHoops,
-      moduleName: "Армирование",
-      construction: constructionName
-    });
-  };
-
-  if (Array.isArray(reinfCheck.columns)) {
-    reinfCheck.columns.forEach((item, index) => addItem(item, `Колонна ${index + 1}`, "Колонна"));
+function confirmedMetric(record, item, projectKey, actualKey, limitKey, label, moduleName) {
+  if (!currentAssessmentStatus(record) || !record.acceptanceCriteria?.confirmed || !record.acceptanceCriteria.reference) return null;
+  const p = parseNumber(item[projectKey]), a = parseNumber(item[actualKey]);
+  const bounds = record.acceptanceCriteria.limits[limitKey];
+  if (p == null || a == null || bounds?.min == null || bounds.max == null || bounds.min > bounds.max) return null;
+  const tolerance = a < p ? Math.abs(bounds.min) : Math.abs(bounds.max);
+  return normalizeMeasurement({ parameterName: label, designValue: p, actualValue: a, tolerance, moduleName, construction: record.construction, unit: "мм" });
+}
+function extractReinfMeasurements(check) {
+  const results = [];
+  for (const item of check.columns || check.beams || check.walls || [check]) {
+    for (const [project, actual, key, label] of [["projStep", "factStep", "step", "Шаг арматуры"], ["projCover", "factCover", "cover", "Защитный слой"], ["projHoopsStep", "factHoopsStep", "hoopsStep", "Шаг хомутов"]]) {
+      const result = confirmedMetric(check, item, project, actual, key, label, "Армирование");
+      if (result) results.push(result);
+    }
   }
-  if (Array.isArray(reinfCheck.beams)) {
-    reinfCheck.beams.forEach((item, index) => addItem(item, `Балка ${index + 1}`, "Балка"));
-  }
-  if (Array.isArray(reinfCheck.walls)) {
-    reinfCheck.walls.forEach((item, index) => addItem(item, `Стена ${index + 1}`, "Стена"));
-  }
-
-  if (!Array.isArray(reinfCheck.columns) && !Array.isArray(reinfCheck.beams) && !Array.isArray(reinfCheck.walls)) {
-    addItem(reinfCheck, "Элемент", defaultConstruction);
-  }
-
-  return measurements;
+  return results;
 }
 
-function extractGeomMeasurements(geomCheck) {
-  const measurements = [];
-  if (!geomCheck || typeof geomCheck !== "object") return measurements;
-
-  const construction = resolveGeomConstruction(geomCheck);
-
-  if (construction === "Плита") {
-    pushMeasurement(measurements, {
-      parameterName: "Толщина плиты",
-      designValue: geomCheck.projPlateHeight,
-      actualValue: geomCheck.factPlateHeight,
-      tolerance: TOLERANCES.PLATE_HEIGHT || 5,
-      moduleName: "Геометрия",
-      construction: "Плита"
-    });
-    pushMeasurement(measurements, {
-      parameterName: "Плоскостность плиты",
-      designValue: 0,
-      actualValue: Math.abs(parseNumber(geomCheck.factPlateFlatness) ?? Number.NaN),
-      tolerance: TOLERANCES.PLATE_FLATNESS || 5,
-      moduleName: "Геометрия",
-      construction: "Плита"
-    });
-    pushOpeningMeasurements(measurements, {
-      parameterPrefix: "Проём плиты",
-      designValue: geomCheck.projOpeningSizes ?? geomCheck.openingSizes,
-      actualValue: geomCheck.factOpeningSizes,
-      tolerance: TOLERANCES.OPENING_SIZE || 8,
-      moduleName: "Геометрия",
-      construction: "Плита"
-    });
+function extractGeomMeasurements(check) {
+  const results = [];
+  const rows = [check, ...(check.columns || []), ...(check.walls || []), ...(check.beams || []), ...(check.stairs || [])];
+  for (const row of rows) {
+    for (const [key, dimensions] of Object.entries(row.physicalDimensions || {}) as Array<[string, Record<string, unknown>]>) {
+      const result = confirmedMetric(check, dimensions, "project", "actual", "dimensions", key, "Геометрия");
+      if (result) results.push(result);
+    }
+    for (const [project, actual, key] of [["projPlateHeight", "factPlateHeight", "thickness"], ["projThick", "factThick", "thickness"], ["projSize1", "factSize1", "section"], ["projSize2", "factSize2", "section"], ["projBeamWidth", "factBeamWidth", "section"], ["projBeamHeight", "factBeamHeight", "section"], ["projFlightWidth", "factFlightWidth", "dimensions"], ["projStepHeight", "factStepHeight", "step"], ["projStepWidth", "factStepWidth", "step"]]) {
+      const result = confirmedMetric(check, row, project, actual, key, key, "Геометрия");
+      if (result) results.push(result);
+    }
   }
-
-  if (Array.isArray(geomCheck.columns)) {
-    geomCheck.columns.forEach((item, index) => {
-      pushMeasurement(measurements, {
-        parameterName: `Колонна ${index + 1} размер сечения 1`,
-        designValue: item?.projSize1,
-        actualValue: item?.factSize1,
-        tolerance: TOLERANCES.COLUMN_SIZE || 8,
-        moduleName: "Геометрия",
-        construction: "Колонна"
-      });
-      pushMeasurement(measurements, {
-        parameterName: `Колонна ${index + 1} размер сечения 2`,
-        designValue: item?.projSize2,
-        actualValue: item?.factSize2,
-        tolerance: TOLERANCES.COLUMN_SIZE || 8,
-        moduleName: "Геометрия",
-        construction: "Колонна"
-      });
-      pushMeasurement(measurements, {
-        parameterName: `Колонна ${index + 1} отклонение по вертикали`,
-        designValue: 0,
-        actualValue: Math.abs(parseNumber(item?.vertDev) ?? Number.NaN),
-        tolerance: TOLERANCES.COLUMN_VERT || 8,
-        moduleName: "Геометрия",
-        construction: "Колонна"
-      });
-    });
-  }
-
-  if (Array.isArray(geomCheck.walls)) {
-    geomCheck.walls.forEach((item, index) => {
-      pushMeasurement(measurements, {
-        parameterName: `Стена ${index + 1} толщина`,
-        designValue: item?.projThick,
-        actualValue: item?.factThick,
-        tolerance: TOLERANCES.WALL_THICK || 5,
-        moduleName: "Геометрия",
-        construction: "Стена"
-      });
-      pushMeasurement(measurements, {
-        parameterName: `Стена ${index + 1} отклонение по вертикали`,
-        designValue: 0,
-        actualValue: Math.abs(parseNumber(item?.vertDev) ?? Number.NaN),
-        tolerance: TOLERANCES.WALL_VERT || 8,
-        moduleName: "Геометрия",
-        construction: "Стена"
-      });
-      pushMeasurement(measurements, {
-        parameterName: `Стена ${index + 1} плоскостность`,
-        designValue: 0,
-        actualValue: Math.abs(parseNumber(
-          item?.factWallFlatness != null
-            ? item.factWallFlatness
-            : (geomCheck.walls.length === 1 ? geomCheck.factWallFlatness : Number.NaN)
-        ) ?? Number.NaN),
-        tolerance: TOLERANCES.WALL_FLATNESS || TOLERANCES.PLATE_FLATNESS || 5,
-        moduleName: "Геометрия",
-        construction: "Стена"
-      });
-      pushMeasurement(measurements, {
-        parameterName: `Стена ${index + 1} высота расположения проёмов`,
-        designValue: item?.projOpeningHeight,
-        actualValue: item?.factOpeningHeight,
-        tolerance: TOLERANCES.OPENING_HEIGHT || 8,
-        moduleName: "Геометрия",
-        construction: "Стена"
-      });
-      pushOpeningMeasurements(measurements, {
-        parameterPrefix: `Стена ${index + 1} проём`,
-        designValue: item?.projOpeningSizes ?? item?.openingSizes,
-        actualValue: item?.factOpeningSizes,
-        tolerance: TOLERANCES.OPENING_SIZE || 8,
-        moduleName: "Геометрия",
-        construction: "Стена"
-      });
-    });
-  }
-
-  if (Array.isArray(geomCheck.stairs)) {
-    geomCheck.stairs.forEach((item, index) => {
-      pushMeasurement(measurements, {
-        parameterName: `Лестница ${index + 1} высота подступенка / ступени`,
-        designValue: item?.projStepHeight,
-        actualValue: item?.factStepHeight,
-        tolerance: TOLERANCES.STAIR_STEP_HEIGHT || 5,
-        moduleName: "Геометрия",
-        construction: "Лестница"
-      });
-      pushMeasurement(measurements, {
-        parameterName: `Лестница ${index + 1} ширина проступи`,
-        designValue: item?.projStepWidth,
-        actualValue: item?.factStepWidth,
-        tolerance: TOLERANCES.STAIR_STEP_WIDTH || 5,
-        moduleName: "Геометрия",
-        construction: "Лестница"
-      });
-      pushMeasurement(measurements, {
-        parameterName: `Лестница ${index + 1} ширина марша`,
-        designValue: item?.projFlightWidth,
-        actualValue: item?.factFlightWidth,
-        tolerance: TOLERANCES.STAIR_STEP_WIDTH || 5,
-        moduleName: "Геометрия",
-        construction: "Лестница"
-      });
-    });
-  }
-
-  if (Array.isArray(geomCheck.beams)) {
-    geomCheck.beams.forEach((item, index) => {
-      pushMeasurement(measurements, {
-        parameterName: `Балка ${index + 1} ширина`,
-        designValue: item?.projBeamWidth,
-        actualValue: item?.factBeamWidth,
-        tolerance: TOLERANCES.BEAM_SIZE || 8,
-        moduleName: "Геометрия",
-        construction: "Балка"
-      });
-      pushMeasurement(measurements, {
-        parameterName: `Балка ${index + 1} высота`,
-        designValue: item?.projBeamHeight,
-        actualValue: item?.factBeamHeight,
-        tolerance: TOLERANCES.BEAM_SIZE || 8,
-        moduleName: "Геометрия",
-        construction: "Балка"
-      });
-    });
-  }
-
-  if (measurements.length === 0) {
-    pushMeasurement(measurements, {
-      parameterName: "Толщина",
-      designValue: geomCheck.projThick,
-      actualValue: geomCheck.factThick,
-      tolerance: TOLERANCES.WALL_THICK || 5,
-      moduleName: "Геометрия",
-      construction
-    });
-    pushMeasurement(measurements, {
-      parameterName: "Вертикальность",
-      designValue: 0,
-      actualValue: Math.abs(parseNumber(geomCheck.vertDev) ?? Number.NaN),
-      tolerance: TOLERANCES.WALL_VERT || 8,
-      moduleName: "Геометрия",
-      construction
-    });
-  }
-
-  return measurements;
+  return results;
 }
 
 export function calculateProjectAnalytics(project, sources) {
@@ -709,7 +512,7 @@ export function calculateProjectAnalytics(project, sources) {
   if (hasInspections) {
     inspections.forEach((inspection) => {
       const moduleKey = resolveInspectionModuleKey(inspection);
-      if (!moduleKey) return;
+      if (!moduleKey || !currentAssessmentStatus(inspection)) return;
 
       const moduleName = moduleKeyToModuleName(moduleKey);
       const sourceId = resolveInspectionSourceId(inspection);

@@ -330,7 +330,7 @@ function clearPendingRepeatControl(issueId = "") {
 function issueMatchesRepeatEntry(issue: IssueRecord, entry: JournalEntryRecord, explicit = false) {
   if (!issue || getRuntimeIssueStatus(issue) === "closed") return false;
   if (hasIssueRepeatControl(issue)) return false;
-  if (normalizeJournalStatus(entry?.status) !== "ok") return false;
+  if (entry?.evaluationSchemaVersion !== 2 || normalizeJournalStatus(entry?.status) !== "ok") return false;
 
   const issueSourceId = String(issue.sourceInspectionId || "").trim();
   const entrySourceId = String(entry.sourceId || "").trim();
@@ -370,7 +370,7 @@ function findIssueForRepeatControl(entry: JournalEntryRecord) {
 }
 
 async function linkRepeatControlFromJournalEntry(entry: JournalEntryRecord) {
-  if (!workspace.getProjectId() || normalizeJournalStatus(entry?.status) !== "ok") return;
+  if (!workspace.getProjectId() || entry?.evaluationSchemaVersion !== 2 || normalizeJournalStatus(entry?.status) !== "ok") return;
   const issue = findIssueForRepeatControl(entry);
   if (!issue?.id) return;
 
@@ -879,7 +879,7 @@ function fmtDate(ts) {
  * @param {string} params.construction - Конструкция (опционально, если не указана, берется из DOM)
  * @returns {Promise<string|null>} ID созданной записи или null
  */
-async function upsertJournalEntry({ module, status, context = "", details = "", exceededCount = 0, sourceId = null, construction: providedConstruction = null }) {
+async function upsertJournalEntry({ module, status, context = "", details = "", exceededCount = 0, sourceId = null, construction: providedConstruction = null, evaluationSchemaVersion = null }) {
   if (!workspace.getProjectId()) {
     console.warn("[Journal] Нельзя добавить запись без выбранного проекта");
     return null;
@@ -925,6 +925,8 @@ async function upsertJournalEntry({ module, status, context = "", details = "", 
       details,
       sourceId
     }) as JournalEntryRecord;
+
+    if (evaluationSchemaVersion === 2) entry.evaluationSchemaVersion = 2;
 
     // Сохраняем в Firestore
     const entryId = await addJournalEntryToFirestore(entry);
@@ -993,8 +995,8 @@ async function upsertJournalEntry({ module, status, context = "", details = "", 
 /**
  * Добавляет запись в журнал (обертка для обратной совместимости)
  */
-async function addJournalEntry({ module, status, context = "", details = "", exceededCount = 0, sourceId = null, construction = null }) {
-  return await upsertJournalEntry({ module, status, context, details, exceededCount, sourceId, construction });
+async function addJournalEntry({ module, status, context = "", details = "", exceededCount = 0, sourceId = null, construction = null, evaluationSchemaVersion = null }) {
+  return await upsertJournalEntry({ module, status, context, details, exceededCount, sourceId, construction, evaluationSchemaVersion });
 }
 
 /**

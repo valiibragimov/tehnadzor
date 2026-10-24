@@ -1,3 +1,4 @@
+import { completeSlabAcceptance } from "./helpers/engineering-forms.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { startProjectUpdateHarness } from "./helpers/project-update-harness.mjs";
@@ -24,6 +25,7 @@ test("geometry retains saved evidence when its registry write fails, then retrie
       };
     });
     await page.locator("#factPlateHeight").fill("500");
+    await completeSlabAcceptance(page);
     await page.locator("#btnGeom").click();
     await page.waitForFunction(() => window.inspectionFaultObserved);
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tehnadzor-demo:v2:database")).projectCollections["demo-project"].geomChecks["geom-demo-1"].factPlateHeight), 514);

@@ -469,7 +469,7 @@ test("app entrypoint delegates inspection evaluation to feature modules", async 
 
   assert.match(geodesyEvaluationSource, /export function evaluateGeoNode/u);
   assert.doesNotMatch(evaluationSource, /export function evaluateGeoNode/u);
-  assert.match(evaluationSource, /export function evaluateReinfCheck/u);
+  assert.match(evaluationSource, /evaluateReinforcementCheck as evaluateReinfCheck/u);
   assert.match(
     bimSelectionSource,
     /export function normalizeGeoBimSnapshotValue/u

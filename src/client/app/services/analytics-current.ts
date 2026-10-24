@@ -1,3 +1,4 @@
+import { currentAssessmentStatus } from "../../features/inspections/assessment-status.js";
 import {
   getInspectionRegistrySnapshot,
   getProjectDocSnapshot,
@@ -164,9 +165,7 @@ function addInspectionToAggregate(aggregate, inspection) {
   const moduleKey = resolveInspectionModuleKey(inspection);
   if (!moduleKey || !aggregate[moduleKey]) return;
 
-  const normalizedStatus = normalizeInspectionStatus(
-    inspection?.checkStatus ?? inspection?.status
-  );
+  const normalizedStatus = currentAssessmentStatus(inspection);
   if (!normalizedStatus) return;
 
   const bucket = aggregate[moduleKey];
@@ -219,6 +218,7 @@ function finalizeAggregate(aggregate) {
     byModule,
     source: "inspections",
     version: 1,
+    evaluationSchemaVersion: 2,
     updatedAt: Date.now()
   };
 }

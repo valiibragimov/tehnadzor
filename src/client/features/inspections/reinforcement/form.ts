@@ -1,3 +1,4 @@
+import { readAcceptanceCriteria, restoreAcceptanceCriteria } from "../../../app/ui/acceptance-criteria.js";
 import { parseSimpleReinforcementAxes } from "./bim-selection.js";
 import { t } from "../../../shared/i18n/index.js";
 import { APP_CONFIG, VALID_LETTER_AXES } from "../../../config.js";
@@ -381,14 +382,7 @@ export function createReinforcementForm(
     return dom.construction?.dataset.pileElementKey || "pile";
   }
 
-  function isBoredPileFoundation() {
-    return hasInspectionField(
-      getSelectedConstructionKey(),
-      "reinforcement",
-      "constructionPileElement",
-      getSelectedConstructionSubtype()
-    );
-  }
+  function isBoredPileFoundation() { return getSelectedConstructionKey() === "pile_grillage"; }
 
   function getConstructionFlags(
     value = getSelectedConstructionKey() ||
@@ -398,9 +392,10 @@ export function createReinforcementForm(
     const behavior = getConstructionModuleBehavior(
       value,
       "reinforcement",
-      getSelectedConstructionSubtype()
+      getSelectedConstructionSubtype(),
+      dom.construction?.dataset.pileElementKey || ""
     );
-    const profile = getConstructionProfile(value, "reinforcement");
+    const profile = behavior.profile || getConstructionProfile(value, "reinforcement");
     return {
       profile,
       behavior,
@@ -460,6 +455,7 @@ export function createReinforcementForm(
   }
 
   function clear({ clearBim = true } = {}) {
+    restoreAcceptanceCriteria(dom.document.getElementById("reinforcement"));
     state.currentCheckId = null;
     state.columns = [];
     state.beams = [];
@@ -716,7 +712,9 @@ export function createReinforcementForm(
     const beams = flags.isBeam
       ? state.beams.map((item) => ({
         marking: item.marking || "",
-        ...persistedMeasurements(item)
+        ...persistedMeasurements(item),
+        projHoopsStep: item.projHoopsStep === "" || item.projHoopsStep == null ? null : Number(item.projHoopsStep),
+        factHoopsStep: item.factHoopsStep === "" || item.factHoopsStep == null ? null : Number(item.factHoopsStep)
       }))
       : null;
     const walls = flags.isWall
@@ -735,6 +733,8 @@ export function createReinforcementForm(
       !flags.isColumn && !flags.isBeam && !flags.isWall;
 
     return {
+      evaluationSchemaVersion: 2,
+      acceptanceCriteria: readAcceptanceCriteria(dom.document.getElementById("reinforcement")),
       createdAt: existing?.createdAt || now(),
       construction: getSelectedConstructionKey(),
       constructionCategory: getSelectedConstructionCategory(),
@@ -832,7 +832,8 @@ export function createReinforcementForm(
       projStep: formValue(item.projStep),
       factStep: formValue(item.factStep),
       projCover: formValue(item.projCover),
-      factCover: formValue(item.factCover)
+      factCover: formValue(item.factCover),
+      projHoopsStep: formValue(item.projHoopsStep), factHoopsStep: formValue(item.factHoopsStep)
     } satisfies ReinforcementBeam));
     state.walls = (check.walls || []).map((item, index) => ({
       id: now() + index,
@@ -864,6 +865,7 @@ export function createReinforcementForm(
       )
     );
     updateFieldsVisibility(false);
+    restoreAcceptanceCriteria(dom.document.getElementById("reinforcement"), check.acceptanceCriteria);
     state.currentCheckId = String(check.id || "") || null;
     if (dom.reinfFloorEl) dom.reinfFloorEl.value = formValue(check.floor);
     if (dom.reinfColumnFloorEl) {

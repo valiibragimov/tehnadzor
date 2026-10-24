@@ -37,6 +37,7 @@ function createHarness({
     markValue: 30,
     days: 28,
     actual: 31,
+    assessment: { reference: "Laboratory 17", responsible: "Lab engineer", date: "2026-10-20", confirmed: true, verdict: "conforms" },
     createdAt: 100
   },
   currentCheckId = null
@@ -218,10 +219,9 @@ test("strength action checks complete data and records accepted status", async (
 
   assert.equal(harness.inspectionState.strength, true);
   assert.equal(harness.inspectionChecked.strength, true);
-  assert.match(harness.result.innerHTML, /Соответствует нормативу/u);
+  assert.match(harness.result.textContent, /engineering_conforms|Соответствует/u);
   assert.equal(harness.chartCalls.length, 1);
-  assert.equal(harness.journals[0][0], "add");
-  assert.equal(harness.journals[0][1].status, "соответствует");
+  assert.equal(harness.journals.length, 0);
 });
 
 test("strength action keeps check incomplete when actual strength is absent", async () => {
@@ -240,7 +240,7 @@ test("strength action keeps check incomplete when actual strength is absent", as
 
   assert.equal(harness.inspectionState.strength, false);
   assert.equal(harness.inspectionChecked.strength, false);
-  assert.match(harness.result.innerHTML, /Фактическая прочность ещё не введена/u);
+  assert.match(harness.result.textContent, /engineering_requires_review|Требует проверки/u);
   assert.equal(harness.journals.length, 0);
 });
 
@@ -352,8 +352,8 @@ test("strength chart destroys the previous instance before recreating it", () =>
 test("strength journal payload keeps result context and source id", () => {
   const payload = buildStrengthJournalPayload(
     {
-      construction: "slab",
       floor: "4",
+      construction: "floor_slab", assessment: { reference: "Laboratory 17", responsible: "Lab engineer", date: "2026-10-20", confirmed: true, verdict: "conforms" },
       markValue: 30,
       days: 28,
       actual: 31
@@ -362,11 +362,12 @@ test("strength journal payload keeps result context and source id", () => {
   );
 
   assert.deepEqual(payload, {
+    evaluationSchemaVersion: 2,
     module: "Прочность",
     status: "ok",
     context: "Этаж 4, день=28",
-    details: "норма=30.0 МПа; факт=31.0 МПа",
-    construction: "slab",
+    details: "основание=Laboratory 17; факт=31.0 МПа",
+    construction: "floor_slab",
     sourceId: "check-4"
   });
 });

@@ -14,7 +14,7 @@ test("workspace: navigation, themes, language, mobile layout and persistence", a
   page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
   try {
     await page.goto(`${server.url}/demo.html`);
-    await page.locator("#overviewReadinessValue").filter({ hasText: "25%" }).waitFor();
+    await page.locator("#overviewReadinessValue").filter({ hasText: "0%" }).waitFor();
     const sidebar = await page.locator(".tabs").boundingBox();
     assert.equal(sidebar.x, 0);
     assert.equal(sidebar.y, 64);
@@ -51,7 +51,8 @@ test("workspace: navigation, themes, language, mobile layout and persistence", a
       return Object.keys(checks).length === 1 && checks["geom-demo-1"].factPlateHeight === 514 && checks["geom-demo-1"].lastMsg;
     });
     await page.waitForFunction(() => document.getElementById("geometryResult").textContent.includes("514"));
-    assert.equal(await page.locator("#geometryResult").evaluate(e => e.classList.contains("not-ok")), true);
+    assert.equal(await page.locator("#geometryResult").evaluate(e => e.classList.contains("ok")), false);
+    assert.match(await page.locator("#geometryResult").innerText(), /Требует проверки/u);
     await page.locator('.tabs [data-target="summary"]').click();
     assert.equal(await page.locator("#summary").isVisible(), true);
     await page.locator("#analyticsBlock").waitFor();
@@ -123,7 +124,7 @@ test("workspace layouts and geometry form work in both themes on desktop and mob
   page.on("pageerror", e => errors.push(e.message));
   try {
     await page.goto(`${server.url}/demo.html`);
-    await page.locator("#overviewReadinessValue").filter({ hasText: "25%" }).waitFor();
+    await page.locator("#overviewReadinessValue").filter({ hasText: "0%" }).waitFor();
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
       for (const theme of ["light", "dark"]) {

@@ -54,16 +54,8 @@ function createRepository(overrides = {}) {
   return { repository, calls };
 }
 
-test("strength normative calculation preserves age boundaries", () => {
-  assert.equal(getNormativeStrength(30, 0.5), 6);
-  assert.ok(
-    Math.abs(
-      getNormativeStrength(30, 7) -
-        (30 * Math.log10(7)) / Math.log10(28)
-    ) < 1e-10
-  );
-  assert.equal(getNormativeStrength(30, 28), 30);
-  assert.equal(getNormativeStrength(30, 45), 30);
+test("age alone does not define a normative acceptance strength", () => {
+  for (const age of [0.5, 7, 28, 45]) assert.equal(getNormativeStrength(30, age), null);
 });
 
 test("strength evaluation reports incomplete input and missing actual strength", () => {
@@ -87,33 +79,16 @@ test("strength evaluation reports incomplete input and missing actual strength",
   assert.equal(withoutActual.hasActual, false);
 });
 
-test("strength evaluation distinguishes compliance and shortfall", () => {
-  const compliant = evaluateStrengthCheck({
-    mark: "B30",
-    markValue: 30,
-    days: 28,
-    actual: 31
-  });
-  const shortfall = evaluateStrengthCheck({
-    mark: "B30",
-    markValue: 30,
-    days: 28,
-    actual: 29
-  });
-
-  assert.equal(compliant.status, "ok");
-  assert.equal(compliant.isCompliant, true);
-  assert.equal(shortfall.status, "exceeded");
-  assert.equal(shortfall.isCompliant, false);
+test("strength acceptance requires a confirmed assessment with applicability", () => {
+  const base = { construction: "floor_slab", mark: "B30", days: 28, actual: 31 };
+  assert.equal(evaluateStrengthCheck(base).status, "empty");
+  const assessment = { reference: "Laboratory report 17, assessed B30", responsible: "Laboratory", date: "2026-10-20", confirmed: true, verdict: "conforms" };
+  assert.equal(evaluateStrengthCheck({ ...base, assessment }).status, "ok");
+  assert.equal(evaluateStrengthCheck({ ...base, assessment: { ...assessment, verdict: "nonconforms" } }).status, "exceeded");
 });
 
-test("strength chart data uses the same normative calculation", () => {
-  const series = buildStrengthResultSeries(30, 7, 20);
-
-  assert.equal(series.labels.length, 7);
-  assert.equal(series.normative[6], getNormativeStrength(30, 7));
-  assert.equal(series.actual[6], 20);
-  assert.equal(series.actual.slice(0, 6).every((value) => value === null), true);
+test("strength chart shows measured evidence without a fabricated normative curve", () => {
+  assert.deepEqual(buildStrengthResultSeries(30, 7, 20), { labels: [7], normative: [], actual: [20] });
 });
 
 test("strength service loads active checks and excludes soft-deleted records", async () => {

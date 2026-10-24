@@ -1,5 +1,6 @@
-import { TOLERANCES } from "../../../config.js";
-import { getInspectionToleranceValue } from "../../../app/inspection-registry.js";
+import { getConstructionModuleBehavior, normalizeConstructionKey } from "../../../app/construction.js";
+import { compareMeasurement, summarizeMeasurements } from "../acceptance.js";
+import { getInspectionStatus } from "../../../app/inspection-registry.js";
 import type {
   ReinforcementCheckRecord,
   ReinforcementEvaluation,
@@ -7,47 +8,10 @@ import type {
   ReinforcementMeasurements
 } from "./types.js";
 
-export interface ReinforcementTolerances {
-  step: number;
-  cover: number;
-  hoopsStep: number;
-}
-
 function parseMeasurement(value: unknown) {
   if (value == null || value === "") return null;
-  const parsed = Number.parseFloat(String(value).replace(",", "."));
+  const parsed = Number(String(value).trim().replace(",", "."));
   return Number.isFinite(parsed) ? parsed : null;
-}
-
-export function getReinforcementTolerances(
-  check: ReinforcementCheckRecord
-): ReinforcementTolerances {
-  const construction =
-    check.construction || check.constructionType || check.checkKind || "";
-  const subtype = check.constructionSubtype || "";
-  return {
-    step: getInspectionToleranceValue(
-      construction,
-      "reinforcement",
-      "rebarStep",
-      TOLERANCES.STEP,
-      subtype
-    ),
-    cover: getInspectionToleranceValue(
-      construction,
-      "reinforcement",
-      "rebarCover",
-      TOLERANCES.COVER,
-      subtype
-    ),
-    hoopsStep: getInspectionToleranceValue(
-      construction,
-      "reinforcement",
-      "hoopsStep",
-      TOLERANCES.HOOPS_STEP,
-      subtype
-    )
-  };
 }
 
 export function isStrictMeasurementMatch(
@@ -71,109 +35,36 @@ export function isMeasurementWithinTolerance(
   return Math.abs(actualValue - projectValue) <= tolerance;
 }
 
-function evaluatePair(
-  project: unknown,
-  actual: unknown,
-  tolerance: number | null
-) {
-  const projectValue = parseMeasurement(project);
-  const actualValue = parseMeasurement(actual);
-  return {
-    hasAny: projectValue != null || actualValue != null,
-    complete: projectValue != null && actualValue != null,
-    ok: projectValue != null && actualValue != null
-      ? tolerance == null
-        ? Math.abs(actualValue - projectValue) === 0
-        : Math.abs(actualValue - projectValue) <= tolerance
-      : true
-  };
+export function evaluateReinforcementCheck(check: ReinforcementCheckRecord): ReinforcementEvaluation {
+  const applicability = getInspectionStatus(normalizeConstructionKey(check.construction || check.constructionType, ""), "reinforcement", check.constructionSubtype || "", check.constructionPileElement || "");
+  if (applicability !== "object") return { ...summarizeMeasurements([]), hasAnyData: false, hasRequiredData: false, allOk: false };
+  const items = check.columns || check.beams || check.walls || [check];
+  const includeHoops = !!check.columns || !!check.beams || getConstructionModuleBehavior(check.construction, "reinforcement", check.constructionSubtype || "", check.constructionPileElement || "").showReinforcementHoopsStep === true;
+  const results = items.flatMap(item => {
+    const diameter = Number(item.projDia) > 0 && Number(item.factDia) > 0 ? isStrictMeasurementMatch(item.projDia, item.factDia) : null;
+    const checks: Array<ReturnType<typeof compareMeasurement>> = [
+      diameter == null ? "incomplete" : diameter ? "ok" : "exceeded",
+      ...(check.construction === "pile_grillage" && check.constructionPileElement === "pile" ? [] : [compareMeasurement(item.projStep, item.factStep, "step", check.acceptanceCriteria)]),
+      compareMeasurement(item.projCover, item.factCover, "cover", check.acceptanceCriteria)
+    ];
+    if (includeHoops) checks.push(compareMeasurement(item.projHoopsStep, item.factHoopsStep, "hoopsStep", check.acceptanceCriteria));
+    return checks;
+  });
+  const result = summarizeMeasurements(results);
+  return { ...result, hasAnyData: results.some(value => value !== "incomplete"),
+    hasRequiredData: results.length > 0 && !results.includes("incomplete"), allOk: result.status === "ok" };
 }
 
-function evaluateMeasurements(
-  measurements: ReinforcementMeasurements,
-  tolerances: ReinforcementTolerances,
-  includeHoops: boolean
-) {
-  const pairs = [
-    evaluatePair(measurements.projDia, measurements.factDia, null),
-    evaluatePair(
-      measurements.projStep,
-      measurements.factStep,
-      tolerances.step
-    ),
-    evaluatePair(
-      measurements.projCover,
-      measurements.factCover,
-      tolerances.cover
-    )
-  ];
-  if (includeHoops) {
-    pairs.push(evaluatePair(
-      measurements.projHoopsStep,
-      measurements.factHoopsStep,
-      tolerances.hoopsStep
-    ));
-  }
-  return pairs;
-}
-
-export function evaluateReinforcementCheck(
-  check: ReinforcementCheckRecord,
-  tolerances = getReinforcementTolerances(check)
-): ReinforcementEvaluation {
-  let items: ReinforcementMeasurements[];
-  let includeHoops = true;
-  if (check.columns || check.beams || check.walls) {
-    items = check.columns || check.beams || check.walls || [];
-    includeHoops = !!check.columns;
-  } else {
-    items = [check];
-  }
-
-  const pairs = items.flatMap((item) =>
-    evaluateMeasurements(item, tolerances, includeHoops)
-  );
-  const hasAnyData = pairs.some((pair) => pair.hasAny);
-  const hasRequiredData = pairs.some((pair) => pair.complete);
-  const allOk = pairs.every((pair) => pair.ok);
-
-  if (!hasAnyData || !hasRequiredData) {
-    return {
-      status: "empty",
-      summaryText: "Не заполнено",
-      hasAnyData,
-      hasRequiredData,
-      allOk
-    };
-  }
-  return {
-    status: allOk ? "ok" : "exceeded",
-    summaryText: allOk ? "в норме" : "превышено",
-    hasAnyData,
-    hasRequiredData,
-    allOk
-  };
-}
-
-function appendJournalDifferences(
-  details: string[],
-  measurements: ReinforcementMeasurements
-) {
-  const diameter = evaluatePair(
-    measurements.projDia,
-    measurements.factDia,
-    null
-  );
-  if (diameter.complete && !diameter.ok) {
+function appendJournalDifferences(details: string[], measurements: ReinforcementMeasurements, check: ReinforcementCheckRecord) {
+  if (isStrictMeasurementMatch(measurements.projDia, measurements.factDia) === false) {
     details.push(`Диаметр: ${measurements.projDia}→${measurements.factDia}`);
   }
-  const step = evaluatePair(
-    measurements.projStep,
-    measurements.factStep,
-    5
-  );
-  if (step.complete && !step.ok) {
-    details.push(`Шаг: ${measurements.projStep}→${measurements.factStep}`);
+  for (const [project, actual, key, label] of [
+    [measurements.projStep, measurements.factStep, "step", "Шаг"],
+    [measurements.projCover, measurements.factCover, "cover", "Защитный слой"],
+    [measurements.projHoopsStep, measurements.factHoopsStep, "hoopsStep", "Шаг хомутов"]
+  ] as const) {
+    if (compareMeasurement(project, actual, key, check.acceptanceCriteria) === "exceeded") details.push(`${label}: ${project}→${actual}`);
   }
 }
 
@@ -188,14 +79,11 @@ export function buildReinforcementJournalPayload(
     check.location || ""
   ].filter(Boolean).join(", ") || "Армирование";
   const details: string[] = [];
-  if (check.columns) {
-    check.columns.forEach((item) => appendJournalDifferences(details, item));
-  } else {
-    appendJournalDifferences(details, check);
-  }
+  (check.columns || check.beams || check.walls || [check]).forEach(item => appendJournalDifferences(details, item, check));
   return {
+    evaluationSchemaVersion: 2,
     module: "Армирование",
-    status: evaluation.status === "ok" ? "ok" : "exceeded",
+    status: evaluation.status === "ok" ? "ok" : evaluation.status === "empty" ? "empty" : "exceeded",
     context,
     details: details.join("; ") ||
       evaluation.summaryText ||

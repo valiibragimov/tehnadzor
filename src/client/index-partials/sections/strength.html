@@ -6,8 +6,8 @@
       </h2>
       <button type="button" class="module-help-toggle" data-help-target="strengthHelpContent" aria-label="Показать описание" data-i18n-aria="form_show_help"></button>
     </div>
-    <div class="subtitle module-help-content" id="strengthHelpContent" hidden data-i18n="form_compare_measured_strength_against_the_reference_curing_curve_for_the_s">
-      Сравнение фактической прочности с нормативной кривой твердения на заданный срок.
+    <div class="subtitle module-help-content" id="strengthHelpContent" hidden data-i18n="strength_assessment_hint">
+      Сохранение измерений и оценка по подтверждённому заключению.
     </div>
     <div id="strengthUnsupportedOnlyMessage" class="geo-manual-note" hidden></div>
 
@@ -154,6 +154,23 @@
       </div>
 
       <div class="card wizard-step" data-step="2">
+        <fieldset class="card">
+          <legend data-i18n="strength_assessment">Подтверждённое основание оценки</legend>
+          <p data-i18n="strength_assessment_hint">Измерение само по себе не подтверждает класс бетона. Укажите проверенное заключение или нормативное основание с условиями применимости.</p>
+          <label for="strengthAssessmentReference" data-i18n="assessment_reference">Документ, номер, пункт и условия оценки</label>
+          <input id="strengthAssessmentReference" type="text" maxlength="1000" />
+          <label for="strengthAssessmentResponsible" data-i18n="assessment_responsible">Ответственный за заключение</label>
+          <input id="strengthAssessmentResponsible" type="text" maxlength="200" />
+          <label for="strengthAssessmentDate" data-i18n="assessment_date">Дата заключения</label>
+          <input id="strengthAssessmentDate" type="date" />
+          <label for="strengthAssessmentVerdict" data-i18n="assessment_verdict">Заключение</label>
+          <select id="strengthAssessmentVerdict">
+            <option value="" data-i18n="engineering_requires_review">Требует проверки</option>
+            <option value="conforms" data-i18n="engineering_conforms">Соответствует</option>
+            <option value="nonconforms" data-i18n="engineering_nonconforms">Не соответствует</option>
+          </select>
+          <label><input id="strengthAssessmentConfirmed" type="checkbox" /><span data-i18n="assessment_confirmed">Подтверждаю применимость и реквизиты основания</span></label>
+        </fieldset>
         <div id="strengthManualAssistNote" class="geo-manual-note" hidden></div>
         <div id="strengthBehaviorMessage" class="geo-manual-note" hidden></div>
         <div id="strengthStairNameField" style="display: none;">

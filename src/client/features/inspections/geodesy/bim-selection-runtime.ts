@@ -7,7 +7,7 @@ import {
 import {
   buildBimElementFilterOptions,
   buildBimElementOptionLabel,
-  buildGeoPrefillFromBimElement,
+  buildGeoPrefillFromBimElement as buildRawGeoPrefill,
   getTehnadzorTypeByBimType
 } from "../../../app/services/bim-elements.js";
 import { ensureBimVisualPanel } from "../../../app/services/bim-visual-panel.js";
@@ -50,6 +50,14 @@ import type {
 } from "./types.js";
 
 type GeodesyDomBindings = ReturnType<typeof createGeodesyDomBindings>;
+
+function buildGeoPrefillFromBimElement(element: Parameters<typeof buildRawGeoPrefill>[0]) {
+  const prefill = buildRawGeoPrefill(element);
+  for (const key of ["projX", "projY", "projH", "lineStartX", "lineStartY", "lineStartH", "lineEndX", "lineEndY", "lineEndH"] as const) {
+    if (prefill[key] != null) prefill[key] /= 1000;
+  }
+  return prefill;
+}
 
 interface GeodesyBimConstructionFlags {
   isBeam: boolean;
@@ -176,6 +184,7 @@ export function createGeodesyBimSelectionRuntime(
     const samples: Parameters<typeof pushGeoGridSample>[0] = [];
 
     state.nodes.forEach((node) => {
+      if (node.coordinateUnit !== "m") return;
       if (!node || node.deleted) return;
       const floor = String(node.floor || "").trim();
 
@@ -479,9 +488,9 @@ export function createGeodesyBimSelectionRuntime(
 
     const values: Array<[HTMLElement | null, unknown]> = [
       [dom.geoBimAppliedTypeEl, snapshot.typeLabel],
-      [dom.geoBimAppliedProjXEl, snapshot.projectX],
-      [dom.geoBimAppliedProjYEl, snapshot.projectY],
-      [dom.geoBimAppliedProjHEl, snapshot.projectH],
+      [dom.geoBimAppliedProjXEl, snapshot.projectX == null ? null : snapshot.projectX / 1000],
+      [dom.geoBimAppliedProjYEl, snapshot.projectY == null ? null : snapshot.projectY / 1000],
+      [dom.geoBimAppliedProjHEl, snapshot.projectH == null ? null : snapshot.projectH / 1000],
       [dom.geoBimAppliedMarkEl, snapshot.mark],
       [dom.geoBimAppliedAxesEl, snapshot.axes]
     ];
@@ -1001,6 +1010,7 @@ export function createGeodesyBimSelectionRuntime(
     });
 
     const prefill = buildGeoPrefillFromBimElement(element);
+    for (const field of [projectXInput, projectYInput, projectHInput]) delete field.dataset.unitUnconfirmed;
     projectXInput.value = formatGeoBimNumericField(prefill.projX);
     projectYInput.value = formatGeoBimNumericField(prefill.projY);
     projectHInput.value = formatGeoBimNumericField(prefill.projH);

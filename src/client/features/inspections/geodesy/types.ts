@@ -1,3 +1,4 @@
+import type { AcceptanceCriteria } from "../acceptance.js";
 import type { BimElement, GeoPrefill } from "../../../types/domain.js";
 
 export type GeodesyStatus = "empty" | "pending" | "ok" | "bad" | "not-ok";
@@ -150,6 +151,10 @@ export interface GeodesyBimApi {
 
 export interface GeodesyNodeRecord
   extends GeodesyBimNodeData, Record<string, unknown> {
+  acceptanceCriteria?: AcceptanceCriteria | null;
+  coordinateUnit?: "m";
+  deviationUnit?: "mm";
+  measurementSchemaVersion?: 2;
   type?: "columns" | "walls" | "beams" | string | null;
   constructionSubtype?: string | null;
   constructionPileElement?: string | null;
@@ -186,6 +191,7 @@ export interface GeodesyNodeRecord
 }
 
 export interface GeodesyJournalPayload {
+  evaluationSchemaVersion?: number;
   module: "Геодезия";
   status: "ok" | "exceeded";
   context: string;

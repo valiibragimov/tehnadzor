@@ -1,3 +1,4 @@
+import { mountAcceptanceCriteria, restoreAcceptanceCriteria } from "./app/ui/acceptance-criteria.js";
 import { initializeLocalization } from "./shared/i18n/index.js";
 import {
   getAuth
@@ -1021,6 +1022,10 @@ initStaticBootstrap({
 //  Нормализация ввода дробных чисел (запятая -> точка)
 // ============================
 initDecimalInputNormalization();
+document.getElementById("construction")?.addEventListener("change", () => restoreAcceptanceCriteria(document.getElementById("geo")));
+for (const id of ["projX", "projY", "projH"]) document.getElementById(id)?.addEventListener("input", event => {
+  delete (event.target as HTMLInputElement).dataset.unitUnconfirmed;
+});
 
 // ============================
 //  Меню действий
@@ -1032,4 +1037,9 @@ initActionMenus();
 // ============================
 initNetworkStatus();
 
-void initializeLocalization();
+void initializeLocalization().then(() => {
+  const geo = document.querySelector<HTMLElement>("#geo [data-step='2']");
+  if (geo) mountAcceptanceCriteria(geo, [{ key: "geoPlan", label: "X/Y (mm)" }, { key: "geoHeight", label: "H (mm)" }]);
+  const reinf = document.querySelector<HTMLElement>("#reinforcement [data-step='2']");
+  if (reinf) mountAcceptanceCriteria(reinf, [{ key: "step", label: "Шаг / Spacing (mm)" }, { key: "cover", label: "Защитный слой / Cover (mm)" }, { key: "hoopsStep", label: "Хомуты / Stirrups (mm)" }]);
+});

@@ -42,12 +42,12 @@ test("inspection persistence is atomic, recoverable and revision guarded in Fire
     await firestore.setDoc(firestore.doc(db, "projects", project), { ownerUid: "owner", createdBy: "owner" });
     const service = runtime.createFirestoreStrengthService({ getCurrentUserId: () => "owner" });
     await t.test("Firestore rejection cannot commit just one representation", async () => {
-      await assertFails(runtime.saveInspectionSourceDoc(project, "elements", "forbidden", { name: "forbidden BIM write" }, { moduleKey: "strength", checkStatus: "ok" }));
+      await assertFails(runtime.saveInspectionSourceDoc(project, "elements", "forbidden", { name: "forbidden BIM write" }, { moduleKey: "strength", evaluationSchemaVersion: 2, checkStatus: "ok" }));
       assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", "elements_forbidden")).exists(), false);
       assert.equal((await runtime.getProjectDocSnapshot(project)).data().inspectionSync, undefined);
     });
     await t.test("saved evidence survives interruption and a reopened service repairs analytics", async () => {
-      const input = { id: "check", status: "exceeded", actual: 20 };
+      const input = { id: "check", evaluationSchemaVersion: 2, status: "exceeded", actual: 20 };
       failRefresh = true;
       await service.createCheck(project, input);
       assert.equal((await runtime.getProjectDocSnapshot(project)).data().inspectionSync.pending, true);
@@ -66,7 +66,7 @@ test("inspection persistence is atomic, recoverable and revision guarded in Fire
       readGate = async path => { if (path.endsWith("/inspections")) { readGate = null; entered(); await gate; } };
       const delayed = runtime.recomputeAndPersistProjectAnalyticsCurrent(project);
       await waiting;
-      await service.updateCheck(project, "check", { status: "ok", actual: 31 });
+      await service.updateCheck(project, "check", { evaluationSchemaVersion: 2, status: "ok", actual: 31 });
       release();
       await delayed;
       assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.exceededCount, 0);
@@ -76,7 +76,7 @@ test("inspection persistence is atomic, recoverable and revision guarded in Fire
       assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.totalChecks, 0);
     });
     await t.test("journal session numbers are atomic and retrying an operation does not consume another number", async () => {
-      const payload = { date: 1800000000000, createdAt: 1800000000000, entries: [{ module: "Геометрия", status: "ok" }] };
+      const payload = { date: 1800000000000, createdAt: 1800000000000, entries: [{ module: "Геометрия", evaluationSchemaVersion: 2, status: "ok" }] };
       const results = await Promise.all([
         runtime.saveJournalSessionAndRefreshAnalytics(project, "session-a", payload),
         runtime.saveJournalSessionAndRefreshAnalytics(project, "session-b", payload)
@@ -89,13 +89,13 @@ test("inspection persistence is atomic, recoverable and revision guarded in Fire
       assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", "session-a")).data().sessionId, "session-a");
     });
     await t.test("targeted queries preserve legacy aliases and shared repairs scan Firestore once", async () => {
-      await runtime.setProjectCollectionDoc(project, "inspections", "legacy-check", { sourceCollection: "strengthChecks", moduleKey: "strength", checkStatus: "exceeded" });
-      await runtime.setProjectCollectionDoc(project, "inspections", "legacy-alias", { sourceCollection: "strengthChecks", sourceDocId: "legacy-check", moduleKey: "strength", checkStatus: "exceeded" });
+      await runtime.setProjectCollectionDoc(project, "inspections", "legacy-check", { sourceCollection: "strengthChecks", moduleKey: "strength", evaluationSchemaVersion: 2, checkStatus: "exceeded" });
+      await runtime.setProjectCollectionDoc(project, "inspections", "legacy-alias", { sourceCollection: "strengthChecks", sourceDocId: "legacy-check", moduleKey: "strength", evaluationSchemaVersion: 2, checkStatus: "exceeded" });
       fullScans = 0;
-      await service.updateCheck(project, "legacy-check", { status: "ok", actual: 31 });
+      await service.updateCheck(project, "legacy-check", { evaluationSchemaVersion: 2, status: "ok", actual: 31 });
       assert.equal(fullScans, 1);
       for (const id of ["legacy-check", "legacy-alias"]) assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", id)).data().checkStatus, "ok");
-      await runtime.commitInspectionRegistryDocs(project, [{ id: "repair", data: { moduleKey: "geometry", checkStatus: "exceeded" } }]);
+      await runtime.commitInspectionRegistryDocs(project, [{ id: "repair", data: { moduleKey: "geometry", evaluationSchemaVersion: 2, checkStatus: "exceeded" } }]);
       fullScans = 0;
       const repaired = await Promise.all(Array.from({ length: 4 }, () => runtime.refreshPendingProjectAnalytics(project)));
       assert.equal(fullScans, 1);

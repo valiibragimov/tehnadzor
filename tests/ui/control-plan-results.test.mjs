@@ -38,7 +38,7 @@ test("control plan resolves only its linked inspection after successful repeat c
       const records = state.projectCollections["demo-project"];
       const original = records.geomChecks["geom-demo-1"];
       records.geomChecks["repeat-1"] = {
-        ...original, id: "repeat-1", status: "ok", summaryText: "в норме",
+        ...original, evaluationSchemaVersion: 2, id: "repeat-1", status: "ok", summaryText: "в норме",
         factThick: 500, factPlateHeight: 500, createdAt: original.createdAt + 60000
       };
       records.inspections["registry-repeat-1"] = {
@@ -46,7 +46,7 @@ test("control plan resolves only its linked inspection after successful repeat c
         sourceCollection: "geomChecks", moduleKey: "geometry", checkStatus: "ok"
       };
       state.journal["journal-repeat-1"] = {
-        ...state.journal["journal-demo-2"], id: "journal-repeat-1", sourceId: "repeat-1",
+        ...state.journal["journal-demo-2"], evaluationSchemaVersion: 2, id: "journal-repeat-1", sourceId: "repeat-1",
         status: "ok", details: "Повторный контроль: в норме", timestamp: original.createdAt + 60000
       };
       Object.assign(records.issues["issue-demo-1"], {

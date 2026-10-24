@@ -1,3 +1,5 @@
+import { compareMeasurement, measurementNumber, type AcceptanceCriteria } from "../acceptance.js";
+import { t } from "../../../shared/i18n/index.js";
 import { TOLERANCES } from "../../../config.js";
 import {
   getConstructionEntityLabels,
@@ -105,98 +107,19 @@ interface ReinforcementMeasurementResult {
   regulatoryDoc: string;
 }
 
-function metricResult(
-  name: string,
-  project: unknown,
-  actual: unknown,
-  tolerance: number | null,
-  regulatoryDoc: string
-): ReinforcementMeasurementResult | null {
-  const projectValue = parseDecimal(project);
-  const actualValue = parseDecimal(actual);
-  if (projectValue == null || actualValue == null) return null;
-  const comparison = tolerance == null
-    ? checkStrictMatch(actualValue, projectValue)
-    : checkTolerance(actualValue, projectValue, tolerance);
-  return {
-    name,
-    ok: comparison.ok,
-    regulatoryDoc,
-    html: formatCheckResult({
-      parameterName: name,
-      actual: actualValue,
-      project: projectValue,
-      tolerance,
-      unit: "мм",
-      regulatoryDoc,
-      isStrict: tolerance == null
-    })
-  };
-}
-
-export function buildReinforcementMeasurementResults(
-  measurements: ReinforcementMeasurements,
-  includeHoops: boolean,
-  construction: string,
-  subtype: string
-) {
-  const stepTolerance = getInspectionToleranceValue(
-    construction,
-    "reinforcement",
-    "rebarStep",
-    TOLERANCES.STEP,
-    subtype
-  );
-  const coverTolerance = getInspectionToleranceValue(
-    construction,
-    "reinforcement",
-    "rebarCover",
-    TOLERANCES.COVER,
-    subtype
-  );
-  const hoopsTolerance = getInspectionToleranceValue(
-    construction,
-    "reinforcement",
-    "hoopsStep",
-    TOLERANCES.HOOPS_STEP,
-    subtype
-  );
-  const results = [
-    metricResult(
-      "Диаметр арматуры",
-      measurements.projDia,
-      measurements.factDia,
-      null,
-      "GOST_R_57997_2017"
-    ),
-    metricResult(
-      "Шаг арматуры",
-      measurements.projStep,
-      measurements.factStep,
-      stepTolerance,
-      "GOST_R_57997_2017"
-    ),
-    metricResult(
-      "Защитный слой",
-      measurements.projCover,
-      measurements.factCover,
-      coverTolerance,
-      "SP_70_13330_2012"
-    )
+export function buildReinforcementMeasurementResults(measurements: ReinforcementMeasurements, includeHoops: boolean, _construction: string, _subtype: string, criteria?: AcceptanceCriteria | null) {
+  const fields = [
+    ["Диаметр арматуры", "projDia", "factDia", "diameter"], ["Шаг арматуры", "projStep", "factStep", "step"],
+    ["Защитный слой", "projCover", "factCover", "cover"], ...(includeHoops ? [["Шаг хомутов", "projHoopsStep", "factHoopsStep", "hoopsStep"]] : [])
   ];
-  if (includeHoops) {
-    results.push(metricResult(
-      "Шаг хомутов",
-      measurements.projHoopsStep,
-      measurements.factHoopsStep,
-      hoopsTolerance,
-      "GOST_R_57997_2017"
-    ));
-  }
-  return results.filter(
-    (result): result is ReinforcementMeasurementResult =>
-      Boolean(result)
-  );
+  return fields.flatMap(([name, project, actual, key]) => {
+    const p = measurementNumber(measurements[project]), a = measurementNumber(measurements[actual]);
+    if (p == null && a == null) return [];
+    const verdict = key === "diameter" ? p == null || a == null ? "incomplete" : p === a ? "ok" : "exceeded" : compareMeasurement(p, a, key, criteria);
+    const text = t(verdict === "ok" ? "engineering_conforms" : verdict === "exceeded" ? "engineering_nonconforms" : "engineering_requires_review");
+    return [{ name, ok: verdict === "ok", regulatoryDoc: key === "diameter" ? "PROJECT_DESIGN" : criteria?.reference || "",
+      html: `<div>${escapeHtml(name)}: ${escapeHtml(p ?? "—")} / ${escapeHtml(a ?? "—")} mm; Δ=${p == null || a == null ? "—" : (a - p).toFixed(1)} mm — ${escapeHtml(text)}</div>` }];
+  });
 }
 
 export function createReinforcementRuntime(
@@ -341,12 +264,7 @@ export function createReinforcementRuntime(
         Number(left[1].createdAt || 0)
     );
     items.forEach(([id, check]) => {
-      const evaluation = check.status
-        ? {
-          status: check.status,
-          summaryText: check.summaryText || ""
-        }
-        : evaluateReinforcementCheck(check);
+      const evaluation = evaluateReinforcementCheck(check);
       const status = evaluation.status || "empty";
       const statusLabel = status === "ok"
         ? "В норме"
@@ -408,14 +326,15 @@ export function createReinforcementRuntime(
     );
     const subtype = String(check.constructionSubtype || "");
     const rowsForCheck = getRowsForCheck(check);
-    const includeHoops = Boolean(check.columns);
+    const includeHoops = Boolean(check.columns || check.beams || check.projHoopsStep || check.factHoopsStep);
     const groups = rowsForCheck || [check];
     const rendered = groups.map((item, index) => {
       const results = buildReinforcementMeasurementResults(
         item,
         includeHoops,
         construction,
-        subtype
+        subtype,
+        check.acceptanceCriteria
       );
       if (!results.length) return "";
       const marking = String(item.marking || "").trim();
@@ -425,7 +344,7 @@ export function createReinforcementRuntime(
       return `${title}${results.map((result) => result.html).join("")}`;
     }).filter(Boolean);
     const evaluation = evaluateReinforcementCheck(check);
-    const anyCheck = rendered.length > 0;
+    const anyCheck = evaluation.status !== "empty";
     const allOk = evaluation.status === "ok";
     if (dom.reinfResult) {
       dom.reinfResult.className = `result ${anyCheck ? (allOk ? "ok" : "not-ok") : ""}`;
@@ -447,7 +366,7 @@ export function createReinforcementRuntime(
               helpTargetId: "reinfHelpContent"
             })}
           `
-          : "Заполните проектные и фактические значения для проверки."
+          : `${rendered.join("")}<b>${t("engineering_requires_review")}</b>${renderRegulatoryBasisHtml({ moduleKey: "reinforcement", checkKind: construction, subtype })}`
       );
     }
     inspectionState.reinforcement = anyCheck && allOk;
@@ -502,7 +421,7 @@ export function createReinforcementRuntime(
     if (result.anyCheck) {
       await addJournalEntry({
         ...buildReinforcementJournalPayload(check),
-        status: result.allOk ? "ok" : "exceeded"
+        status: result.evaluation.status
       });
       skipJournalOnce = true;
     }

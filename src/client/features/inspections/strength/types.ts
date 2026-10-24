@@ -17,6 +17,14 @@ export interface StrengthBimFields extends Record<string, unknown> {
 
 export interface StrengthCheckRecord
   extends StrengthBimFields, Record<string, unknown> {
+  assessment?: {
+    reference: string;
+    responsible: string;
+    date: string;
+    verdict: string;
+    confirmed: boolean;
+    protocolVersionId?: string | null;
+  } | null;
   id?: string | null;
   projectId?: string | null;
   module?: string | null;
@@ -56,7 +64,7 @@ export interface StrengthCheckRecord
 
 export interface StrengthEvaluation {
   status: StrengthStatus;
-  summaryText: "Не заполнено" | "в норме" | "превышено";
+  summaryText: string;
   markValue: number | null;
   days: number | null;
   actual: number | null;

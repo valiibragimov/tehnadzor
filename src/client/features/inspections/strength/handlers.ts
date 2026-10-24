@@ -1,9 +1,9 @@
+import { t } from "../../../shared/i18n/index.js";
 import { getConstructionLabel } from "../../../app/construction.js";
 import {
   buildStrengthJournalPayload,
   buildStrengthResultSeries,
-  evaluateStrengthCheck,
-  parseConcreteStrengthValue
+  evaluateStrengthCheck
 } from "./evaluation.js";
 import { setCurrentStrengthCheckId } from "./state.js";
 import type { StrengthChartController } from "./chart.js";
@@ -142,7 +142,6 @@ export function createStrengthActions({
   now = Date.now
 }: StrengthActionDependencies): StrengthActions {
   let handlersBound = false;
-  let chartWarningShown = false;
 
   const scopedStorageKey = () =>
     `${storageKey}_${getCurrentProjectId() || "no_project"}`;
@@ -229,13 +228,7 @@ export function createStrengthActions({
         fragment.appendChild(header);
       }
 
-      const evaluation =
-        check.status === "ok" || check.status === "exceeded"
-          ? {
-              status: check.status,
-              summaryText: check.summaryText || ""
-            }
-          : evaluateStrengthCheck(check);
+      const evaluation = evaluateStrengthCheck(check);
       const statusTag =
         evaluation.status === "exceeded"
           ? '<span class="tag bad" data-i18n="saved_exceeded">превышено</span>'
@@ -298,27 +291,6 @@ export function createStrengthActions({
     list.appendChild(fragment);
   }
 
-  async function renderChart(
-    check: StrengthCheckRecord,
-    hasActual: boolean
-  ) {
-    const series = buildStrengthResultSeries(
-      check.markValue,
-      check.days,
-      check.actual
-    );
-    if (chart.render(series, hasActual)) return;
-    const loaded = await ensureChartJsLoaded();
-    if (loaded && chart.render(series, hasActual)) return;
-    if (!chartWarningShown) {
-      chartWarningShown = true;
-      notify(
-        "Chart.js не загружен. График недоступен, но проверка прочности выполнена. Проверьте подключение к интернету для отображения графика.",
-        "warning"
-      );
-    }
-  }
-
   async function runCheck({ autoSave = true } = {}) {
     const projectId = getCurrentProjectId();
     if (!validateProject(projectId)) return;
@@ -339,98 +311,20 @@ export function createStrengthActions({
         ? state.checks.get(state.currentCheckId) || null
         : null
     );
-    const markValue = parseConcreteStrengthValue(draft.mark);
     const evaluation = evaluateStrengthCheck(draft);
-    if (dom.result) dom.result.style.display = "block";
-    if (!draft.mark || markValue == null) {
-      if (dom.result) {
-        dom.result.className = "result not-ok";
-        dom.result.textContent = "Выберите класс бетона из списка.";
-      }
-      dom.mark?.focus();
-      resetInspectionStatus();
-      return;
-    }
-    if (!evaluation.hasRequiredData || evaluation.normativeStrength == null) {
-      if (dom.result) {
-        dom.result.className = "result not-ok";
-        dom.result.textContent =
-          "Заполните проектную прочность и количество дней после бетонирования.";
-      }
-      resetInspectionStatus();
-      return;
-    }
-
-    await renderChart(draft, evaluation.hasActual);
-    const selectedClass = String(draft.mark || "");
-    const classMatch = selectedClass.match(
-      /^([Bb]\d+\.?\d*)\(([Мм]\d+)\)$/u
-    );
-    const classInfo = classMatch
-      ? `${classMatch[1]}(${classMatch[2]})`
-      : selectedClass;
-    const classText = classInfo
-      ? escapeHtml(classInfo)
-      : `${markValue.toFixed(1)} МПа`;
-    const days = evaluation.days as number;
-    const normative = evaluation.normativeStrength;
-    const regulatory = renderRegulatoryBasis({
-      moduleKey: "strength",
-      checkKind: form.getSelectedConstructionKey() || "default",
-      subtype: form.getSelectedConstructionSubtype(),
-      helpTargetId: "strengthHelpContent"
-    });
-
-    if (!evaluation.hasActual || evaluation.actual == null) {
-      if (dom.result) {
-        dom.result.className = "result";
-        dom.result.innerHTML = `
-          <b>Проектный класс бетона:</b> ${classText} (R28 = ${markValue.toFixed(1)} МПа)<br/>
-          Нормативная прочность на ${escapeHtml(days)}-й день: <b>${normative.toFixed(1)} МПа</b> (${((normative / markValue) * 100).toFixed(1)}% от проектной)<br/>
-          Фактическая прочность ещё не введена. Проверка соответствия будет выполнена после ввода фактического значения.<br/>
-          <small style="color: #94a3b8; margin-top: 8px; display: block;">
-            Расчет по формуле ГОСТ 18105-2018: R(t) = R28 × lg(t) / lg(28)<br/>
-            где R28 = ${markValue.toFixed(1)} МПа (проектная прочность класса ${classText})
-          </small>
-          ${regulatory}
-        `;
-      }
-      resetInspectionStatus();
-      if (autoSave) {
-        schedule(() => {
-          void saveCheck();
-        });
-      }
-      return;
-    }
-
-    const actual = evaluation.actual;
-    const compliant = evaluation.isCompliant === true;
     if (dom.result) {
-      dom.result.className = `result ${compliant ? "ok" : "not-ok"}`;
-      dom.result.innerHTML = `
-        <b>Проектный класс бетона:</b> ${classText} (R28 = ${markValue.toFixed(1)} МПа)<br/>
-        Нормативная прочность на ${escapeHtml(days)}-й день: <b>${normative.toFixed(1)} МПа</b> (${((normative / markValue) * 100).toFixed(1)}% от проектной)<br/>
-        Фактическая прочность: <b>${actual.toFixed(1)} МПа</b> (${((actual / markValue) * 100).toFixed(1)}% от проектной)<br/>
-        <b>${compliant ? "✅ Соответствует нормативу." : "❌ Недобор прочности."}</b><br/>
-        <small style="color: #94a3b8; margin-top: 8px; display: block;">
-          Расчет по формуле ГОСТ 18105-2018: R(t) = R28 × lg(t) / lg(28)<br/>
-          где R28 = ${markValue.toFixed(1)} МПа (проектная прочность класса ${classText}), t = ${escapeHtml(days)} дней
-        </small>
-        ${regulatory}
-      `;
+      dom.result.style.display = "block";
+      dom.result.className = evaluation.status === "ok" ? "result ok" : "result";
+      dom.result.textContent = t(evaluation.isCompliant == null ? "engineering_requires_review" : evaluation.isCompliant ? "engineering_conforms" : "engineering_nonconforms") +
+        (draft.assessment?.reference ? ": " + draft.assessment.reference : "");
     }
-    inspectionState.strength = compliant;
-    inspectionChecked.strength = true;
-    const journalPayload = buildStrengthJournalPayload(draft, {
-      runtimeStatus: true
-    });
-    if (journalPayload) addJournalEntry(journalPayload);
-    if (autoSave) {
-      schedule(() => {
-        void saveCheck({ skipJournalOnce: true });
-      });
-    }
+    inspectionState.strength = evaluation.isCompliant === true;
+    inspectionChecked.strength = evaluation.isCompliant != null;
+    if (evaluation.hasActual && evaluation.hasRequiredData) {
+      const series = buildStrengthResultSeries(evaluation.markValue, evaluation.days, evaluation.actual);
+      if (!chart.render(series, true) && await ensureChartJsLoaded()) chart.render(series, true);
+    } else chart.destroy();
+    if (autoSave) await saveCheck();
   }
 
   async function saveCheck({ skipJournalOnce: skipJournal = false } = {}) {

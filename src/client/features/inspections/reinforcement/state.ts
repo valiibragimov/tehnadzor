@@ -59,7 +59,7 @@ export function createReinforcementColumn(id = Date.now()): ReinforcementColumn 
 }
 
 export function createReinforcementBeam(id = Date.now()): ReinforcementBeam {
-  return { id, marking: "", ...emptyMeasurements() };
+  return { id, marking: "", ...emptyMeasurements(), projHoopsStep: "", factHoopsStep: "" };
 }
 
 export function createReinforcementWall(id = Date.now()): ReinforcementWall {

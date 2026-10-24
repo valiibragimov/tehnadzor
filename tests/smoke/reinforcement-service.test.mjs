@@ -172,11 +172,11 @@ test("reinforcement evaluation applies tolerance and strict matching", () => {
   assert.equal(isStrictMeasurementMatch(12, 12.1), false);
 
   const ok = evaluateReinforcementCheck(
-    { projDia: 12, factDia: 12, projStep: 100, factStep: 105 },
+    { construction: "floor_slab", projDia: 12, factDia: 12, projStep: 100, factStep: 105, projCover: 30, factCover: 30, acceptanceCriteria: { confirmed: true, reference: "Project criterion", limits: { step: { min: -5, max: 5 }, cover: { min: -5, max: 5 } } } },
     { step: 5, cover: 5, hoopsStep: 5 }
   );
   const exceeded = evaluateReinforcementCheck(
-    { projDia: 12, factDia: 14, projStep: 100, factStep: 106 },
+    { construction: "floor_slab", projDia: 12, factDia: 14, projStep: 100, factStep: 106 },
     { step: 5, cover: 5, hoopsStep: 5 }
   );
   assert.equal(ok.status, "ok");
@@ -191,6 +191,7 @@ test("reinforcement evaluation and journal payload preserve incomplete behavior"
   const payload = buildReinforcementJournalPayload({
     construction: "column",
     floor: "2",
+    acceptanceCriteria: { confirmed: true, reference: "Project criterion", limits: { step: { min: -5, max: 5 } } },
     columns: [{ projDia: 12, factDia: 14, projStep: 100, factStep: 107 }]
   });
 
@@ -290,4 +291,9 @@ test("reinforcement current check id is explicit state", () => {
   assert.equal(setCurrentReinforcementCheckId(state, " check-1 "), "check-1");
   assert.equal(state.currentCheckId, "check-1");
   assert.equal(setCurrentReinforcementCheckId(state, null), null);
+});
+test("beam journal records failed cover against its confirmed criterion", () => {
+  const payload = buildReinforcementJournalPayload({ construction: "beam", beams: [{ projDia: 12, factDia: 12, projStep: 100, factStep: 100, projCover: 30, factCover: 24, projHoopsStep: 100, factHoopsStep: 100 }], acceptanceCriteria: { confirmed: true, reference: "Project beam section", limits: { step: { min: -5, max: 5 }, cover: { min: -3, max: 8 }, hoopsStep: { min: -5, max: 5 } } } });
+  assert.equal(payload.status, "exceeded");
+  assert.match(payload.details, /Защитный слой: 30→24/);
 });

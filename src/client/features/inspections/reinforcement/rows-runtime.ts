@@ -307,12 +307,10 @@ export function createReinforcementRowsRuntime(
       ["factStep", "Фактический шаг арматуры"],
       ["projCover", "Проектный защитный слой"],
       ["factCover", "Фактический защитный слой"],
-      ...(isColumn
-        ? [
+      ...[
           ["projHoopsStep", "Проектный шаг хомутов"],
           ["factHoopsStep", "Фактический шаг хомутов"]
         ]
-        : [])
     ] as Array<[LinearField, string]>;
     return `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">

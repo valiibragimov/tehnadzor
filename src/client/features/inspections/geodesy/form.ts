@@ -1,3 +1,4 @@
+import { restoreAcceptanceCriteria } from "../../../app/ui/acceptance-criteria.js";
 import {
   getConstructionEntityLabels,
   getConstructionModuleBehavior,
@@ -1846,6 +1847,15 @@ export function createGeodesyForm({
     const n = nodes.get(key);
     if (!n) return;
 
+    geoResult.dataset.loadedKey = key;
+    geoResult.dataset.legacyUnits = n.coordinateUnit === "m" ? "0" : "1";
+    if (n.coordinateUnit !== "m") queueMicrotask(() => {
+      geoResult.className = "result";
+      geoResult.textContent = "Требует проверки: единицы старых измерений не определены. Исторический статус: " + String(n.status || "—");
+      state.geo = false;
+      checked.geo = false;
+    });
+
     // Определяем тип конструкции узла
     const nodeConstructionType = detectNodeConstructionType(n);
 
@@ -1854,6 +1864,9 @@ export function createGeodesyForm({
       showNotification(`Не удалось переключить конструкцию на "${nodeConstructionType}". Узел не может быть открыт.`, "error");
       return;
     }
+
+    restoreAcceptanceCriteria(document.getElementById("geo"), n.acceptanceCriteria);
+    if (n.coordinateUnit === "m") for (const input of [projX, projY, projH]) delete input.dataset.unitUnconfirmed;
 
     // Специальная обработка для колонн
     if (n.type === "columns") {

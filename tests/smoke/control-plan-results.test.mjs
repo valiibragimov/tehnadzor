@@ -44,7 +44,7 @@ const checkedAt = Date.UTC(2026, 6, 24, 9, 30);
 
 function check(overrides = {}) {
   return {
-    projectId, module: "Геометрия", moduleKey: "geometry",
+    evaluationSchemaVersion: 2, projectId, module: "Геометрия", moduleKey: "geometry",
     construction: "foundation_slab", context: "А-Г, 1-4",
     status: "exceeded", createdAt: checkedAt, ...overrides
   };
@@ -91,7 +91,7 @@ test("a closed issue cannot resolve an unrelated inspection in the same position
   assert.equal(task.status, "deviation");
 });
 
-test("closed issues retain links through source, registry and older journal identities", async () => {
+test("historical closures retain their links but cannot prove a successful repeat control", async () => {
   for (const link of [
     { sourceInspectionId: "check-1" },
     { sourceInspectionId: "registry-1" },
@@ -108,7 +108,7 @@ test("closed issues retain links through source, registry and older journal iden
     });
     assert.deepEqual(
       { checks: task.checksCount, exceeded: task.exceededCount, status: task.status },
-      { checks: 1, exceeded: 1, status: "resolved" },
+      { checks: 1, exceeded: 1, status: "deviation" },
       JSON.stringify(link)
     );
   }
@@ -161,7 +161,7 @@ test("journal references to registry IDs retain the identity of the original ins
   });
   assert.deepEqual(
     { checks: task.checksCount, exceeded: task.exceededCount, status: task.status },
-    { checks: 1, exceeded: 1, status: "resolved" }
+    { checks: 1, exceeded: 1, status: "deviation" }
   );
 });
 
@@ -216,4 +216,9 @@ test("legacy positive statuses remain successful while unknown or empty results 
     const task = await planTask({ journal: { "journal-1": check({ status }) } });
     assert.equal(task.status, expected, status);
   }
+});
+
+test("a legacy positive geodesy result without explicit units cannot complete a plan task", async () => {
+  const task = await planTask({ journal: { old: check({ moduleKey: "geo", module: "Геодезия", status: "ok", evaluationSchemaVersion: undefined }) }, moduleKey: "geo" });
+  assert.equal(task.status, "required");
 });

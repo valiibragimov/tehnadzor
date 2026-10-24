@@ -267,7 +267,15 @@ test("deselecting a project through the real application clears plan and summary
   const harness = await startProjectUpdateHarness({ production: true });
   const { page } = harness;
   try {
-    await page.locator("#overviewReadinessValue").filter({ hasText: "25%" }).waitFor();
+    await page.locator("#overviewReadinessValue").filter({ hasText: "0%" }).waitFor();
+    // A current synthetic result gives the stale-panel check an observable count.
+    await page.evaluate(() => {
+      const key = "tehnadzor-demo:v2:database", state = JSON.parse(localStorage.getItem(key));
+      const collections = state.projectCollections["demo-project"];
+      collections.geomChecks["geom-demo-1"].evaluationSchemaVersion = 2;
+      collections.inspections["inspection-geom-demo-1"].evaluationSchemaVersion = 2;
+      localStorage.setItem(key, JSON.stringify(state));
+    });
     await page.locator('.tabs [data-target="summary"]').click();
     await page.waitForFunction(() => document.querySelector("#summaryModuleStatsGeom .summary-module-stat-value").textContent === "1");
     await page.locator('.tabs [data-target="controlPlan"]').click();
@@ -283,7 +291,15 @@ test("the real selector invalidates previous panels immediately when another pro
   const harness = await startProjectUpdateHarness({ production: true });
   const { page } = harness;
   try {
-    await page.locator("#overviewReadinessValue").filter({ hasText: "25%" }).waitFor();
+    await page.locator("#overviewReadinessValue").filter({ hasText: "0%" }).waitFor();
+    // A current synthetic result gives the stale-panel check an observable count.
+    await page.evaluate(() => {
+      const key = "tehnadzor-demo:v2:database", state = JSON.parse(localStorage.getItem(key));
+      const collections = state.projectCollections["demo-project"];
+      collections.geomChecks["geom-demo-1"].evaluationSchemaVersion = 2;
+      collections.inspections["inspection-geom-demo-1"].evaluationSchemaVersion = 2;
+      localStorage.setItem(key, JSON.stringify(state));
+    });
     await page.locator('.tabs [data-target="summary"]').click();
     await page.waitForFunction(() => document.querySelector("#summaryModuleStatsGeom .summary-module-stat-value").textContent === "1");
     await page.locator('.tabs [data-target="controlPlan"]').click();

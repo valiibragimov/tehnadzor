@@ -46,6 +46,7 @@ export function createFirestoreStrengthService(
       construction: data.construction || "",
       constructionSubtype: data.constructionSubtype || "",
       constructionSubtypeLabel: data.constructionSubtypeLabel || "",
+      evaluationSchemaVersion: data.evaluationSchemaVersion || null,
       checkStatus: data.status || null,
       summaryText: data.summaryText || "",
       createdAt: data.createdAt || Date.now(),

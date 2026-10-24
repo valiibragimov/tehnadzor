@@ -1,4 +1,4 @@
-import { REGULATORY_DOCS, TOLERANCES } from "../config.js";
+import { REGULATORY_DOCS } from "../config.js";
 
 export type InspectionModule = "geodesy" | "reinforcement" | "geometry" | "strength";
 export type InspectionStatus = "object" | "factory" | "notApplicable";
@@ -120,7 +120,7 @@ const DOCS = Object.freeze({
   sp70Table51: Object.freeze({
     key: "SP_70_13330_2012_TABLE_5_1",
     document: "СП 70.13330.2012",
-    clause: "табл. 5.1",
+    clause: "разд. 5.16 / 5.18; конкретное основание требует проверки применимости",
     url: REGULATORY_DOCS.SP_70_13330_2012
   }),
   sp126: Object.freeze({
@@ -145,8 +145,8 @@ const DOCS = Object.freeze({
   gost18105: Object.freeze({
     key: "GOST_18105_2018_5_6",
     document: "ГОСТ 18105-2018",
-    clause: "п. 5.6",
-    tolerance: "R(t)=R28×lg(t)/lg(28)",
+    clause: "разд. 8",
+    tolerance: "оценка по применимой схеме контроля и подтверждённому заключению",
     url: REGULATORY_DOCS.GOST_18105_2018
   }),
   sp371: Object.freeze({
@@ -183,12 +183,12 @@ const FIELDS = Object.freeze({
       { value: "grillage", label: "Ростверк" }
     ]
   },
-  projX: { key: "projX", label: "Проектная координата X", type: "number", unit: "мм" },
-  factX: { key: "factX", label: "Фактическая координата X", type: "number", unit: "мм" },
-  projY: { key: "projY", label: "Проектная координата Y", type: "number", unit: "мм" },
-  factY: { key: "factY", label: "Фактическая координата Y", type: "number", unit: "мм" },
-  projH: { key: "projH", label: "Проектная отметка H", type: "number", unit: "мм" },
-  factH: { key: "factH", label: "Фактическая отметка H", type: "number", unit: "мм" },
+  projX: { key: "projX", label: "Проектная координата X", type: "number", unit: "м" },
+  factX: { key: "factX", label: "Фактическая координата X", type: "number", unit: "м" },
+  projY: { key: "projY", label: "Проектная координата Y", type: "number", unit: "м" },
+  factY: { key: "factY", label: "Фактическая координата Y", type: "number", unit: "м" },
+  projH: { key: "projH", label: "Проектная отметка H", type: "number", unit: "м" },
+  factH: { key: "factH", label: "Фактическая отметка H", type: "number", unit: "м" },
   geoFlatnessActual: { key: "geoPlateFlatnessActual", label: "Фактическое отклонение от плоскостности", type: "number", unit: "мм" },
   geoFlatnessBase: { key: "geoPlateFlatnessBase", label: "База измерения", type: "select" },
   geoFlatnessClass: { key: "geoPlateFlatnessClass", label: "Класс поверхности / основание", type: "select" },
@@ -250,113 +250,113 @@ const TOLERANCE_LIBRARY = Object.freeze({
   geoPlan: {
     key: "geoPlan",
     label: "Координаты X/Y",
-    value: TOLERANCES.PLAN_XY,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.sp70Table51.key]
   },
   geoHeight: {
     key: "geoHeight",
     label: "Отметка H",
-    value: TOLERANCES.HEIGHT,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.sp70Table51.key]
   },
   plateHeight: {
     key: "plateHeight",
     label: "Толщина / высота плиты",
-    value: TOLERANCES.PLATE_HEIGHT,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.gost9561.key, DOCS.sp70Table51.key]
   },
   plateFlatness: {
     key: "plateFlatness",
     label: "Плоскостность",
-    value: TOLERANCES.PLATE_FLATNESS,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.sp70Table51.key]
   },
   openingSize: {
     key: "openingSize",
     label: "Размеры проёмов",
-    value: TOLERANCES.OPENING_SIZE,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.sp70Table51.key]
   },
   openingHeight: {
     key: "openingHeight",
     label: "Высота расположения проёмов",
-    value: TOLERANCES.OPENING_HEIGHT,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.sp70Table51.key]
   },
   columnSize: {
     key: "columnSize",
     label: "Размеры сечения колонны",
-    value: TOLERANCES.COLUMN_SIZE,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.sp70Table51.key]
   },
   columnVerticality: {
     key: "columnVerticality",
     label: "Вертикальность колонны",
-    value: TOLERANCES.COLUMN_VERT,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.sp70Table51.key]
   },
   wallThickness: {
     key: "wallThickness",
     label: "Толщина стены / пилона",
-    value: TOLERANCES.WALL_THICK,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.sp70Table51.key]
   },
   wallVerticality: {
     key: "wallVerticality",
     label: "Вертикальность стены / пилона",
-    value: TOLERANCES.WALL_VERT,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.sp70Table51.key]
   },
   wallFlatness: {
     key: "wallFlatness",
     label: "Плоскостность стены / пилона",
-    value: TOLERANCES.WALL_FLATNESS || TOLERANCES.PLATE_FLATNESS,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.sp70Table51.key]
   },
   beamSize: {
     key: "beamSize",
     label: "Размеры сечения балки",
-    value: TOLERANCES.BEAM_SIZE,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.sp70Table51.key]
   },
   stairStepHeight: {
     key: "stairStepHeight",
     label: "Высота ступени",
-    value: TOLERANCES.STAIR_STEP_HEIGHT,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.sp70Table51.key]
   },
   stairStepWidth: {
     key: "stairStepWidth",
     label: "Ширина проступи / марша",
-    value: TOLERANCES.STAIR_STEP_WIDTH,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.sp70Table51.key]
   },
   rebarDiameter: {
@@ -370,25 +370,25 @@ const TOLERANCE_LIBRARY = Object.freeze({
   rebarStep: {
     key: "rebarStep",
     label: "Шаг арматуры",
-    value: TOLERANCES.STEP,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.gostRebar.key]
   },
   rebarCover: {
     key: "rebarCover",
     label: "Защитный слой",
-    value: TOLERANCES.COVER,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.sp70Table51.key]
   },
   hoopsStep: {
     key: "hoopsStep",
     label: "Шаг хомутов",
-    value: TOLERANCES.HOOPS_STEP,
+    value: null,
     unit: "мм",
-    mode: "absolute",
+    mode: "manual",
     normativeDocKeys: [DOCS.gostRebar.key]
   },
   concreteStrength: {
@@ -396,7 +396,7 @@ const TOLERANCE_LIBRARY = Object.freeze({
     label: "Прочность бетона",
     value: null,
     unit: "МПа",
-    mode: "formula",
+    mode: "manual",
     normativeDocKeys: [DOCS.gost18105.key]
   },
   formworkManual: {
@@ -409,11 +409,8 @@ const TOLERANCE_LIBRARY = Object.freeze({
   }
 } as const satisfies Readonly<Record<string, InspectionTolerance>>);
 
-function withToleranceText<T extends InspectionNormativeDoc>(
-  doc: T,
-  tolerance: string
-): InspectionNormativeDoc {
-  return { ...doc, tolerance };
+function withProjectCriteriaRequirement<T extends InspectionNormativeDoc>(doc: T): InspectionNormativeDoc {
+  return { ...doc, tolerance: "Требуются применимые условия и подтверждённые проектные допуски; универсальное значение не назначено" };
 }
 
 function moduleConfig(
@@ -429,7 +426,12 @@ function moduleConfig(
   return Object.freeze({
     module,
     status,
-    fields: Object.freeze([...fields]),
+    fields: Object.freeze([
+      ...fields,
+      ...(module === "geometry" && status === "object" && fieldBehavior?.elementSheetMode !== "formwork"
+        ? [{ key: "physicalDimensions", label: "Физические габариты", type: "text" as const, unit: "мм", required: true }] : []),
+      ...(status === "object" ? [{ key: module === "strength" ? "assessment" : "acceptanceCriteria", label: "Подтверждённое основание оценки", type: "textarea" as const, required: true }] : [])
+    ]),
     tolerances: Object.freeze([...tolerances]),
     normativeDocs: Object.freeze([...normativeDocs]),
     resultRules: Object.freeze([...resultRules]),
@@ -505,7 +507,7 @@ const pileObjectBehavior = Object.freeze({
   showOpeningSizes: true,
   showPlateFlatness: false,
   showReinforcementCommonFields: true,
-  showReinforcementHoopsStep: false
+  showReinforcementHoopsStep: true
 } satisfies InspectionFieldBehavior);
 
 const foundationStrengthBehavior = Object.freeze({
@@ -636,6 +638,9 @@ const horizontalBeamBehavior = Object.freeze({
 
 const elevatorShaftBehavior = Object.freeze({
   ...verticalWallBehavior,
+  showCommonWidth: false,
+  showCommonVerticalDeviation: false,
+  showCommonPlaneDeviation: false,
   locationMode: "plate_range",
   showOpeningPoints: true,
   maxWalls: 4,
@@ -701,7 +706,7 @@ const geodesyFoundationModule = moduleConfig(
   [FIELDS.axesRange, FIELDS.projX, FIELDS.factX, FIELDS.projY, FIELDS.factY, FIELDS.projH, FIELDS.factH],
   [TOLERANCE_LIBRARY.geoPlan, TOLERANCE_LIBRARY.geoHeight],
   [
-    withToleranceText(DOCS.sp70Table51, "допуск X/Y ±8 мм, H ±10 мм"),
+    withProjectCriteriaRequirement(DOCS.sp70Table51),
     DOCS.sp126
   ],
   [
@@ -724,7 +729,7 @@ const geodesyStripFoundationModule = moduleConfig(
   [FIELDS.axesRange, FIELDS.projX, FIELDS.factX, FIELDS.projY, FIELDS.factY, FIELDS.projH, FIELDS.factH],
   [TOLERANCE_LIBRARY.geoPlan, TOLERANCE_LIBRARY.geoHeight],
   [
-    withToleranceText(DOCS.sp70Table51, "допуск X/Y ±8 мм, H ±10 мм"),
+    withProjectCriteriaRequirement(DOCS.sp70Table51),
     DOCS.sp126
   ],
   geodesyFoundationModule.resultRules,
@@ -738,8 +743,8 @@ const reinforcementPlateModule = moduleConfig(
   [FIELDS.axesRange, FIELDS.projDia, FIELDS.factDia, FIELDS.projStep, FIELDS.factStep, FIELDS.projCover, FIELDS.factCover],
   [TOLERANCE_LIBRARY.rebarDiameter, TOLERANCE_LIBRARY.rebarStep, TOLERANCE_LIBRARY.rebarCover],
   [
-    withToleranceText(DOCS.gostRebar, "диаметр строго; шаг ±20 мм"),
-    withToleranceText(DOCS.sp70Table51, "защитный слой ±5 мм")
+    withProjectCriteriaRequirement(DOCS.gostRebar),
+    withProjectCriteriaRequirement(DOCS.sp70Table51)
   ],
   [
     {
@@ -777,8 +782,8 @@ const geometryPlateModule = moduleConfig(
   [FIELDS.axesRange, FIELDS.projHeight, FIELDS.factHeight, FIELDS.flatness, FIELDS.projOpeningSizes, FIELDS.factOpeningSizes],
   [TOLERANCE_LIBRARY.plateHeight, TOLERANCE_LIBRARY.plateFlatness, TOLERANCE_LIBRARY.openingSize],
   [
-    withToleranceText(DOCS.gost9561, "высота ±5 мм"),
-    withToleranceText(DOCS.sp70Table51, "плоскостность ±5 мм; размеры проёмов ±8 мм")
+    withProjectCriteriaRequirement(DOCS.gost9561),
+    withProjectCriteriaRequirement(DOCS.sp70Table51)
   ],
   [
     {
@@ -818,13 +823,13 @@ const strengthConcreteModule = moduleConfig(
   [DOCS.gost18105],
   [
     {
-      key: "concrete_strength_age_formula",
-      label: "Фактическая прочность не ниже нормативной на дату контроля",
-      kind: "formula",
-      fieldKeys: ["mark", "days", "actual"],
+      key: "concrete_strength_assessment",
+      label: "Результат по подтверждённому основанию оценки",
+      kind: "manual",
+      fieldKeys: ["mark", "days", "actual", "assessment"],
       toleranceKey: "concreteStrength",
       normativeDocKeys: [DOCS.gost18105.key],
-      formula: "R(t)=R28*lg(t)/lg(28)"
+
     }
   ],
   "Объектовый контроль: прочность бетона проверяется по возрасту бетона и фактическим результатам испытаний.",
@@ -861,7 +866,7 @@ const geodesyColumnModule = moduleConfig(
   ],
   [TOLERANCE_LIBRARY.geoPlan, TOLERANCE_LIBRARY.geoHeight],
   [
-    withToleranceText(DOCS.sp70Table51, "допуск X/Y ±8 мм, H ±10 мм"),
+    withProjectCriteriaRequirement(DOCS.sp70Table51),
     DOCS.sp126
   ],
   [
@@ -903,7 +908,7 @@ const makeGeodesyWallModule = (
   ],
   [TOLERANCE_LIBRARY.geoPlan, TOLERANCE_LIBRARY.geoHeight],
   [
-    withToleranceText(DOCS.sp70Table51, "допуск X/Y ±8 мм, H ±10 мм"),
+    withProjectCriteriaRequirement(DOCS.sp70Table51),
     DOCS.sp126
   ],
   [
@@ -942,8 +947,8 @@ const reinforcementColumnModule = moduleConfig(
     TOLERANCE_LIBRARY.hoopsStep
   ],
   [
-    withToleranceText(DOCS.gostRebar, "диаметр строго; шаг/хомуты ±20 мм"),
-    withToleranceText(DOCS.sp70Table51, "защитный слой ±5 мм")
+    withProjectCriteriaRequirement(DOCS.gostRebar),
+    withProjectCriteriaRequirement(DOCS.sp70Table51)
   ],
   [
     ...reinforcementPlateModule.resultRules,
@@ -995,7 +1000,7 @@ const geometryColumnModule = moduleConfig(
   [FIELDS.floor, FIELDS.marking, FIELDS.projSize1, FIELDS.factSize1, FIELDS.projSize2, FIELDS.factSize2, FIELDS.vertDev],
   [TOLERANCE_LIBRARY.columnSize, TOLERANCE_LIBRARY.columnVerticality],
   [
-    withToleranceText(DOCS.sp70Table51, "размеры сечения ±8 мм; вертикальность ±8 мм")
+    withProjectCriteriaRequirement(DOCS.sp70Table51)
   ],
   [
     {
@@ -1051,7 +1056,7 @@ const makeGeometryWallModule = (
     TOLERANCE_LIBRARY.openingHeight
   ],
   [
-    withToleranceText(DOCS.sp70Table51, "толщина ±5 мм; вертикальность ±8 мм; плоскостность ±5 мм; проёмы ±8 мм")
+    withProjectCriteriaRequirement(DOCS.sp70Table51)
   ],
   [
     {
@@ -1086,7 +1091,7 @@ const geodesyFloorSlabModule = moduleConfig(
   ],
   [TOLERANCE_LIBRARY.geoPlan, TOLERANCE_LIBRARY.geoHeight, TOLERANCE_LIBRARY.plateFlatness],
   [
-    withToleranceText(DOCS.sp70Table51, "допуск X/Y ±8 мм, H ±10 мм; плоскостность по базе измерения"),
+    withProjectCriteriaRequirement(DOCS.sp70Table51),
     DOCS.sp126
   ],
   [
@@ -1164,7 +1169,7 @@ const geodesyBeamModule = moduleConfig(
   ],
   [TOLERANCE_LIBRARY.geoPlan],
   [
-    withToleranceText(DOCS.sp70Table51, "допуск X/Y ±8 мм"),
+    withProjectCriteriaRequirement(DOCS.sp70Table51),
     DOCS.sp126
   ],
   [
@@ -1187,7 +1192,7 @@ const geometryBeamModule = moduleConfig(
   [FIELDS.floor, FIELDS.marking, FIELDS.projBeamWidth, FIELDS.factBeamWidth, FIELDS.projBeamHeight, FIELDS.factBeamHeight],
   [TOLERANCE_LIBRARY.beamSize],
   [
-    withToleranceText(DOCS.sp70Table51, "размеры сечения балки ±8 мм")
+    withProjectCriteriaRequirement(DOCS.sp70Table51)
   ],
   [
     {
@@ -1248,7 +1253,7 @@ const geodesyElevatorShaftModule = moduleConfig(
   ],
   [TOLERANCE_LIBRARY.geoPlan, TOLERANCE_LIBRARY.geoHeight],
   [
-    withToleranceText(DOCS.sp70Table51, "допуск X/Y ±8 мм, H ±10 мм"),
+    withProjectCriteriaRequirement(DOCS.sp70Table51),
     DOCS.sp126
   ],
   [
@@ -1313,8 +1318,6 @@ const geometryElevatorShaftModule = moduleConfig(
     FIELDS.factWallFlatness,
     FIELDS.projOpeningSizes,
     FIELDS.factOpeningSizes,
-    FIELDS.projOpeningHeight,
-    FIELDS.factOpeningHeight
   ],
   geometryElevatorShaftWallBasis.tolerances,
   geometryElevatorShaftWallBasis.normativeDocs,
@@ -1340,7 +1343,7 @@ const geodesyStairCoreModule = moduleConfig(
   [FIELDS.floor, FIELDS.stairName, FIELDS.axesRange, FIELDS.projX, FIELDS.factX, FIELDS.projY, FIELDS.factY, FIELDS.projH, FIELDS.factH],
   [TOLERANCE_LIBRARY.geoPlan, TOLERANCE_LIBRARY.geoHeight],
   [
-    withToleranceText(DOCS.sp70Table51, "допуск X/Y ±8 мм, H ±10 мм"),
+    withProjectCriteriaRequirement(DOCS.sp70Table51),
     DOCS.sp126
   ],
   [
@@ -1384,7 +1387,7 @@ const geometryStairCoreModule = moduleConfig(
   ],
   [TOLERANCE_LIBRARY.stairStepHeight, TOLERANCE_LIBRARY.stairStepWidth],
   [
-    withToleranceText(DOCS.sp70Table51, "высота ступени ±5 мм; ширина проступи/марша ±5 мм")
+    withProjectCriteriaRequirement(DOCS.sp70Table51)
   ],
   [
     {
@@ -1425,7 +1428,7 @@ const stripGeometryModule = moduleConfig(
   [FIELDS.axesRange, FIELDS.projHeight, FIELDS.factHeight, FIELDS.projOpeningSizes, FIELDS.factOpeningSizes],
   [TOLERANCE_LIBRARY.plateHeight, TOLERANCE_LIBRARY.openingSize],
   [
-    withToleranceText(DOCS.sp70Table51, "высота/ширина ±5-8 мм по проекту и таблице допусков")
+    withProjectCriteriaRequirement(DOCS.sp70Table51)
   ],
   [
     {
@@ -1462,8 +1465,8 @@ const stripReinforcementModule = moduleConfig(
     TOLERANCE_LIBRARY.hoopsStep
   ],
   [
-    withToleranceText(DOCS.gostRebar, "диаметр строго; шаг/хомуты ±20 мм"),
-    withToleranceText(DOCS.sp70Table51, "защитный слой ±5 мм")
+    withProjectCriteriaRequirement(DOCS.gostRebar),
+    withProjectCriteriaRequirement(DOCS.sp70Table51)
   ],
   [
     ...reinforcementPlateModule.resultRules,
@@ -1486,7 +1489,7 @@ const pileGeometryModule = moduleConfig(
   [FIELDS.pileElement, FIELDS.projHeight, FIELDS.factHeight, FIELDS.projOpeningSizes, FIELDS.factOpeningSizes],
   [TOLERANCE_LIBRARY.plateHeight, TOLERANCE_LIBRARY.openingSize],
   [
-    withToleranceText(DOCS.sp70Table51, "геометрия буронабивной сваи / ростверка по проекту и допускам")
+    withProjectCriteriaRequirement(DOCS.sp70Table51)
   ],
   [
     {
@@ -1534,7 +1537,7 @@ const formworkGeometryModule = moduleConfig(
     FIELDS.note
   ],
   [TOLERANCE_LIBRARY.formworkManual],
-  [DOCS.sp371, DOCS.gost34329, withToleranceText(DOCS.sp70Table51, "отклонения принимаются по проекту/ППР и применимым нормам")],
+  [DOCS.sp371, DOCS.gost34329, withProjectCriteriaRequirement(DOCS.sp70Table51)],
   [
     {
       key: "formwork_manual_tolerances",
@@ -1596,11 +1599,13 @@ export const INSPECTION_REGISTRY = Object.freeze({
     subtypeOverrides: Object.freeze({
       precast_rc_piles: Object.freeze({
         reinforcement: factoryModule("reinforcement", factoryPileRebarMessage),
-        geometry: factoryModule("geometry", factoryPileGeometryMessage)
+        geometry: factoryModule("geometry", factoryPileGeometryMessage),
+        strength: factoryModule("strength", "Бетон заводской сваи подтверждается паспортом изготовителя. Ростверк контролируется отдельно.")
       }),
       screw_piles: Object.freeze({
         reinforcement: factoryModule("reinforcement", factoryPileRebarMessage),
-        geometry: factoryModule("geometry", factoryPileGeometryMessage)
+        geometry: factoryModule("geometry", factoryPileGeometryMessage),
+        strength: notApplicableModule("strength", "Контроль прочности бетона стальной винтовой сваи не применяется. Выберите ростверк для контроля его бетона.")
       }),
       bored_piles: Object.freeze({
         reinforcement: pileReinforcementModule,
@@ -1744,7 +1749,8 @@ export function getConstructionInspectionConfig(constructionValue: unknown) {
 export function getConstructionModuleInspectionConfig(
   constructionValue: unknown,
   module: ModuleInput,
-  subtypeValue = ""
+  subtypeValue = "",
+  pileElement = ""
 ) {
   const config = getConstructionInspectionConfig(constructionValue);
   if (!config) return null;
@@ -1753,7 +1759,7 @@ export function getConstructionModuleInspectionConfig(
   const baseModuleConfig = config.modules[inspectionModule];
   if (!baseModuleConfig) return null;
 
-  const subtypeKey = normalizeRegistryKey(subtypeValue || config.subtype || "");
+  const subtypeKey = config.construction === "pile_grillage" && pileElement === "grillage" ? "bored_piles" : normalizeRegistryKey(subtypeValue || config.subtype || "");
   const subtypeOverride = subtypeKey ? config.subtypeOverrides?.[subtypeKey]?.[inspectionModule] : null;
   return mergeModuleConfig(baseModuleConfig, subtypeOverride || undefined);
 }
@@ -1788,9 +1794,10 @@ export function hasInspectionField(
 export function getInspectionModuleStatus(
   constructionValue: unknown,
   module: ModuleInput,
-  subtypeValue = ""
+  subtypeValue = "",
+  pileElement = ""
 ) {
-  return getConstructionModuleInspectionConfig(constructionValue, module, subtypeValue)?.status || null;
+  return getConstructionModuleInspectionConfig(constructionValue, module, subtypeValue, pileElement)?.status || null;
 }
 
 export const getInspectionStatus = getInspectionModuleStatus;

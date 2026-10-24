@@ -193,6 +193,7 @@ function createDom(constructionKey = "slab") {
   });
   const fields = {
     document: {
+      getElementById() { return null; },
       readyState: "complete",
       addEventListener() {},
       createElement() {
@@ -865,7 +866,7 @@ test("run result contains the final phrase", async () => {
   await runtime.runCheck();
   assert.match(
     dom.reinfResult.innerHTML,
-    /Армирование соответствует проекту и нормативным требованиям\./
+    /engineering_requires_review|Требует проверки/
   );
 });
 
@@ -875,7 +876,7 @@ test("run result contains the reinforcement regulatory basis", async () => {
   assert.match(dom.reinfResult.innerHTML, /Нормативное основание/);
 });
 
-test("hoops step keeps GOST R 57997-2017 as its regulatory document", () => {
+test("hoops step has no fabricated normative reference without confirmed criteria", () => {
   const results = buildReinforcementMeasurementResults(
     {
       projDia: null,
@@ -892,7 +893,7 @@ test("hoops step keeps GOST R 57997-2017 as its regulatory document", () => {
     ""
   );
   const hoops = results.find((result) => result.name === "Шаг хомутов");
-  assert.equal(hoops?.regulatoryDoc, "GOST_R_57997_2017");
+  assert.equal(hoops?.regulatoryDoc, "");
 });
 
 test("partially filled check auto-saves with empty status", async () => {

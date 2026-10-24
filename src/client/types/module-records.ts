@@ -1,3 +1,5 @@
+import type { AcceptanceCriteria } from "../features/inspections/acceptance.js";
+import type { PhysicalDimensions } from "../features/inspections/geometry/dimensions.js";
 export type CheckStatus = "empty" | "ok" | "exceeded" | string;
 
 export interface FirestoreTimestampLike {
@@ -51,6 +53,8 @@ export interface BimBindingCheckData extends Record<string, unknown> {
 }
 
 export interface GeometryColumnRecord extends Record<string, unknown> {
+  physicalDimensions?: PhysicalDimensions;
+  id?: string | number;
   marking?: string | null;
   projSize1?: number | string | null;
   factSize1?: number | string | null;
@@ -60,6 +64,8 @@ export interface GeometryColumnRecord extends Record<string, unknown> {
 }
 
 export interface GeometryWallRecord extends Record<string, unknown> {
+  physicalDimensions?: PhysicalDimensions;
+  id?: string | number;
   bindingType?: string | null;
   numberAxis?: string | number | null;
   letterAxis1?: string | null;
@@ -79,6 +85,8 @@ export interface GeometryWallRecord extends Record<string, unknown> {
 }
 
 export interface GeometryStairRecord extends Record<string, unknown> {
+  physicalDimensions?: PhysicalDimensions;
+  id?: string | number;
   bindingType?: string | null;
   numberAxis?: string | number | null;
   letterAxis1?: string | null;
@@ -95,6 +103,8 @@ export interface GeometryStairRecord extends Record<string, unknown> {
 }
 
 export interface GeometryBeamRecord extends Record<string, unknown> {
+  physicalDimensions?: PhysicalDimensions;
+  id?: string | number;
   marking?: string | null;
   projBeamWidth?: number | string | null;
   factBeamWidth?: number | string | null;
@@ -103,6 +113,8 @@ export interface GeometryBeamRecord extends Record<string, unknown> {
 }
 
 export interface GeometryCheckRecord extends BimBindingCheckData {
+  physicalDimensions?: PhysicalDimensions;
+  acceptanceCriteria?: AcceptanceCriteria | null;
   floor?: string | null;
   axisLetterFrom?: string | null;
   axisLetterTo?: string | null;

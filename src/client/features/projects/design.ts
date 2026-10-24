@@ -46,6 +46,7 @@ export function collectProjectDesignPayload({ inputs, parseDecimal }: { inputs: 
   } = inputs;
 
   const projectGeo = {
+    coordinateUnit: [projX, projY, projH].some(input => input?.dataset?.unitUnconfirmed === "1") ? null : "m",
     projX: parseProjectGeoFloat(projX?.value),
     projY: parseProjectGeoFloat(projY?.value),
     projH: parseProjectGeoFloat(projH?.value)
@@ -184,6 +185,9 @@ export function applyProjectDataToForm(data: Record<string, any>, refs: ProjectD
     return x === 1 && y === 1 && h === 1;
   };
 
+  for (const input of [projX, projY, projH]) {
+    if (input) input.dataset.unitUnconfirmed = data.projectGeo && data.projectGeo.coordinateUnit !== "m" ? "1" : "0";
+  }
   if (data.projectGeo && !isLegacyDefaultProjectGeo(data.projectGeo)) {
     if (projX) projX.value = data.projectGeo.projX ?? "";
     if (projY) projY.value = data.projectGeo.projY ?? "";

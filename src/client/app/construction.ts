@@ -901,7 +901,8 @@ export function getConstructionSubtypeOptionLabel(
 export function getConstructionModuleBehavior(
   value: unknown,
   module: ConstructionBehaviorModule,
-  subtypeValue: unknown = ""
+  subtypeValue: unknown = "",
+  pileElement = ""
 ) {
   const option = getConstructionOption(value);
   if (!option) {
@@ -909,7 +910,7 @@ export function getConstructionModuleBehavior(
   }
 
   const baseBehavior = option.modules[module] || unsupportedBehavior();
-  const subtypeKey = normalizeConstructionSubtype(option.key, subtypeValue, value);
+  const subtypeKey = option.key === "pile_grillage" && pileElement === "grillage" ? "bored_piles" : normalizeConstructionSubtype(option.key, subtypeValue, value);
   const subtypeOverride = subtypeKey ? option.subtypeBehaviors?.[subtypeKey]?.[module] : null;
   const merged = applyInspectionRegistryStatus(
     option.key,

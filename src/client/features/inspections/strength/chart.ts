@@ -1,3 +1,4 @@
+import { t } from "../../../shared/i18n/index.js";
 import type { StrengthResultSeries } from "./types.js";
 
 export interface StrengthChartInstance {
@@ -46,14 +47,7 @@ export function createStrengthChartController({
         labels: series.labels,
         datasets: [
           {
-            label: "Нормативная кривая",
-            data: series.normative,
-            borderColor: "#60a5fa",
-            borderWidth: 2,
-            fill: false
-          },
-          {
-            label: "Фактическая прочность",
+            label: t("form_measured_strength"),
             data: series.actual,
             borderColor: "#f87171",
             pointRadius: hasActual ? 6 : 0,

@@ -77,18 +77,18 @@ function reset() { records.clear(); failWrite = null; readGate = null; afterComm
 
 test("a rejected inspection batch leaves both the previous source and registry intact", async () => {
   reset();
-  await service.updateCheck(project, "check", { status: "ok", actual: 31 });
+  await service.updateCheck(project, "check", { evaluationSchemaVersion: 2, status: "ok", actual: 31 });
   failWrite = paths => paths.some(path => path.includes("/inspections/"));
-  await assert.rejects(service.updateCheck(project, "check", { status: "exceeded", actual: 20 }), /batch rejected/);
+  await assert.rejects(service.updateCheck(project, "check", { evaluationSchemaVersion: 2, status: "exceeded", actual: 20 }), /batch rejected/);
   assert.equal((await service.loadChecks(project)).get("check").actual, 31);
   assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", "strengthChecks_check")).data().checkStatus, "ok");
 });
 
 test("opening checks after a failed analytics refresh recovers the saved result", async () => {
   reset();
-  await service.updateCheck(project, "check", { status: "ok" });
+  await service.updateCheck(project, "check", { evaluationSchemaVersion: 2, status: "ok" });
   failWrite = paths => paths.length === 1 && paths[0] === `projects/${project}`;
-  await service.updateCheck(project, "check", { status: "exceeded" });
+  await service.updateCheck(project, "check", { evaluationSchemaVersion: 2, status: "exceeded" });
   assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.exceededCount, 0);
   // A new service instance represents reopening the project after a reload.
   const reopened = runtime.createFirestoreStrengthService({ getCurrentUserId: () => "owner" });
@@ -100,7 +100,7 @@ test("opening checks after a failed analytics refresh recovers the saved result"
 
 test("retrying creation with the same inspection identity creates one check", async () => {
   reset();
-  const data = { id: "stable-check", status: "exceeded", createdAt: 1800000000000 };
+  const data = { id: "stable-check", evaluationSchemaVersion: 2, status: "exceeded", createdAt: 1800000000000 };
   const first = await service.createCheck(project, data);
   const repeated = await service.createCheck(project, { ...data });
   assert.equal(first.id, "stable-check");
@@ -111,7 +111,7 @@ test("retrying creation with the same inspection identity creates one check", as
 
 test("a failed deletion preserves both representations and retry removes both", async () => {
   reset();
-  await service.updateCheck(project, "check", { status: "ok" });
+  await service.updateCheck(project, "check", { evaluationSchemaVersion: 2, status: "ok" });
   failWrite = paths => paths.some(path => path.includes("/inspections/"));
   await assert.rejects(service.deleteCheck(project, "check"), /batch rejected/);
   assert.equal((await service.loadChecks(project)).size, 1);
@@ -124,14 +124,14 @@ test("a failed deletion preserves both representations and retry removes both", 
 
 test("a delayed analytics snapshot cannot overwrite a more recent inspection result", async () => {
   reset();
-  await service.updateCheck(project, "check", { status: "ok" });
+  await service.updateCheck(project, "check", { evaluationSchemaVersion: 2, status: "ok" });
   let entered, release;
   const waiting = new Promise(resolve => { entered = resolve; });
   const gate = new Promise(resolve => { release = resolve; });
   readGate = async path => { if (path.endsWith("/inspections")) { readGate = null; entered(); await gate; } };
   const delayed = runtime.recomputeAndPersistProjectAnalyticsCurrent(project);
   await waiting;
-  await service.updateCheck(project, "check", { status: "exceeded" });
+  await service.updateCheck(project, "check", { evaluationSchemaVersion: 2, status: "exceeded" });
   release();
   await delayed;
   assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.exceededCount, 1);
@@ -139,7 +139,7 @@ test("a delayed analytics snapshot cannot overwrite a more recent inspection res
 
 test("clearing more than one batch can resume after a partial failure", async () => {
   reset();
-  for (let index = 0; index < 251; index += 1) await service.updateCheck(project, `check-${index}`, { status: "ok" });
+  for (let index = 0; index < 251; index += 1) await service.updateCheck(project, `check-${index}`, { evaluationSchemaVersion: 2, status: "ok" });
   let batches = 0;
   failWrite = paths => paths.some(path => path.includes("/inspections/")) && ++batches === 2;
   await assert.rejects(service.clearChecks(project), /batch rejected/);
@@ -154,12 +154,12 @@ test("clearing more than one batch can resume after a partial failure", async ()
 test("reinforcement retries retain identity and a projection failure cannot replace saved evidence", async () => {
   reset();
   const reinforcement = runtime.createFirestoreReinforcementService({ getCurrentUserId: () => "owner" });
-  const data = { id: "rebar", status: "ok", factDia: 16 };
+  const data = { id: "rebar", evaluationSchemaVersion: 2, status: "ok", factDia: 16 };
   await reinforcement.createCheck(project, data);
   await reinforcement.createCheck(project, { ...data });
   assert.equal((await reinforcement.loadChecks(project)).size, 1);
   failWrite = paths => paths.some(path => path.includes("/inspections/"));
-  await assert.rejects(reinforcement.updateCheck(project, "rebar", { status: "exceeded", factDia: 12 }), /batch rejected/);
+  await assert.rejects(reinforcement.updateCheck(project, "rebar", { evaluationSchemaVersion: 2, status: "exceeded", factDia: 12 }), /batch rejected/);
   assert.equal((await reinforcement.loadChecks(project)).get("rebar").factDia, 16);
 });
 
@@ -167,9 +167,9 @@ test("reinforcement retries retain identity and a projection failure cannot repl
 test("geodesy saves and soft deletion are atomic and recoverable", async () => {
   reset();
   const geo = runtime.createFirestoreGeodesyService({ getCurrentUserId: () => "owner", getCurrentConstructionKey: () => "foundation_slab", getCurrentConstructionCategoryKey: () => "foundation", getCurrentConstructionLabel: () => "Slab", getCurrentConstructionType: () => "Плита" });
-  await geo.saveNode(project, "node", { status: "ok", factX: 10 });
+  await geo.saveNode(project, "node", { evaluationSchemaVersion: 2, status: "ok", factX: 10 });
   failWrite = paths => paths.some(path => path.includes("/inspections/"));
-  await assert.rejects(geo.saveNode(project, "node", { status: "bad", factX: 20 }), /batch rejected/);
+  await assert.rejects(geo.saveNode(project, "node", { evaluationSchemaVersion: 2, status: "bad", factX: 20 }), /batch rejected/);
   assert.equal((await geo.loadNodes(project)).get("node").factX, 10);
   failWrite = paths => paths.some(path => path.includes("/inspections/"));
   await assert.rejects(geo.deleteNode(project, "node"), /batch rejected/);
@@ -182,8 +182,8 @@ test("geodesy saves and soft deletion are atomic and recoverable", async () => {
 
 test("updating a legacy registry identity preserves links and refreshes its result", async () => {
   reset();
-  await runtime.setProjectCollectionDoc(project, "inspections", "legacy-registry", { sourceId: "old-check", sourceCollection: "strengthChecks", moduleKey: "strength", checkStatus: "exceeded" });
-  await service.updateCheck(project, "old-check", { status: "ok" });
+  await runtime.setProjectCollectionDoc(project, "inspections", "legacy-registry", { sourceId: "old-check", sourceCollection: "strengthChecks", moduleKey: "strength", evaluationSchemaVersion: 2, checkStatus: "exceeded" });
+  await service.updateCheck(project, "old-check", { evaluationSchemaVersion: 2, status: "ok" });
   assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", "legacy-registry")).data().checkStatus, "ok");
   assert.equal((await runtime.getProjectCollectionSnapshot(project, "inspections")).size, 1);
   assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.exceededCount, 0);
@@ -195,7 +195,7 @@ test("updating a legacy registry identity preserves links and refreshes its resu
 test("registry-only synchronization retains a durable retry after analytics failure", async () => {
   reset();
   failWrite = paths => paths.length === 1 && paths[0] === `projects/${project}`;
-  await runtime.saveInspectionAndRefreshAnalytics(project, "legacy-only", { moduleKey: "geometry", checkStatus: "ok" });
+  await runtime.saveInspectionAndRefreshAnalytics(project, "legacy-only", { moduleKey: "geometry", evaluationSchemaVersion: 2, checkStatus: "ok" });
   assert.equal((await runtime.getProjectDocSnapshot(project)).data().inspectionSync.pending, true);
   await runtime.refreshPendingProjectAnalytics(project);
   assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.totalChecks, 1);
@@ -203,14 +203,14 @@ test("registry-only synchronization retains a durable retry after analytics fail
 
 test("a check saved during module clearing keeps its registry representation", async () => {
   reset();
-  await service.updateCheck(project, "old", { status: "ok" });
+  await service.updateCheck(project, "old", { evaluationSchemaVersion: 2, status: "ok" });
   let entered, release;
   const waiting = new Promise(resolve => { entered = resolve; });
   const gate = new Promise(resolve => { release = resolve; });
   readGate = async path => { if (path.endsWith("/strengthChecks")) { readGate = null; entered(); await gate; } };
   const clearing = service.clearChecks(project);
   await waiting;
-  await service.updateCheck(project, "new", { status: "exceeded" });
+  await service.updateCheck(project, "new", { evaluationSchemaVersion: 2, status: "exceeded" });
   release();
   await clearing;
   assert.deepEqual([...(await service.loadChecks(project)).keys()], ["new"]);
@@ -221,7 +221,7 @@ test("a check saved during module clearing keeps its registry representation", a
 test("simultaneous first saves in different modules cannot overwrite each other's registry", async () => {
   reset();
   const geo = runtime.createFirestoreGeodesyService({ getCurrentUserId: () => "owner", getCurrentConstructionKey: () => "foundation_slab", getCurrentConstructionCategoryKey: () => "foundation", getCurrentConstructionLabel: () => "Slab", getCurrentConstructionType: () => "Плита" });
-  await Promise.all([geo.saveNode(project, "same-id", { status: "bad" }), service.updateCheck(project, "same-id", { status: "ok" })]);
+  await Promise.all([geo.saveNode(project, "same-id", { evaluationSchemaVersion: 2, status: "bad" }), service.updateCheck(project, "same-id", { evaluationSchemaVersion: 2, status: "ok" })]);
   assert.equal((await runtime.getProjectCollectionSnapshot(project, "inspections")).size, 2);
   await runtime.refreshPendingProjectAnalytics(project);
   const analytics = (await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent;
@@ -231,7 +231,7 @@ test("simultaneous first saves in different modules cannot overwrite each other'
 
 test("analytics repair cannot publish a partial offline cache as the complete registry", async () => {
   reset();
-  await service.updateCheck(project, "check", { status: "exceeded" });
+  await service.updateCheck(project, "check", { evaluationSchemaVersion: 2, status: "exceeded" });
   partialCache = true;
   await runtime.recomputeAndPersistProjectAnalyticsCurrent(project);
   assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.totalChecks, 1);
@@ -240,16 +240,16 @@ test("analytics repair cannot publish a partial offline cache as the complete re
 test("saving one check scans the registry only for analytics, not to locate its aliases", async () => {
   reset();
   for (let index = 0; index < 1000; index += 1) {
-    await runtime.setProjectCollectionDoc(project, "inspections", `unrelated-${index}`, { sourceCollection: "strengthChecks", sourceId: `other-${index}`, moduleKey: "strength", checkStatus: "ok" });
+    await runtime.setProjectCollectionDoc(project, "inspections", `unrelated-${index}`, { sourceCollection: "strengthChecks", sourceId: `other-${index}`, moduleKey: "strength", evaluationSchemaVersion: 2, checkStatus: "ok" });
   }
-  await service.updateCheck(project, "check", { status: "exceeded" });
+  await service.updateCheck(project, "check", { evaluationSchemaVersion: 2, status: "exceeded" });
   assert.equal(fullRegistryReads, 1);
   assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.totalChecks, 1001);
 });
 
 test("simultaneous module loads share one pending analytics scan", async () => {
   reset();
-  await runtime.commitInspectionRegistryDocs(project, [{ id: "check", data: { moduleKey: "strength", checkStatus: "exceeded" } }]);
+  await runtime.commitInspectionRegistryDocs(project, [{ id: "check", data: { moduleKey: "strength", evaluationSchemaVersion: 2, checkStatus: "exceeded" } }]);
   const results = await Promise.all(Array.from({ length: 4 }, () => runtime.refreshPendingProjectAnalytics(project)));
   assert.equal(fullRegistryReads, 1);
   assert.equal(results.every(result => result?.totalChecks === 1), true);
@@ -258,12 +258,12 @@ test("simultaneous module loads share one pending analytics scan", async () => {
 
 test("a save arriving as a shared refresh completes is not lost", async () => {
   reset();
-  await runtime.commitInspectionRegistryDocs(project, [{ id: "first", data: { moduleKey: "strength", checkStatus: "ok" } }]);
+  await runtime.commitInspectionRegistryDocs(project, [{ id: "first", data: { moduleKey: "strength", evaluationSchemaVersion: 2, checkStatus: "ok" } }]);
   let lateRefresh;
   afterCommit = async paths => {
     if (paths.length !== 1 || paths[0] !== `projects/${project}`) return;
     afterCommit = null;
-    await runtime.commitInspectionRegistryDocs(project, [{ id: "late", data: { moduleKey: "strength", checkStatus: "exceeded" } }]);
+    await runtime.commitInspectionRegistryDocs(project, [{ id: "late", data: { moduleKey: "strength", evaluationSchemaVersion: 2, checkStatus: "exceeded" } }]);
     lateRefresh = runtime.refreshPendingProjectAnalytics(project);
   };
   const first = await runtime.refreshPendingProjectAnalytics(project);
@@ -276,7 +276,7 @@ test("a save arriving as a shared refresh completes is not lost", async () => {
 
 test("a failed shared refresh releases its request so reopening can repair", async () => {
   reset();
-  await runtime.commitInspectionRegistryDocs(project, [{ id: "check", data: { moduleKey: "strength", checkStatus: "exceeded" } }]);
+  await runtime.commitInspectionRegistryDocs(project, [{ id: "check", data: { moduleKey: "strength", evaluationSchemaVersion: 2, checkStatus: "exceeded" } }]);
   failWrite = paths => paths.length === 1 && paths[0] === `projects/${project}`;
   assert.deepEqual(await Promise.all([runtime.refreshPendingProjectAnalytics(project), runtime.refreshPendingProjectAnalytics(project)]), [null, null]);
   assert.equal((await runtime.getProjectDocSnapshot(project)).data().inspectionSync.pending, true);
@@ -286,10 +286,10 @@ test("a failed shared refresh releases its request so reopening can repair", asy
 
 test("targeted alias reads retain sourceDocId and document-ID legacy links without changing another module", async () => {
   reset();
-  await runtime.setProjectCollectionDoc(project, "inspections", "check", { sourceCollection: "strengthChecks", moduleKey: "strength", checkStatus: "exceeded" });
-  await runtime.setProjectCollectionDoc(project, "inspections", "legacy-alias", { sourceCollection: "strengthChecks", sourceDocId: "check", moduleKey: "strength", checkStatus: "exceeded" });
-  await runtime.setProjectCollectionDoc(project, "inspections", "foreign", { sourceCollection: "geoNodes", sourceId: "check", moduleKey: "geo", checkStatus: "exceeded" });
-  await service.updateCheck(project, "check", { status: "ok" });
+  await runtime.setProjectCollectionDoc(project, "inspections", "check", { sourceCollection: "strengthChecks", moduleKey: "strength", evaluationSchemaVersion: 2, checkStatus: "exceeded" });
+  await runtime.setProjectCollectionDoc(project, "inspections", "legacy-alias", { sourceCollection: "strengthChecks", sourceDocId: "check", moduleKey: "strength", evaluationSchemaVersion: 2, checkStatus: "exceeded" });
+  await runtime.setProjectCollectionDoc(project, "inspections", "foreign", { sourceCollection: "geoNodes", sourceId: "check", moduleKey: "geo", evaluationSchemaVersion: 2, checkStatus: "exceeded" });
+  await service.updateCheck(project, "check", { evaluationSchemaVersion: 2, status: "ok" });
   for (const id of ["check", "legacy-alias"]) assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", id)).data().checkStatus, "ok");
   assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", "foreign")).data().checkStatus, "exceeded");
   assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.totalChecks, 2);

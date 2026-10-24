@@ -5,7 +5,7 @@ import { resources } from "./resources.js";
 const engineeringKeys = new Map(Object.entries(engineering.ru).map(([key, value]) => [value as string, key]));
 export const translateEngineeringLabel = (label: string) => i18next.resolvedLanguage === "en" && engineeringKeys.has(label) ? t(engineeringKeys.get(label)!) : label;
 
-export const t = (key: string, values: Record<string, unknown> = {}) => String(i18next.t(key, values));
+export const t = (key: string, values: Record<string, unknown> = {}) => String(i18next.isInitialized ? i18next.t(key, values) : resources.ru.translation[key] ?? key);
 
 /** Compatibility for presentation statuses while their domain API migrates to status codes. */
 export function translateStatus(status: string) {
