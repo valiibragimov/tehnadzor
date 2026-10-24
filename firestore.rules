@@ -91,9 +91,56 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["updatedAt"])
           && request.resource.data.updatedAt == request.time;
       }
+      function documentRole() {
+        let member = /databases/$(database)/documents/projects/$(projectId)/documentMembers/$(request.auth.uid);
+        return signedIn() && exists(member) ? get(member).data.role : "none";
+      }
+      function documentReader() {
+        return signedIn() && (isProjectOwner(projectId) || documentRole() in ["editor", "reader"]);
+      }
+      function documentEditor() {
+        return signedIn() && (isProjectOwner(projectId) || documentRole() == "editor");
+      }
+      match /documentMembers/{uid} {
+        allow read: if signedIn() && (isProjectOwner(projectId) || request.auth.uid == uid);
+        allow create, update: if isProjectOwner(projectId)
+          && request.resource.data.keys().hasOnly(["role"])
+          && request.resource.data.role in ["editor", "reader"];
+        allow delete: if isProjectOwner(projectId);
+      }
+      match /documents/{documentId} {
+        allow read: if documentReader();
+        allow create: if documentEditor()
+          && request.resource.data.keys().hasOnly(["title", "kind", "createdBy", "createdAt"])
+          && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 200
+          && request.resource.data.kind in ["aosr", "asBuilt", "certificate", "passport", "laboratory"]
+          && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time;
+        match /versions/{versionId} {
+          allow read: if documentReader();
+          allow create: if documentEditor()
+            && existsAfter(/databases/$(database)/documents/projects/$(projectId)/documents/$(documentId))
+            && request.resource.data.keys().hasOnly(["title", "kind", "construction", "inspectionCollection", "inspectionId", "bimElementId", "fileName", "size", "sha256", "status", "createdBy", "createdAt", "storagePath"])
+            && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 200
+            && request.resource.data.kind in ["aosr", "asBuilt", "certificate", "passport", "laboratory"]
+            && request.resource.data.fileName is string && request.resource.data.fileName.size() <= 256
+            && request.resource.data.size is int && request.resource.data.size > 0 && request.resource.data.size <= 20971520
+            && request.resource.data.sha256 is string && request.resource.data.sha256.matches('^[0-9a-f]{64}$')
+            && request.resource.data.status == "uploading"
+            && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
+            && request.resource.data.storagePath == "projects/" + projectId + "/documents/" + documentId + "/versions/" + versionId + "/file.pdf"
+            && request.resource.data.construction is string && request.resource.data.construction.size() <= 128
+            && request.resource.data.bimElementId is string && request.resource.data.bimElementId.size() <= 256
+            && ((request.resource.data.inspectionId == "" && request.resource.data.inspectionCollection == "") ||
+              (request.resource.data.inspectionId is string && request.resource.data.inspectionId.size() <= 256
+                && request.resource.data.inspectionCollection in ["geoNodes", "reinfChecks", "geomChecks", "strengthChecks"]
+                && exists(/databases/$(database)/documents/projects/$(projectId)/$(request.resource.data.inspectionCollection)/$(request.resource.data.inspectionId))));
+          // Only the API finalizes after checking immutable bytes and rechecking access.
+          allow update, delete: if false;
+        }
+      }
       match /{subCollection}/{docId} {
         allow read, write: if isProjectOwner(projectId)
-          && !(subCollection in ["elements", "bimState", "bimGenerations", "bimElements", "bimModels", "bimPublications", "bimReaders"]);
+          && !(subCollection in ["elements", "bimState", "bimGenerations", "bimElements", "bimModels", "bimPublications", "bimReaders", "documents", "documentMembers"]);
       }
     }
 

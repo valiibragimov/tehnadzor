@@ -357,6 +357,10 @@ export function createModuleRuntime({
     ["geometry", async () => void (await getGeometryModule())],
     ["reinforcement", async () => void (await getReinforcementModule())],
     ["strength", async () => void (await getStrengthModule())],
+    ["documents", async () => {
+      const module = await import("../features/documents/runtime.js");
+      module.initDocuments(workspace);
+    }],
     ["knowledge", loadKnowledgeModule]
   ]);
 

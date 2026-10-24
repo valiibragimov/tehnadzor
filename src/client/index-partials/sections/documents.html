@@ -1,0 +1,60 @@
+<section class="section" id="documents">
+  <h2 data-i18n="documents_title">Исполнительная документация</h2>
+  <p data-i18n="documents_hint">PDF до 20 МБ. Каждая загрузка создаёт неизменяемую версию. Доступ предоставляется только участникам раздела.</p>
+  <div class="card">
+    <label for="documentsProject" data-i18n="documents_project">ID объекта — текущего или предоставленного владельцем</label>
+    <input id="documentsProject" maxlength="128" />
+    <button type="button" id="documentsRefresh" class="btn-secondary" data-i18n="documents_refresh">Открыть документы объекта</button>
+    <p id="documentsStatus" role="status" aria-live="polite"></p>
+  </div>
+  <div class="card">
+    <label for="documentsSelect" data-i18n="documents_select">Документ</label>
+    <select id="documentsSelect"><option value="" data-i18n="documents_new">Новый документ</option></select>
+    <button type="button" id="documentsMore" hidden data-i18n="documents_more">Ещё документы</button>
+    <div id="documentVersions" class="nodes"></div>
+    <button type="button" id="documentVersionsMore" hidden data-i18n="documents_more_versions">Ещё версии</button>
+  </div>
+  <form id="documentsUpload" class="card" hidden>
+    <h3 data-i18n="documents_add_version">Добавить документ или новую версию</h3>
+    <label for="documentTitle" data-i18n="documents_name">Название</label>
+    <input id="documentTitle" maxlength="200" required />
+    <label for="documentKind" data-i18n="documents_kind">Вид документа</label>
+    <select id="documentKind">
+      <option value="aosr" data-i18n="document_aosr">АОСР</option>
+      <option value="asBuilt" data-i18n="document_asBuilt">Исполнительная схема</option>
+      <option value="certificate" data-i18n="document_certificate">Сертификат</option>
+      <option value="passport" data-i18n="document_passport">Паспорт</option>
+      <option value="laboratory" data-i18n="document_laboratory">Лабораторный протокол</option>
+    </select>
+    <label for="documentConstruction" data-i18n="documents_construction">Конструкция (необязательно)</label>
+    <select id="documentConstruction"><option value="">—</option></select>
+    <label for="documentInspectionCollection" data-i18n="documents_module">Модуль связанной проверки (необязательно)</label>
+    <select id="documentInspectionCollection">
+      <option value="">—</option>
+      <option value="geoNodes" data-i18n="form_survey_control">Геодезия</option>
+      <option value="reinfChecks" data-i18n="form_reinforcement_inspection">Армирование</option>
+      <option value="geomChecks" data-i18n="form_geometry_inspection">Геометрия</option>
+      <option value="strengthChecks" data-i18n="form_concrete_strength_inspection">Прочность бетона</option>
+    </select>
+    <label for="documentInspectionId" data-i18n="documents_inspection">ID сохранённой проверки</label>
+    <input id="documentInspectionId" maxlength="256" />
+    <label for="documentBimId" data-i18n="documents_bim">ID элемента BIM (необязательно)</label>
+    <input id="documentBimId" maxlength="256" />
+    <label for="documentFile" data-i18n="documents_file">Файл PDF</label>
+    <input id="documentFile" type="file" accept="application/pdf,.pdf" required />
+    <button type="submit" data-i18n="documents_upload">Загрузить неизменяемую версию</button>
+  </form>
+  <form id="documentsAccess" class="card" hidden>
+    <h3 data-i18n="documents_access">Доступ к документам объекта</h3>
+    <p data-i18n="documents_access_hint">Передайте участнику ID объекта. Доступ распространяется только на документы, включая прошлые версии.</p>
+    <label for="documentMemberUid" data-i18n="documents_uid">UID участника</label>
+    <input id="documentMemberUid" maxlength="128" required />
+    <label for="documentMemberRole" data-i18n="documents_role">Права</label>
+    <select id="documentMemberRole">
+      <option value="reader" data-i18n="documents_reader">Просмотр</option>
+      <option value="editor" data-i18n="documents_editor">Просмотр и добавление версий</option>
+      <option value="none" data-i18n="documents_revoke">Отозвать доступ</option>
+    </select>
+    <button type="submit" data-i18n="documents_save_access">Сохранить права</button>
+  </form>
+</section>

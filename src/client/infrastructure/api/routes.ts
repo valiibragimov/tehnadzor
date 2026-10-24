@@ -4,6 +4,8 @@ export const API_ROUTES = {
   "generateReport": "/generateReport",
   "importIfc": "/bim/import-ifc",
   "deleteBimElements": "/bim/elements",
+  "downloadDocument": "/documents/file",
+  "uploadDocument": "/documents/upload",
   "profileFeed": "/profile-feed",
   "profileFeedFunction": "/profileFeed"
 } as const;

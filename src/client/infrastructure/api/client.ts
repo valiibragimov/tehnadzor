@@ -20,3 +20,22 @@ export function createReportApi(baseUrl: string, fetchImplementation: typeof fet
     }
   };
 }
+
+export function createDocumentApi(baseUrl: string) {
+  const client = createClient<paths>({ baseUrl });
+  return { upload: async (query: { projectId: string; documentId: string; versionId: string }, token: string, file?: Blob) => {
+    const { data, error, response } = await client.POST(API_ROUTES.uploadDocument, {
+      params: { query }, body: "", bodySerializer: () => file || new Blob([]),
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/octet-stream" },
+      signal: AbortSignal.timeout(90000)
+    });
+    if (error || !data) throw new Error(error?.error || `HTTP ${response.status}`);
+    return data;
+  }, download: async (query: { projectId: string; documentId: string; versionId: string }, token: string) => {
+    const { data, error, response } = await client.GET(API_ROUTES.downloadDocument, {
+      params: { query }, headers: { Authorization: `Bearer ${token}` }, parseAs: "blob", signal: AbortSignal.timeout(90000)
+    });
+    if (error || !data) throw new Error(`HTTP ${response.status}`);
+    return data;
+  } };
+}

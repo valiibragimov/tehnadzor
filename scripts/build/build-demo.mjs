@@ -16,6 +16,8 @@ const outputRoot = resolve(projectRoot, "dist-demo");
 const demoAdapterPlugin = {
   name: "tehnadzor-demo-adapters",
   setup(buildContext) {
+    buildContext.onResolve({ filter: /document-validation\.js$/ }, () => ({ path: resolve(projectRoot, "src/shared/documents.ts") }));
+    buildContext.onResolve({ filter: /document-repository\.js$/ }, () => ({ path: resolve(sourceRoot, "document-repository-shim.ts") }));
     buildContext.onResolve({ filter: /bim-repository\.js$/ }, () => ({ path: resolve(sourceRoot, "repositories", "bim-repository.ts") }));
     buildContext.onResolve({ filter: /firestore-repository\.js$/ }, () => ({
       path: resolve(sourceRoot, "repositories", "app-repository.ts")

@@ -1,4 +1,5 @@
-declare namespace Express {
+declare global {
+namespace Express {
   interface Request {
     user?: {
       uid: string;
@@ -7,4 +8,5 @@ declare namespace Express {
   }
 }
 
+}
 export {};

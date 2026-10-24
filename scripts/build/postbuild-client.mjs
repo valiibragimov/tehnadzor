@@ -57,3 +57,5 @@ await build({
 });
 
 await build({ entryPoints: [resolve(projectRoot, "src/shared/bim/publication.ts")], outfile: resolve(distRoot, "infrastructure/bim-publication.js"), bundle: true, format: "esm", platform: "browser", target: "es2022", minify: true });
+
+await build({ entryPoints: [resolve(projectRoot, "src/shared/documents.ts")], outfile: resolve(distRoot, "infrastructure/document-validation.js"), bundle: true, format: "esm", platform: "browser", target: "es2022", minify: true });

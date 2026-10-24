@@ -8,7 +8,7 @@ const { buildReportText } = require("../../server/dist/server/src/presentation/r
 const spec = JSON.parse(await readFile(new URL("../../api/openapi.json", import.meta.url), "utf8"));
 
 test("OpenAPI enumerates every owned HTTP operation and its auth policy", () => {
-  const secured = ["/generateReport", "/bim/import-ifc", "/bim/elements"];
+  const secured = ["/generateReport", "/bim/import-ifc", "/bim/elements", "/documents/upload", "/documents/file"];
   for (const path of secured) {
     const operation = Object.values(spec.paths[path])[0];
     assert.deepEqual(operation.security, [{ bearerAuth: [] }]);

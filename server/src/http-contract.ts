@@ -34,3 +34,6 @@ export const bimDeleteQuerySchema = z.object({
   projectId: z.string().trim().min(1).max(128),
   sourceModelId: z.string().trim().min(1).max(80).optional()
 });
+
+const documentSegment = z.string().min(1).max(128).regex(/^(?!\.{1,2}$)[^/\u0000-\u001f]+$/u);
+export const documentUploadQuerySchema = z.object({ projectId: documentSegment, documentId: documentSegment, versionId: documentSegment });

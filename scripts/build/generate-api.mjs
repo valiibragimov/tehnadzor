@@ -9,7 +9,7 @@ const { z } = require("../../server/node_modules/zod");
 const bundled = await build({ entryPoints: ["server/src/http-contract.ts"], bundle: true, write: false, platform: "node", format: "cjs", packages: "external" });
 const contractModule = { exports: {} };
 new Function("require", "module", "exports", bundled.outputFiles[0].text)(createRequire(new URL("../../server/package.json", import.meta.url)), contractModule, contractModule.exports);
-const { reportRequestSchema, ifcImportQuerySchema, bimDeleteQuerySchema } = contractModule.exports;
+const { reportRequestSchema, ifcImportQuerySchema, bimDeleteQuerySchema, documentUploadQuerySchema } = contractModule.exports;
 const schema = (value) => { const result = z.toJSONSchema(value, { target: "draft-7" }); delete result.$schema; return result; };
 const json = (schema) => ({ "application/json": { schema } });
 const ref = (name) => ({ $ref: `#/components/schemas/${name}` });
@@ -27,6 +27,7 @@ const document = {
   openapi: "3.1.0", info: { title: "Tehnadzor HTTP API", version: "1.0.0" },
   components: { securitySchemes: { bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "Firebase ID token" } }, schemas: {
     ApiError: object({ ok: { type: "boolean", const: false }, error: string, details: { type: "array", items: object({ path: string, message: string }) } }, ["ok", "error"]),
+    DocumentUploadResponse: object({ ok, versionId: string }),
     ReportRequest: schema(reportRequestSchema), ReportResponse: object({ ok, text: string }),
     HealthResponse: object({ ok, status: { type: "string", const: "running" }, port: integer }),
     IfcImportResponse: object({ ok, projectId: string, sourceModelId: string, fileName: string, importedCount: integer, replacedCount: integer, countsByType: counts, countsByLabel: counts }),
@@ -37,6 +38,8 @@ const document = {
     "/generateReport": { post: { operationId: "generateReport", security: [{ bearerAuth: [] }], requestBody: { required: true, content: json(ref("ReportRequest")) }, responses: responses("ReportResponse", true) } },
     "/bim/import-ifc": { post: { operationId: "importIfc", security: [{ bearerAuth: [] }], parameters: query(ifcImportQuerySchema), requestBody: { required: true, content: { "application/octet-stream": { schema: { type: "string", format: "binary" } } } }, responses: responses("IfcImportResponse", true) } },
     "/bim/elements": { delete: { operationId: "deleteBimElements", security: [{ bearerAuth: [] }], parameters: query(bimDeleteQuerySchema), responses: responses("BimDeleteResponse", true) } },
+    "/documents/file": { get: { operationId: "downloadDocument", security: [{ bearerAuth: [] }], parameters: query(documentUploadQuerySchema), responses: { ...responses("DocumentUploadResponse", true), 200: { description: "Authenticated PDF attachment", content: { "application/pdf": { schema: { type: "string", format: "binary" } } } } } } },
+    "/documents/upload": { post: { operationId: "uploadDocument", security: [{ bearerAuth: [] }], parameters: query(documentUploadQuerySchema), requestBody: { required: false, content: { "application/octet-stream": { schema: { type: "string", format: "binary" } } } }, responses: responses("DocumentUploadResponse", true) } },
     "/profile-feed": { get: { operationId: "profileFeed", responses: responses("ProfileFeedResponse") } },
     "/profileFeed": { get: { operationId: "profileFeedFunction", description: "Firebase Functions entry point", responses: { ...responses("ProfileFeedResponse"), 405: error } } }
   }

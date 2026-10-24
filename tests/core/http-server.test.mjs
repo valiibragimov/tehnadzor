@@ -46,3 +46,13 @@ test("typed client works end-to-end; invalid and oversized requests are rejected
     assert.equal(oversized.status, 413);
   } finally { await server.close(); }
 });
+
+test("private document endpoints stay protected when report auth is disabled locally", async () => {
+  const server = await startServer(false);
+  try {
+    for (const [path, method] of [["/documents/upload", "POST"], ["/documents/file", "GET"]]) {
+      const response = await fetch(server.url + path + "?projectId=synthetic&documentId=d&versionId=v", { method });
+      assert.equal(response.status, 401);
+    }
+  } finally { await server.close(); }
+});

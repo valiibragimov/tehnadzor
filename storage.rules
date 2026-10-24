@@ -1,0 +1,10 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Documents use the authenticated API and private Admin/GCS access only.
+    // Firebase client metadata endpoints can mint permanent download tokens.
+    match /projects/{projectId}/documents/{documentId}/versions/{versionId}/file.pdf {
+      allow read, write: if false;
+    }
+  }
+}

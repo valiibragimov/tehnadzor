@@ -92,6 +92,7 @@ export const APP_CONFIG = {
   DEFAULT_NUMBER_AXIS: "1",
   // Для hosted-версии эти URL можно задавать через window.__APP_CONFIG__ до загрузки app.js:
   // window.__APP_CONFIG__ = { BIM_IMPORT_API_BASE: "https://bim.example.com" }
+  DOCUMENT_API_BASE: readRuntimeConfigString("DOCUMENT_API_BASE", readRuntimeConfigString("AI_REPORT_API_BASE", "")),
   AI_REPORT_API_BASE: readRuntimeConfigString("AI_REPORT_API_BASE", ""),
   PROFILE_FEED_URL: readRuntimeConfigString("PROFILE_FEED_URL", ""),
   BIM_IMPORT_API_BASE: readRuntimeConfigString(

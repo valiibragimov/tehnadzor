@@ -1,3 +1,5 @@
+import { createDocumentUploader } from "./application/upload-document";
+import { firebaseDocumentUploadPorts, downloadDocument } from "./repositories/document-repository";
 import { BIM_DISPLAY_LABELS } from "./presentation/bim-labels";
 import { createIfcImportService } from "./application/import-ifc";
 import { buildReportText } from "./presentation/report-text";
@@ -14,7 +16,7 @@ import helmet from "helmet";
 import { initFirebaseAdmin } from "./infrastructure/firebase-admin";
 import { getAuth } from "firebase-admin/auth";
 import { ensureProjectAccess, clearProjectElements, publishProjectBimModel } from "./repositories/bim-repository";
-import { reportRequestSchema, ifcImportQuerySchema, bimDeleteQuerySchema } from "./http-contract";
+import { reportRequestSchema, ifcImportQuerySchema, bimDeleteQuerySchema, documentUploadQuerySchema } from "./http-contract";
 import { API_ROUTES } from "../../src/shared/api-routes";
 import { createIfcWorkerPool } from "./services/ifc-worker-pool";
 const ifcWorkers = createIfcWorkerPool();
@@ -233,6 +235,38 @@ async function requireFirebaseAuth(req, res, next) {
     });
   }
 }
+
+const uploadDocument = createDocumentUploader(firebaseDocumentUploadPorts);
+app.post(API_ROUTES.uploadDocument, ifcImportLimiter, requireFirebaseAuth, express.raw({ type: "application/octet-stream", limit: "20mb" }), async (req, res) => {
+  // Private documents always require a verified identity, including local AUTH_REQUIRED=false mode.
+  if (!req.user?.uid) return res.status(401).json({ ok: false, error: "AUTH_REQUIRED" });
+  const parsed = documentUploadQuerySchema.safeParse(req.query);
+  if (!parsed.success) return res.status(400).json({ ok: false, error: "DOCUMENT_INVALID_ID" });
+  try {
+    const bytes = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+    const result = await withHeavyOperationLock({ key: `document:${req.user.uid}:${parsed.data.projectId}`, rateWindowMs: 60000, rateMax: 5 },
+      () => uploadDocument(parsed.data, req.user.uid, bytes));
+    return res.json(result);
+  } catch (error) {
+    const status = Number(error?.status) || (String(error?.message || "").startsWith("PDF_") ? 422 : 500);
+    return res.status(status).json({ ok: false, error: status === 500 ? "DOCUMENT_UPLOAD_FAILED" : error.message });
+  }
+});
+
+app.get(API_ROUTES.downloadDocument, generateReportLimiter, requireFirebaseAuth, async (req, res) => {
+  if (!req.user?.uid) return res.status(401).json({ ok: false, error: "AUTH_REQUIRED" });
+  const parsed = documentUploadQuerySchema.safeParse(req.query);
+  if (!parsed.success) return res.status(400).json({ ok: false, error: "DOCUMENT_INVALID_ID" });
+  try {
+    const result = await downloadDocument(parsed.data, req.user.uid);
+    res.setHeader("Cache-Control", "private, no-store");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    return res.attachment(result.fileName).type("application/pdf").send(result.bytes);
+  } catch (error) {
+    const status = Number(error?.status) || 500;
+    return res.status(status).json({ ok: false, error: status === 500 ? "DOCUMENT_DOWNLOAD_FAILED" : error.message });
+  }
+});
 
 /**
  * POST /generateReport

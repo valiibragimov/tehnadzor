@@ -76,3 +76,6 @@ jobs:
 
       - name: Firestore integration (synthetic demo project only)
         run: npm run test:integration
+
+      - name: PDF access and immutable versions (synthetic emulators only)
+        run: npm run test:documents

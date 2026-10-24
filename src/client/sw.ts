@@ -192,6 +192,9 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   
+  // Private API responses must never enter CacheStorage or its offline fallback.
+  if (event.request.headers.has("Authorization") || url.pathname.includes("/documents/")) return;
+
   // Пропускаем Firebase и Google API
   if (event.request.url.includes("firebase") || 
       event.request.url.includes("googleapis") ||
@@ -217,7 +220,7 @@ self.addEventListener("fetch", (event) => {
     fetch(request)
       .then((response) => {
         // Кешируем только успешные ответы и только http/https
-        if (response.status === 200 && response.type === "basic") {
+        if (response.status === 200 && response.type === "basic" && !/private|no-store/i.test(response.headers.get("Cache-Control") || "")) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             try {

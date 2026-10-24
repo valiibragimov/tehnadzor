@@ -12,6 +12,7 @@ export const indexPartialPaths = [
   "sections/control-plan.html",
   "sections/summary.html",
   "sections/journal.html",
+  "sections/documents.html",
   "sections/knowledge.html",
   "post-main.html",
   "tail.html"
