@@ -179,6 +179,10 @@
                 <label data-i18n="form_to_number_grid_axis" for="axisNumberTo">До цифровой оси</label>
                 <select id="axisNumberTo" class="ui-select"></select>
               </div>
+              <div id="geoPointLabelField" hidden>
+                <label for="geoPointLabel" data-i18n="survey_point_label">Точка и источник измерения</label>
+                <input id="geoPointLabel" maxlength="240" autocomplete="off" />
+              </div>
               <div id="nodeIdField">
                 <label data-i18n="form_point_identifier" for="nodeId">Идентификатор узла</label>
                 <input id="nodeId" placeholder="Авто: А × 1" data-i18n-placeholder="form_auto_1" readonly aria-readonly="true" />
@@ -283,7 +287,7 @@
                     </div>
                     <div id="tolHFieldWrap">
                       <label data-i18n="form_h_tolerance" for="tolHField">Допуск H</label>
-                      <input value="10 мм" readonly disabled id="tolHField" />
+                      <input value="—" readonly disabled id="tolHField" />
                     </div>
                   </div>
 

@@ -53,6 +53,7 @@ export interface ConstructionModuleBehavior {
   floorRequired?: boolean;
   locationMode?: ConstructionLocationMode;
   elementSheetMode?: ConstructionElementSheetMode;
+  geodesyHeightOnly?: boolean;
   showOpeningPoints?: boolean;
   showStairName?: boolean;
   maxWalls?: number | null;
@@ -344,6 +345,28 @@ const unsupportedBehavior = (
 });
 
 const ALL_CONSTRUCTION_OPTIONS: readonly ConstructionOption[] = Object.freeze([
+  {
+    key: "excavation", label: "Котлован", categoryKey: "foundation", legacyType: "Элемент", visible: true,
+    modules: {
+      geo: plateBehavior({ floorVisible: false, floorRequired: false, locationMode: "none", geodesyHeightOnly: true, showOpeningPoints: false }),
+      geometry: plateBehavior({ floorVisible: false, floorRequired: false, locationMode: "none", showPlateFlatness: false, showOpeningSizes: false, showNote: true }), reinforcement: unsupportedBehavior(),
+      strength: unsupportedBehavior(),
+      bim: unsupportedBehavior(), autofill: unsupportedBehavior(),
+      journal: plateBehavior({ floorVisible: false }), display: plateBehavior({ floorVisible: false })
+    }
+  },
+
+  {
+    key: "concrete_preparation", label: "Бетонная подготовка", categoryKey: "foundation", legacyType: "Элемент", visible: true,
+    modules: {
+      geo: plateBehavior({ floorVisible: false, floorRequired: false, locationMode: "none", geodesyHeightOnly: true, showOpeningPoints: false }),
+      geometry: unsupportedBehavior(), reinforcement: unsupportedBehavior(),
+      strength: plateBehavior({ floorVisible: false, floorRequired: false }),
+      bim: unsupportedBehavior(), autofill: unsupportedBehavior(),
+      journal: plateBehavior({ floorVisible: false }), display: plateBehavior({ floorVisible: false })
+    }
+  },
+
   {
     key: "foundation_slab",
     label: "Монолитная железобетонная плита",

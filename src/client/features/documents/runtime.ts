@@ -104,6 +104,34 @@ export function initDocuments(workspace: WorkspaceContext) {
         }
       } catch { fail(); } finally { button.disabled = false; }
     });
+    if (version.status === "ready") {
+      const preview = document.createElement("button");
+      preview.type = "button";
+      preview.textContent = t("documents_preview");
+      preview.addEventListener("click", async () => {
+        preview.disabled = true;
+        try {
+          const blob = await service.download(projectId, version);
+          if (projectId !== activeProject) return;
+          const url = URL.createObjectURL(blob);
+          const dialog = document.createElement("dialog");
+          const close = document.createElement("button");
+          close.type = "button";
+          close.textContent = t("documents_close_preview");
+          const frame = document.createElement("iframe");
+          frame.title = version.title;
+          frame.src = url;
+          frame.className = "document-preview-frame";
+          dialog.className = "document-preview-dialog";
+          close.addEventListener("click", () => dialog.close());
+          dialog.addEventListener("close", () => { URL.revokeObjectURL(url); dialog.remove(); }, { once: true });
+          dialog.append(close, frame);
+          root.append(dialog);
+          dialog.showModal();
+        } catch { fail(); } finally { preview.disabled = false; }
+      });
+      row.append(preview);
+    }
     row.append(title, links, button);
     versions.append(row);
     // Editing metadata creates a new immutable version with the same document identity.

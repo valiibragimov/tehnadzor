@@ -64,12 +64,13 @@ export function evaluateGeoNode(
   const hasProjXY = projectX != null && projectY != null;
   const hasFactXY = actualX != null && actualY != null;
 
-  const hasAllData = hasProjXY && hasFactXY && projectH != null && actualH != null;
+  const heightOnly = node.measurementScope === "height";
+  const hasAllData = (heightOnly || (hasProjXY && hasFactXY)) && projectH != null && actualH != null;
   const details: GeodesyCoordinateEvaluation["details"] = [];
   for (const [axis, project, actual, tolerance] of [
     ["X", projectX, actualX, toleranceXY], ["Y", projectY, actualY, toleranceXY], ["H", projectH, actualH, toleranceH]
   ] as const) {
-    if (project != null && actual != null) details.push(buildCoordinateCheck(axis, project, actual, tolerance));
+    if ((!heightOnly || axis === "H") && project != null && actual != null) details.push(buildCoordinateCheck(axis, project, actual, tolerance));
   }
   return {
     status: details.some(check => Number.isFinite(check.tol) && !check.ok) ? "bad" :

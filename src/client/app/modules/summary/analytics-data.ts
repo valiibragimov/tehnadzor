@@ -496,6 +496,8 @@ function extractGeomMeasurements(check) {
 }
 
 export function calculateProjectAnalytics(project, sources) {
+  const scope = project.data().qualityIndexScope;
+  const scopedIds = scope?.moduleKey === "geo" && Array.isArray(scope.sourceIds) ? new Set(scope.sourceIds) : null;
   const allMeasurements = [];
   const trendPoints = [];
   const inspections = Array.isArray(sources?.inspections) ? sources.inspections : [];
@@ -516,6 +518,7 @@ export function calculateProjectAnalytics(project, sources) {
 
       const moduleName = moduleKeyToModuleName(moduleKey);
       const sourceId = resolveInspectionSourceId(inspection);
+      if (scopedIds && (moduleKey !== "geo" || !scopedIds.has(sourceId))) return;
       let fallbackSource = null;
       if (sourceId) {
         if (moduleKey === "geo") fallbackSource = geoById.get(sourceId) || null;
@@ -571,6 +574,7 @@ export function calculateProjectAnalytics(project, sources) {
     });
   } else {
     geoNodes.forEach((node) => {
+      if (scopedIds && !scopedIds.has(node.id)) return;
       const constructionName = resolveGeoConstruction(node);
       const measurements = extractGeoNodeMeasurements(node);
       allMeasurements.push(...measurements);
@@ -585,6 +589,7 @@ export function calculateProjectAnalytics(project, sources) {
     });
 
     reinfChecks.forEach((check) => {
+      if (scopedIds) return;
       const constructionName = resolveReinfConstruction(check);
       const measurements = extractReinfMeasurements(check);
       allMeasurements.push(...measurements);
@@ -599,6 +604,7 @@ export function calculateProjectAnalytics(project, sources) {
     });
 
     geomChecks.forEach((check) => {
+      if (scopedIds) return;
       const constructionName = resolveGeomConstruction(check);
       const measurements = extractGeomMeasurements(check);
       allMeasurements.push(...measurements);
@@ -703,6 +709,7 @@ export function calculateProjectAnalytics(project, sources) {
     largeCount,
     criticalCount,
     criticalShare,
+    qualityScopeLabel: scopedIds ? String(scope.label || "Ограниченная выборка геодезических измерений; не оценка объекта в целом") : "",
     qualityIndex,
     measurementsByConstruction,
     measurementsByModule,
@@ -718,7 +725,7 @@ export function calculateProjectAnalytics(project, sources) {
 
 export function rankProjects(projects) {
   const withData = projects
-    .filter((project) => project.hasData)
+    .filter((project) => project.hasData && !project.qualityScopeLabel)
     .sort((a, b) => {
       if (a.meanDeviationRatio === b.meanDeviationRatio) {
         return b.qualityIndex - a.qualityIndex;
@@ -731,7 +738,7 @@ export function rankProjects(projects) {
   });
 
   const withoutData = projects
-    .filter((project) => !project.hasData)
+    .filter((project) => !project.hasData || project.qualityScopeLabel)
     .sort((a, b) => a.projectName.localeCompare(b.projectName, "ru"));
 
   return {
@@ -744,6 +751,7 @@ export function calculateContractors(projectsWithData): AnalyticsContractor[] {
   const groups = new Map();
 
   projectsWithData.forEach((project) => {
+    if (project.qualityScopeLabel) return;
     const key = project.contractorGroupKey || `unknown:${project.projectId}`;
     const weight = Math.max(1, project.measurementCount || 0);
 

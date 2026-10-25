@@ -269,12 +269,14 @@ journalIssueOverdueCountEl = document.getElementById("journalIssueOverdueCount")
 
 function normalizeJournalStatus(status) {
   const value = (status || "").toString().trim().toLowerCase();
+  if (value === "pending") return "pending";
   if (value === "ok" || value === "в норме" || value === "соответствует") return "ok";
   if (value === "exceeded" || value === "превышено" || value === "недобор") return "exceeded";
   return "";
 }
 
 function getJournalStatusLabel(status) {
+  if (status === "pending") return t("assessment_pending");
   if (status === "ok") return t("withinLimits");
   if (status === "exceeded") return t("deviations");
   return "—";

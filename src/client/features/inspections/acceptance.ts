@@ -15,7 +15,7 @@ export function compareMeasurement(project: unknown, actual: unknown, key: strin
   const design = measurementNumber(project);
   const measured = measurementNumber(actual);
   if (design == null || measured == null) return "incomplete" as const;
-  const limits = criteria?.limits[key];
+  const limits = criteria?.limits?.[key];
   if (!criteria?.confirmed || !criteria.reference.trim() || limits?.min == null || limits.max == null ||
       !Number.isFinite(limits.min) || !Number.isFinite(limits.max) || limits.min > limits.max) return "unverified" as const;
   const delta = measured - design;

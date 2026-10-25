@@ -1,3 +1,4 @@
+import { t } from "../../../shared/i18n/index.js";
 import { compareMeasurement, measurementNumber } from "../acceptance.js";
 import { readAcceptanceCriteria, restoreAcceptanceCriteria } from "../../../app/ui/acceptance-criteria.js";
 import {
@@ -27,6 +28,7 @@ import type {
 type GeodesyDomBindings = ReturnType<typeof createGeodesyDomBindings>;
 
 export interface GeodesyFormBehavior {
+  geodesyHeightOnly?: boolean;
   elementSheetMode?: string;
   floorVisible?: boolean;
   locationMode?: string;
@@ -176,7 +178,16 @@ export function createGeodesyForm({
     }
   }
 
+  function renderGeoToleranceFields() {
+    const criteria = readAcceptanceCriteria(document.getElementById("geo"));
+    const input = document.getElementById("tolHField") as HTMLInputElement | null;
+    const limits = criteria.limits.geoHeight;
+    if (input) input.value = criteria.confirmed && criteria.reference && limits?.min != null && limits.max != null && limits.min <= limits.max ? `${limits.min} … ${limits.max} ${t("form_mm")}` : t("assessment_pending");
+  }
+  document.getElementById("geo")?.addEventListener("input", renderGeoToleranceFields);
+  document.getElementById("geo")?.addEventListener("change", renderGeoToleranceFields);
   function updateGeoFieldsVisibility() {
+    renderGeoToleranceFields();
     const {
       behavior,
       isColumn,
@@ -188,7 +199,12 @@ export function createGeodesyForm({
       isUnsupported
     } = getGeoConstructionFlags();
     const showElementsSheet = behavior.elementSheetMode === "columns" || behavior.elementSheetMode === "walls" || behavior.elementSheetMode === "beams";
-    const showCoordinatesSheet = !isUnsupported && (isRangeLocation || isSingleAxis);
+    const showCoordinatesSheet = !isUnsupported && (isRangeLocation || isSingleAxis || behavior.geodesyHeightOnly);
+    const pointField = document.getElementById("geoPointLabelField");
+    if (pointField) pointField.hidden = !behavior.geodesyHeightOnly;
+    for (const field of Array.from(coordinatesBlock.children) as HTMLElement[]) {
+      if (!["projHField", "factHField", "tolHFieldWrap"].includes(field.id)) field.style.display = behavior.geodesyHeightOnly ? "none" : "";
+    }
 
     if (geoBehaviorMessage) {
       geoBehaviorMessage.hidden = !isUnsupported;
@@ -206,7 +222,7 @@ export function createGeodesyForm({
       geoStairNameField.style.display = behavior.showStairName ? "block" : "none";
     }
 
-    const showAxisFields = !isUnsupported && (isRangeLocation || isSingleAxis);
+    const showAxisFields = !isUnsupported && (isRangeLocation || isSingleAxis || behavior.geodesyHeightOnly);
     axisFields.style.display = showAxisFields ? "grid" : "none";
     if (axisFields) {
       axisFields.classList.toggle("grid-3", !isRangeLocation);
@@ -1757,8 +1773,9 @@ export function createGeodesyForm({
     const floor = getGeoConstructionFlags().floorVisible ? floorEl.value.trim() : "";
     const floorPart = floor ? `${floor}, ` : "";
     const axisState = getGeoAxisState();
-    nodeIdEl.value = axisState.nodeLabel ? `${floorPart}${axisState.nodeLabel}` : floorPart.replace(/, $/, "");
+    nodeIdEl.value = getGeoConstructionFlags().behavior.geodesyHeightOnly ? (document.getElementById("geoPointLabel") as HTMLInputElement)?.value || "" : axisState.nodeLabel ? `${floorPart}${axisState.nodeLabel}` : floorPart.replace(/, $/, "");
   }
+  document.getElementById("geoPointLabel")?.addEventListener("input", updateNodeId);
   floorEl.addEventListener("input", () => {
     updateNodeId();
     saveMeta();
@@ -1833,6 +1850,7 @@ export function createGeodesyForm({
     }
 
     restoreAcceptanceCriteria(document.getElementById("geo"), n.acceptanceCriteria);
+    renderGeoToleranceFields();
     if (n.coordinateUnit === "m") for (const input of [projX, projY, projH]) delete input.dataset.unitUnconfirmed;
 
     // Специальная обработка для колонн
@@ -1860,6 +1878,7 @@ export function createGeodesyForm({
     }
 
     // Обычная обработка для плиты/лестницы
+    (document.getElementById("geoPointLabel") as HTMLInputElement).value = n.pointLabel || "";
     floorEl.value = n.floor || "";
     axisLetterEl.value = n.letter || APP_CONFIG.DEFAULT_LETTER_AXIS;
     axisNumberEl.value = formValue(

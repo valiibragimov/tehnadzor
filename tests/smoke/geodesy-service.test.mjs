@@ -625,3 +625,15 @@ test("geodesy BIM node payload keeps the existing Firestore field format", () =>
     bimLineEndY: 4
   });
 });
+
+test("height-only survey evaluates documented elevations without inventing plan coordinates", () => {
+  const node = { measurementScope: "height", projX: null, projY: null, factX: null, factY: null, projH: 105.06, factH: 105.106 };
+  const result = evaluateGeoNode(node, NaN, 50);
+  assert.equal(result.status, "ok");
+  assert.equal(result.hasAllData, true);
+  assert.deepEqual(result.details.map(({ axis, dev }) => [axis, dev]), [["H", 46]]);
+  assert.equal(evaluateGeoNode({ ...node, factH: 105.111 }, NaN, 50).status, "bad");
+  assert.equal(evaluateGeoNode({ ...node, factH: null }, NaN, 50).status, "empty");
+  assert.equal(evaluateGeoNode(node).status, "empty");
+  assert.equal(evaluateGeoNode({ ...node, measurementScope: undefined }, NaN, 50).status, "empty");
+});

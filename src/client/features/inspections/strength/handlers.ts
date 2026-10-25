@@ -234,7 +234,7 @@ export function createStrengthActions({
           ? '<span class="tag bad" data-i18n="saved_exceeded">превышено</span>'
           : evaluation.status === "ok"
             ? '<span class="tag ok" data-i18n="saved_ok">в норме</span>'
-            : '<span class="tag" data-i18n="saved_empty">не заполнено</span>';
+            : check.labReadings?.length ? `<span class="tag">${t("assessment_pending")}</span>` : '<span class="tag" data-i18n="saved_empty">не заполнено</span>';
       const row = dom.document.createElement("div");
       row.className = "node node-enhanced node-card-compact";
       row.dataset.id = id;

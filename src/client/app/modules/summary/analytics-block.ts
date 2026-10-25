@@ -250,11 +250,11 @@ function medalByRank(rank) {
 function renderCurrentProject(ui, currentProject) {
   if (!currentProject) return;
 
-  ui.qualityIndex.textContent = formatNumber(currentProject.qualityIndex, 1);
+  ui.qualityIndex.textContent = formatNumber(currentProject.qualityIndex, currentProject.qualityScopeLabel ? 4 : 1);
   ui.qualityGrade.textContent = currentProject.grade;
   ui.qualityGrade.className = `analytics-grade-badge ${getGradeClass(currentProject.grade)}`;
   ui.qualityInterpretation.textContent = currentProject.hasData
-    ? getQualityInterpretation(currentProject.qualityIndex)
+    ? (currentProject.qualityScopeLabel ? `${currentProject.qualityScopeLabel}. ` : "") + getQualityInterpretation(currentProject.qualityIndex)
     : "По выбранному объекту пока недостаточно замеров.";
 
   ui.meanDeviation.textContent = formatPercent(currentProject.meanDeviationPercent, 1);
@@ -875,7 +875,7 @@ function renderProjectsTable(ui, projects, currentProjectId, selectedProjectId) 
     return `
       <tr class="${isCurrent ? "analytics-row-current" : ""} ${isSelected ? "analytics-row-selected" : ""}" data-project-id="${escapeHtml(project.projectId)}">
         <td>${rankLabel}</td>
-        <td>${escapeHtml(project.projectName)}${notesHtml}</td>
+        <td>${escapeHtml(project.projectName)}${notesHtml}${project.qualityScopeLabel ? `<div class="caption">${escapeHtml(project.qualityScopeLabel)}</div>` : ""}</td>
         <td>${getProjectContractorDisplayHtml(project)}</td>
         <td>${deviation}</td>
         <td>${project.inspectionsCount}</td>
@@ -1321,7 +1321,8 @@ async function exportAnalyticsPdf() {
       drawSectionTitle("1. Ключевые показатели");
       drawWrapped(`Объект: ${selectedProject.projectName}`);
       drawWrapped(`Дата выгрузки: ${generatedAt.toLocaleString("ru-RU")}`);
-      drawWrapped(`Индекс качества: ${formatNumber(selectedProject.qualityIndex, 1)} (${selectedProject.grade})`);
+      drawWrapped(`Индекс качества: ${formatNumber(selectedProject.qualityIndex, selectedProject.qualityScopeLabel ? 4 : 1)} (${selectedProject.grade})`);
+      if (selectedProject.qualityScopeLabel) drawWrapped(`Область оценки: ${selectedProject.qualityScopeLabel}`);
       drawWrapped(`Интерпретация: ${getQualityInterpretation(selectedProject.qualityIndex)}`);
       drawWrapped(`Среднее отклонение: ${formatPercent(selectedProject.meanDeviationPercent, 1)}`);
       drawWrapped(`Соответствие нормам: ${formatPercent(selectedProject.compliancePercent, 1)} (${selectedProject.inToleranceCount} из ${selectedProject.measurementCount})`);

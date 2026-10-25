@@ -1,3 +1,4 @@
+import { t } from "../../shared/i18n/index.js";
 import { currentAssessmentStatus } from "../../features/inspections/assessment-status.js";
 import { taskLabel, taskStatus, rowStatus, actionLabel } from "../../features/control-plan/index.js";
 import type { WorkspaceContext } from "../workspace-context.js";
@@ -308,6 +309,7 @@ function createEmptyModuleStatus() {
     status: "empty",
     total: 0,
     exceeded: 0,
+    pending: 0,
     lastCheck: null,
     openIssues: 0,
     resolvedIssues: 0,
@@ -483,10 +485,10 @@ async function getProjectCollectionDocs(projectId, collectionName) {
 
 function createSummaryAggregate() {
   return {
-    geo: { total: 0, exceeded: 0, lastCheckMs: null, ids: new Set() },
-    reinforcement: { total: 0, exceeded: 0, lastCheckMs: null, ids: new Set() },
-    geometry: { total: 0, exceeded: 0, lastCheckMs: null, ids: new Set() },
-    strength: { total: 0, exceeded: 0, lastCheckMs: null, ids: new Set() }
+    geo: { total: 0, exceeded: 0, pending: 0, lastCheckMs: null, ids: new Set() },
+    reinforcement: { total: 0, exceeded: 0, pending: 0, lastCheckMs: null, ids: new Set() },
+    geometry: { total: 0, exceeded: 0, pending: 0, lastCheckMs: null, ids: new Set() },
+    strength: { total: 0, exceeded: 0, pending: 0, lastCheckMs: null, ids: new Set() }
   };
 }
 
@@ -507,13 +509,14 @@ function getRecordId(record) {
 
 function addRecordToSummaryAggregate(aggregate, moduleKey, record, status, timestampMs) {
   const bucket = aggregate[moduleKey];
-  if (!bucket || !status) return;
+  if (!bucket || (!status && record?.evaluationSchemaVersion !== 2)) return;
 
   const recordId = getRecordId(record);
   if (recordId && bucket.ids.has(recordId)) return;
   if (recordId) bucket.ids.add(recordId);
 
   bucket.total += 1;
+  if (!status) bucket.pending += 1;
   if (status === "exceeded") bucket.exceeded += 1;
   if (Number.isFinite(timestampMs) && (bucket.lastCheckMs == null || timestampMs > bucket.lastCheckMs)) {
     bucket.lastCheckMs = timestampMs;
@@ -528,11 +531,12 @@ function finalizeSummaryAggregate(aggregate) {
     if (!bucket) return;
     const total = bucket.total || 0;
     const exceeded = bucket.exceeded || 0;
-    const status = total === 0 ? "empty" : (exceeded > 0 ? "exceeded" : "ok");
+    const status = total === 0 ? "empty" : exceeded > 0 ? "exceeded" : bucket.pending > 0 ? "pending" : "ok";
     result[moduleKey] = {
       status,
       total,
       exceeded,
+      pending: bucket.pending,
       lastCheck: Number.isFinite(bucket.lastCheckMs) ? bucket.lastCheckMs : null
     };
   });
@@ -556,7 +560,8 @@ function tryBuildSummaryStatsFromAnalyticsCurrent(analyticsCurrent) {
     const total = Math.round(toNonNegativeNumber(raw.total ?? raw.totalChecks));
     const exceededRaw = Math.round(toNonNegativeNumber(raw.exceeded ?? raw.exceededCount));
     const exceeded = Math.min(exceededRaw, total);
-    const status = total === 0 ? "empty" : (exceeded > 0 ? "exceeded" : "ok");
+    const pending = Math.min(Math.round(toNonNegativeNumber(raw.pending ?? raw.unverified)), total);
+    const status = total === 0 ? "empty" : exceeded > 0 ? "exceeded" : pending > 0 ? "pending" : "ok";
     const lastCheck = parseSummaryTimestampMs(
       raw.lastCheck ?? raw.lastInspectionAt ?? raw.lastCheckMs
     );
@@ -565,6 +570,7 @@ function tryBuildSummaryStatsFromAnalyticsCurrent(analyticsCurrent) {
       status,
       total,
       exceeded,
+      pending,
       lastCheck: lastCheck != null ? lastCheck : null
     };
   });
@@ -914,6 +920,7 @@ function updateSummaryTextPlaceholder(geoStatus, reinfStatus, geomStatus, streng
  * Обновляет одну карточку модуля
  */
 function formatSummaryStatusBadge(status) {
+  if (status === "pending") return t("assessment_pending");
   switch (status) {
     case "ok":
       return "Соответствует";
@@ -1048,6 +1055,7 @@ function updateSummaryParams() {
 function getModuleReportStatusText(status) {
   if (status.total === 0) return "Проверки не выполнялись";
   if (status.openIssues > 0) return "Есть открытые замечания";
+  if (status.status === "pending" || status.pending > 0) return t("assessment_pending");
   if (status.exceeded > 0 && status.resolvedIssues >= status.exceeded) return "Замечания закрыты";
   return status.exceeded > 0 ? "Выявлены отклонения" : "Соответствует требованиям";
 }
@@ -1090,6 +1098,8 @@ function buildSummaryReportModel() {
     conclusionText = "По результатам выполненных проверок есть открытые замечания. Требуется выполнить корректирующие мероприятия, зафиксировать устранение и провести повторный контроль по связанным строкам журнала.";
   } else if (totalExceeded > 0 && totalResolvedIssues >= totalExceeded) {
     conclusionText = "По результатам проверок ранее были выявлены отклонения, по которым замечания закрыты. Для окончательной приёмки необходимо хранить связь с повторным контролем и подтверждающими записями журнала.";
+  } else if (modules.some(module => module.status === "pending" || module.pending > 0)) {
+    conclusionText = "Часть результатов требует проверки: нормативные основания или полнота измерений не подтверждены. Положительное заключение по объекту в целом не сформировано.";
   } else if (totalExceeded === 0) {
     conclusionText = "По результатам выполненных проверок отклонений, превышающих допустимые значения, не выявлено. Проверенные параметры соответствуют установленным требованиям проектной и нормативной документации.";
   } else {
@@ -1376,7 +1386,7 @@ function initSummaryHandlers() {
             </div>
           `;
 
-          if (!useRemoteReport) {
+          if (!useRemoteReport || [geoStatus, reinfStatus, geomStatus, strengthStatus].some(status => status.pending > 0)) {
             const report = buildSummaryReportText();
             contentEl.innerHTML = report.html;
             contentEl.dataset.plainText = report.text;

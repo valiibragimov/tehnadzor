@@ -31,6 +31,7 @@ interface GeoNodeRecord extends Record<string, unknown> {
 }
 
 function formatGeoNodeDisplay(node, fallbackKey, safeValue = (value) => value) {
+  if (node?.pointLabel) return safeValue(node.pointLabel);
   const constructionProfile = getConstructionProfile(node?.construction || node?.constructionType || "", "geo");
   const geoBehavior = getConstructionModuleBehavior(
     node?.construction || node?.constructionType || "",
@@ -411,7 +412,9 @@ export function renderGeoNodesList({
     }
 
     const safeNodeDisplay = formatGeoNodeDisplay(n, k, safeValue);
+    const coordinateUnit = n.coordinateUnit === "m" ? "м" : "";
     const evaluation = evaluateGeoNode({
+      measurementScope: n.measurementScope,
       projX: n.projX,
       factX: n.factX,
       projY: n.projY,
@@ -448,21 +451,20 @@ export function renderGeoNodesList({
             ${buildNodeDeleteIconButton("Удалить узел", safeValue)}
           </div>
         </div>
+        ${n.sourceProvenance ? `<p class="caption">${safeValue(n.sourceProvenance)}</p>` : ""}
         <div class="node-data">
           <div class="node-data-row">
             <span class="node-label">Проект:</span>
             <span class="node-values">
-              X: <strong>${formatNodeValue(n.projX, "мм")}</strong> |
-              Y: <strong>${formatNodeValue(n.projY, "мм")}</strong> |
-              H: <strong>${formatNodeValue(n.projH, "мм")}</strong>
+              ${n.measurementScope === "height" ? "" : `X: <strong>${formatNodeValue(n.projX, coordinateUnit)}</strong> | Y: <strong>${formatNodeValue(n.projY, coordinateUnit)}</strong> |`}
+              H: <strong>${formatNodeValue(n.projH, coordinateUnit)}</strong>
             </span>
           </div>
           <div class="node-data-row">
             <span class="node-label">Факт:</span>
             <span class="node-values">
-              X: <strong>${formatNodeValue(n.factX, "мм")}</strong> |
-              Y: <strong>${formatNodeValue(n.factY, "мм")}</strong> |
-              H: <strong>${formatNodeValue(n.factH, "мм")}</strong>
+              ${n.measurementScope === "height" ? "" : `X: <strong>${formatNodeValue(n.factX, coordinateUnit)}</strong> | Y: <strong>${formatNodeValue(n.factY, coordinateUnit)}</strong> |`}
+              H: <strong>${formatNodeValue(n.factH, coordinateUnit)}</strong>
             </span>
           </div>
           ${Array.isArray(n.openingPoints) && n.openingPoints.length ? `

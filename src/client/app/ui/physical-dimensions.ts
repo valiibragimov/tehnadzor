@@ -27,7 +27,16 @@ export function mountPhysicalDimensions(root: HTMLElement, values: PhysicalDimen
       label.append(text, input);
       pair.append(label);
     }
-    group.append(pair);
+    const deviation = document.createElement("output");
+    deviation.className = "caption";
+    const updateDeviation = () => {
+      const project = String(values[key].project ?? "").trim(), actual = String(values[key].actual ?? "").trim();
+      const delta = Number(actual) - Number(project);
+      deviation.textContent = project && actual && Number.isFinite(delta) ? `Δ = ${delta > 0 ? "+" : ""}${Number(delta.toFixed(6))} ${t("form_mm")}` : "";
+    };
+    pair.addEventListener("input", updateDeviation);
+    updateDeviation();
+    group.append(pair, deviation);
   }
   group.hidden = keys.length === 0;
   root.append(group);

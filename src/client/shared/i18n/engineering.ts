@@ -1,5 +1,14 @@
 export const engineering = {
   "ru": {
+    "lab_readings_summary": "{{count}} Ri · Rm = {{mean}} МПа",
+    "assessment_pending": "Требует проверки",
+    "documents_preview": "Просмотреть PDF",
+    "documents_close_preview": "Закрыть просмотр",
+    "lab_readings": "Исходные лабораторные значения Ri, МПа",
+    "survey_point_required": "Укажите точку и источник измерения.",
+    "survey_point_label": "Точка и источник измерения",
+    "construction_excavation": "Котлован",
+    "construction_concrete_preparation": "Бетонная подготовка",
     "full_selected_name": "Полное название",
     "element_position": "Точное положение элемента в общих осях",
     "assessment_limits": "Допуски по подтверждённому основанию",
@@ -304,6 +313,15 @@ export const engineering = {
     "saved_empty_geometry": "Пока нет сохранённых проверок геометрии."
   },
   "en": {
+    "lab_readings_summary": "{{count}} Ri · Rm = {{mean}} MPa",
+    "assessment_pending": "Review required",
+    "documents_preview": "View PDF",
+    "documents_close_preview": "Close preview",
+    "lab_readings": "Source laboratory readings Ri, MPa",
+    "survey_point_required": "Enter the survey point and measurement source.",
+    "survey_point_label": "Survey point and source document",
+    "construction_excavation": "Excavation",
+    "construction_concrete_preparation": "Concrete preparation",
     "full_selected_name": "Full name",
     "element_position": "Exact element position within shared axes",
     "assessment_limits": "Limits from a confirmed basis",

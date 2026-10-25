@@ -252,6 +252,9 @@
           <summary data-i18n="strength_assessment">Подтверждённое основание оценки</summary>
           <p data-i18n="strength_assessment_hint">Измерение само по себе не подтверждает класс бетона. Укажите проверенное заключение или нормативное основание с условиями применимости.</p>
           <div class="assessment-fields">
+          <div class="field-wide"><label for="strengthLabReadings" data-i18n="lab_readings">Исходные лабораторные значения Ri, МПа</label>
+          <textarea id="strengthLabReadings" rows="3" readonly aria-describedby="strengthLabReadingsSummary"></textarea>
+          <p id="strengthLabReadingsSummary" class="caption"></p></div>
           <div class="field-wide"><label for="strengthAssessmentReference" data-i18n="assessment_reference">Документ, номер, пункт и условия оценки</label>
           <input id="strengthAssessmentReference" type="text" maxlength="1000" /></div>
           <div><label for="strengthAssessmentResponsible" data-i18n="assessment_responsible">Ответственный за заключение</label>

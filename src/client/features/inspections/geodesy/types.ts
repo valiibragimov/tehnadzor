@@ -70,6 +70,7 @@ export interface GeodesyOpeningPointDraft {
 }
 
 export interface GeodesyCoordinateDraft {
+  measurementScope?: "height" | "coordinates";
   projX: number | null;
   factX: number | null;
   projY: number | null;
@@ -151,6 +152,8 @@ export interface GeodesyBimApi {
 
 export interface GeodesyNodeRecord
   extends GeodesyBimNodeData, Record<string, unknown> {
+  measurementScope?: "height" | "coordinates";
+  pointLabel?: string | null;
   acceptanceCriteria?: AcceptanceCriteria | null;
   coordinateUnit?: "m";
   deviationUnit?: "mm";

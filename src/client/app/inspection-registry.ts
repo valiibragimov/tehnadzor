@@ -1565,7 +1565,25 @@ const factoryModule = (
   infoMessage: string
 ) => moduleConfig(module, "factory", [], [], [], [], infoMessage);
 
+const preparationGeodesyModule = moduleConfig(
+  "geodesy", "object", [FIELDS.projH, FIELDS.factH], [TOLERANCE_LIBRARY.geoHeight],
+  [withProjectCriteriaRequirement(DOCS.sp126)],
+  [{ key: "geo_height_within_tolerance", label: "Отметка в пределах подтверждённого допуска", kind: "tolerance", fieldKeys: ["projH", "factH"], toleranceKey: "geoHeight" }],
+  "Контроль отметок по подтверждённому основанию. Координаты X/Y не вводятся и не оцениваются.",
+  { ...foundationGeodesyBehavior, locationMode: "none" }
+);
+const preparationNotApplicable = (module: InspectionModule) => notApplicableModule(module,
+  "Для этого вида подготовительных работ проверка в данном модуле не применяется.");
+
 export const INSPECTION_REGISTRY = Object.freeze({
+  excavation: Object.freeze({ category: "foundation", construction: "excavation", modules: Object.freeze({
+    geodesy: preparationGeodesyModule, geometry: moduleConfig("geometry", "object", [], [], [], [], "Размеры котлована: допуск требует подтверждённого проектного основания."),
+    reinforcement: preparationNotApplicable("reinforcement"), strength: preparationNotApplicable("strength")
+  }) }),
+  concrete_preparation: Object.freeze({ category: "foundation", construction: "concrete_preparation", modules: Object.freeze({
+    geodesy: preparationGeodesyModule, geometry: preparationNotApplicable("geometry"),
+    reinforcement: preparationNotApplicable("reinforcement"), strength: strengthConcreteModule
+  }) }),
   foundation_slab: Object.freeze({
     category: "foundation",
     construction: "foundation_slab",

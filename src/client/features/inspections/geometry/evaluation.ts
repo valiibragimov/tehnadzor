@@ -18,9 +18,14 @@ export function evaluateGeometryCheck(check: GeometryCheckRecord) {
   };
   const dimensions = (row: Record<string, unknown>, keys: string[]) => {
     const values = row.physicalDimensions as PhysicalDimensions | undefined;
-    for (const key of keys) pair(values?.[key] || {}, "project", "actual", "dimensions");
+    for (const key of keys) {
+      const value = values?.[key];
+      if (construction === "excavation" && (!value || (measurementNumber(value.project) === null && measurementNumber(value.actual) === null))) continue;
+      pair(value || {}, "project", "actual", "dimensions");
+    }
   };
   dimensions(check, commonDimensionKeys(construction, String(check.constructionPileElement || "")));
+  if (construction === "excavation") return summarizeMeasurements(results);
   const profile = getConstructionProfile(construction, "geometry");
   const rows = profile === "column" ? check.columns : profile === "wall" ? check.walls : profile === "beam" ? check.beams : profile === "stair" ? check.stairs : null;
   const kind = profile === "column" ? "columns" : profile === "wall" ? "walls" : profile === "beam" ? "beams" : "stairs";

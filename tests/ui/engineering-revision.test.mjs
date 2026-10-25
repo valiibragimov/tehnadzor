@@ -134,3 +134,77 @@ test("metre geodesy preserves legacy evidence and concrete acceptance requires a
     assert.deepEqual(errors, []);
   } finally { await browser.close(); await server.close(); }
 });
+
+test("height-only controls keep loaded coordinate records and exclude hidden coordinates from the journal", { timeout: 60000 }, async () => {
+  const server = await startStaticServer(resolve("dist-demo"));
+  const browser = await chromium.launch({ headless: true, ...(process.platform === "win32" ? { channel: "chrome" } : {}) });
+  try {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    await page.goto(server.url + "/demo.html");
+    await page.locator("#constructionCategory option").first().waitFor({ state: "attached" });
+    await page.locator('.tabs [data-target="geo"]').click();
+    await page.locator("#constructionCategory").selectOption("horizontal_load_bearing");
+    await page.locator("#constructionType").selectOption("floor_slab");
+    await page.locator("#floor").fill("2");
+    for (const [id, value] of [["projX", "100"], ["projY", "200"], ["projH", "3"], ["factX", "100.009"], ["factY", "200"], ["factH", "3"]]) await page.locator("#" + id).fill(value);
+    const criteria = page.locator("#geo [data-acceptance]");
+    await criteria.locator("summary").click();
+    await criteria.locator("[data-reference]").fill("Synthetic acceptance criterion for regression testing only");
+    for (const [key, value] of [["geoPlan", "8"], ["geoHeight", "50"]]) {
+      await criteria.locator(`[data-limit="${key}"] [data-bound="min"]`).fill("-" + value);
+      await criteria.locator(`[data-limit="${key}"] [data-bound="max"]`).fill(value);
+    }
+    await criteria.locator("[data-confirmed]").check();
+    await page.locator("#btnGeo").click();
+    await page.locator("#geoResult").filter({ hasText: "Не соответствует" }).waitFor();
+    const readNodes = () => page.evaluate(async () => {
+      const { getProjectCollectionSnapshot } = await import("/demo-core.js");
+      const snapshot = await getProjectCollectionSnapshot("demo-project", "geoNodes");
+      return Object.fromEntries(snapshot.docs.map(record => [record.id, record.data()]));
+    });
+    const previous = Object.entries(await readNodes()).find(([, n]) => n.coordinateUnit === "m" && n.projX === 100);
+    assert.ok(previous);
+    await page.locator("#constructionCategory").selectOption("foundation");
+    await page.locator("#constructionType").selectOption("excavation");
+    await page.locator("#geoPointLabel").fill("SYNTHETIC height point");
+    await page.locator("#projH").fill("105.06");
+    await page.locator("#factH").fill("105.106");
+    await criteria.evaluate(panel => { panel.open = true; });
+    await criteria.locator("[data-reference]").fill("Synthetic height criterion");
+    await criteria.locator('[data-limit="geoHeight"] [data-bound="min"]').fill("-50");
+    await criteria.locator('[data-limit="geoHeight"] [data-bound="max"]').fill("50");
+    await criteria.locator("[data-confirmed]").check();
+    await page.locator("#btnGeo").click();
+    await page.locator("#geoResult").filter({ hasText: "Соответствует" }).waitFor();
+    const saved = await readNodes();
+    assert.deepEqual(saved[previous[0]], previous[1]);
+    const height = Object.entries(saved).find(([, n]) => n.pointLabel === "SYNTHETIC height point");
+    assert.ok(height);
+    assert.notEqual(height[0], previous[0]);
+    assert.equal(height[1].projX, null);
+    assert.equal(height[1].factX, null);
+    assert.equal(height[1].letter, null);
+    await page.locator("#btnClearForm").click();
+    assert.equal(await page.locator("#geoPointLabel").inputValue(), "");
+    const card = page.locator("#nodesList .node").filter({ hasText: "SYNTHETIC height point" });
+    assert.match(await card.innerText(), /105\.106 м/u);
+    await card.click();
+    assert.equal(await page.locator("#geoPointLabel").inputValue(), "SYNTHETIC height point");
+    await page.locator("#factH").fill("105.109");
+    await page.locator("#btnGeo").click();
+    const edited = await readNodes();
+    assert.equal(edited[height[0]].factH, 105.109);
+    assert.equal(Object.values(edited).filter(n => n.pointLabel === "SYNTHETIC height point").length, 1);
+    await page.locator('.tabs [data-target="journal"]').click();
+    const journal = await page.locator("#journal").innerText();
+    const heightRow = page.locator('#journal tr').filter({ hasText: "SYNTHETIC height point" });
+    assert.ok(journal.includes("SYNTHETIC height point"));
+    assert.doesNotMatch((await heightRow.allInnerTexts()).join(" "), /ΔX|ΔY/u);
+    await page.locator('.tabs [data-target="geo"]').click();
+    await page.locator("#btnClearForm").click();
+    await page.locator("#workspaceLanguage").selectOption("en");
+    assert.equal(await page.locator('#constructionType option[value="excavation"]').textContent(), "Excavation");
+    await page.locator("#btnGeo").click();
+    await page.getByText(/Enter the survey point and measurement source\./u).waitFor();
+  } finally { await browser.close(); await server.close(); }
+});

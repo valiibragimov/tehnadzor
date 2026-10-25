@@ -1209,7 +1209,7 @@ function updateGeomFieldsVisibility() {
   const boredPileElement = getSelectedPileElement();
   const showRangeLocation =
     behavior.locationMode === "plate_range" || behavior.locationMode === "strip_foundation";
-  const showPlateNumbers = isPlate && !isUnsupported;
+  const showPlateNumbers = isPlate && !isUnsupported && getSelectedConstructionKey() !== "excavation";
 
   if (geomBehaviorMessage) {
     geomBehaviorMessage.hidden = !isUnsupported;
@@ -2784,6 +2784,12 @@ function renderGeomChecks() {
       dataRows += `<div class="node-data-row"><span class="node-label" data-i18n="saved_floor">Этаж:</span><span class="node-values">${safeValue(d.floor)}</span></div>`;
     }
 
+    if (d.note) dataRows += `<div class="node-data-row"><span class="node-values">${safeValue(d.note)}</span></div>`;
+    for (const [key, values] of Object.entries(d.physicalDimensions || {})) {
+      if (values.project == null || values.actual == null || values.project === "" || values.actual === "") continue;
+      const delta = Number(values.actual) - Number(values.project);
+      dataRows += `<div class="node-data-row"><span class="node-label">${safeValue(t("dimension_" + key))}</span><span class="node-values">${safeValue(values.project)} / ${safeValue(values.actual)} ${t("form_mm")} · Δ = ${delta > 0 ? "+" : ""}${delta}</span></div>`;
+    }
     const evaluation = evaluateGeomCheck(d);
 
     let statusTag = "";
@@ -2792,7 +2798,7 @@ function renderGeomChecks() {
     } else if (evaluation.status === "ok") {
       statusTag = '<span class="tag ok" data-i18n="saved_ok">в норме</span>';
     } else {
-      statusTag = '<span class="tag" data-i18n="saved_empty">не заполнено</span>';
+      statusTag = d.construction === "excavation" ? `<span class="tag">${t("assessment_pending")}</span>` : '<span class="tag" data-i18n="saved_empty">не заполнено</span>';
     }
 
     row.innerHTML = `

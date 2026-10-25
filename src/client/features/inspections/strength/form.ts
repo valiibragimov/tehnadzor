@@ -1,3 +1,4 @@
+import { t } from "../../../shared/i18n/index.js";
 import { parseSimpleStrengthAxes } from "./bim-selection.js";
 import {
   APP_CONFIG,
@@ -387,6 +388,12 @@ export function createStrengthForm({
       confirmed: (assessmentField("Confirmed") as HTMLInputElement | null)?.checked === true };
   }
   function restoreAssessment(check: StrengthCheckRecord) {
+    const readings = check.labReadings || [];
+    const field = dom.document.getElementById("strengthLabReadings") as HTMLTextAreaElement | null;
+    if (field) field.value = readings.join("; ");
+    const summary = dom.document.getElementById("strengthLabReadingsSummary");
+    if (summary) summary.textContent = readings.length ? t("lab_readings_summary", { count: readings.length, mean: new Intl.NumberFormat(dom.document.documentElement.lang || "ru", { minimumFractionDigits: 6, maximumFractionDigits: 6 }).format(readings.reduce((sum, value) => sum + value, 0) / readings.length) }) : "";
+
     for (const name of ["Reference", "Responsible", "Date", "Verdict"]) {
       const field = assessmentField(name);
       if (field) field.value = String(check.assessment?.[name.toLowerCase()] || "");
@@ -479,6 +486,7 @@ export function createStrengthForm({
       wallLetterAxis2,
       evaluationSchemaVersion: 2,
       assessment: readAssessment(),
+      ...(existing?.labReadings ? { labReadings: [...existing.labReadings] } : {}),
       mark: dom.mark?.value.trim() || null,
       markValue: parseConcreteStrengthValue(dom.mark?.value),
       days: dom.days?.value === "" ? null : Number(dom.days?.value),

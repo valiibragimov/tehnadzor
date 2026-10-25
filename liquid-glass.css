@@ -630,4 +630,9 @@
     .home-page .tabs, header, .bottom-nav { display: none; }
     main { padding: 0; max-width: none; }
   }
+  .document-preview-dialog { width: min(1100px, 94vw); max-width: 94vw; }
+  .document-preview-frame { display: block; width: 100%; height: 75vh; border: 0; }
+
+  .local-environment-banner { margin: 0 0 16px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-subtle); color: var(--text-muted); font-size: 12px; }
+
 }
