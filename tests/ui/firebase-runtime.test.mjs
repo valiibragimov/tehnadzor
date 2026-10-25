@@ -31,3 +31,22 @@ test("bundled Firebase facades share one app, auth and persistent Firestore runt
     assert.deepEqual(external, []);
   } finally { await browser.close(); await server.close(); }
 });
+
+test("browser localization starts from the served build and handles language changes without a package resolver", async () => {
+  const server = await startStaticServer(resolve("dist"));
+  const browser = await chromium.launch({ headless: true, ...(process.platform === "win32" ? { channel: "chrome" } : {}) });
+  try {
+    const page = await browser.newPage();
+    await page.route("**/*", route => new URL(route.request().url()).origin === server.url ? route.continue() : route.abort());
+    await page.goto(server.url + "/shared/i18n/index.js");
+    await page.setContent('<select id="workspaceLanguage"><option value="ru">RU</option><option value="en">EN</option></select><button data-i18n="form_close"></button>');
+    await page.evaluate(async () => {
+      const { initializeLocalization } = await import("/shared/i18n/index.js");
+      await initializeLocalization();
+    });
+    assert.equal(await page.locator("button").innerText(), "Закрыть");
+    await page.locator("#workspaceLanguage").selectOption("en");
+    await page.waitForFunction(() => document.documentElement.lang === "en");
+    assert.equal(await page.locator("button").innerText(), "Close");
+  } finally { await browser.close(); await server.close(); }
+});
