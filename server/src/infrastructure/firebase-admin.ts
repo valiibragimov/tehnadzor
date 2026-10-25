@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { applicationDefault, cert, getApps, initializeApp } from "firebase-admin/app";
+import { getLocalDevelopmentConfig } from "./local-development";
 const LOCAL_SERVICE_ACCOUNT_FILE = "serviceAccount.local.json";
 
 interface FirebaseAdminInitResult {
@@ -104,6 +105,11 @@ export function initFirebaseAdmin(): FirebaseAdminInitResult {
   }
 
   try {
+    const local = getLocalDevelopmentConfig();
+    if (local) {
+      initializeApp({ projectId: local.projectId });
+      return { error: null, source: "loopback-emulators", projectId: local.projectId };
+    }
     const firebaseAdminConfig = buildFirebaseAdminConfig();
     initializeApp({
       credential: firebaseAdminConfig.credential,

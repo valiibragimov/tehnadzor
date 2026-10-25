@@ -54,6 +54,8 @@ server/node_modules/
 functions/node_modules/
 dist/
 dist-demo/
+dist-local/
+.local/
 dist-hosting/
 server/dist/
 functions/dist/

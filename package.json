@@ -43,7 +43,9 @@
     "shared:check": "node scripts/build/generate-shared.mjs --check",
     "bim:gc": "node ./server/dist/server/src/maintenance/bim-gc.js",
     "test:documents": "npm run build:server:ts && npx --yes firebase-tools@15.33.0 emulators:exec --only firestore,storage --project demo-tehnadzor-documents --config firebase.emulator.json \"node --test tests/integration/documents.test.mjs\"",
-    "test:integration": "npm run build:server:ts && npx --yes firebase-tools@15.33.0 emulators:exec --only firestore --project demo-tehnadzor-test --config firebase.emulator.json \"node --test tests/integration/firestore.test.mjs tests/integration/inspection-persistence.test.mjs\""
+    "test:integration": "npm run build:server:ts && npx --yes firebase-tools@15.33.0 emulators:exec --only firestore --project demo-tehnadzor-test --config firebase.emulator.json \"node --test tests/integration/firestore.test.mjs tests/integration/inspection-persistence.test.mjs\"",
+    "build:local": "node scripts/build/build-local.mjs",
+    "dev:local": "npm run build:local && npm run build:server:ts && npx --yes firebase-tools@15.33.0 emulators:exec --only auth,firestore,storage --project demo-tehnadzor-approbation --config firebase.emulator.json --import output/approbation/local-web-export \"node scripts/dev/local-api.mjs\""
   },
   "dependencies": {
     "@ifc-lite/data": "^1.11.0",

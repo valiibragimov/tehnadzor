@@ -11,6 +11,8 @@ import { buildReportText } from "./presentation/report-text";
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
+import path from "node:path";
+import { getLocalDevelopmentConfig } from "./infrastructure/local-development";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { initFirebaseAdmin } from "./infrastructure/firebase-admin";
@@ -27,6 +29,7 @@ const importIfc = createIfcImportService({
 import { getProfileFeed } from "./services/profile-feed";
 
 const app = express();
+const localDevelopment = getLocalDevelopmentConfig();
 const PORT = Number(process.env.PORT || 5050);
 const BODY_LIMIT = process.env.BODY_LIMIT || "100kb";
 const IFC_IMPORT_BODY_LIMIT = process.env.IFC_IMPORT_BODY_LIMIT || "25mb";
@@ -187,7 +190,12 @@ const corsOptions = {
 app.disable("x-powered-by");
 app.use(
   helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" }
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    ...(localDevelopment ? { contentSecurityPolicy: { directives: {
+      "connect-src": ["'self'", "http://127.0.0.1:8085", "http://127.0.0.1:9099", "http://127.0.0.1:9199", "ws://127.0.0.1:8085"],
+      "frame-src": ["'self'", "blob:"], "img-src": ["'self'", "data:", "blob:"],
+      "upgrade-insecure-requests": null
+    } } } : {})
   })
 );
 app.use(cors(corsOptions));
@@ -531,8 +539,12 @@ app.use((err, req, res, next) => {
   });
 });
 
+if (localDevelopment) {
+  app.use(express.static(path.resolve(process.env.LOCAL_CLIENT_ROOT || "dist-local"), { dotfiles: "deny", index: "index.html" }));
+}
+
 // Запуск сервера
-const httpServer = app.listen(PORT, () => {
+const httpServer = app.listen(PORT, localDevelopment ? "127.0.0.1" : "0.0.0.0", () => {
   const address = httpServer.address();
   console.log(`[startup] listeningPort=${typeof address === "object" && address ? address.port : PORT}`);
   const port = typeof address === "object" && address ? address.port : PORT;

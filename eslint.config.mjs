@@ -10,6 +10,8 @@ export default [
   {
     ignores: [
       "dist/**",
+      "dist-local/**",
+      "tmp/**",
       "dist-hosting/**",
       "server/dist/**",
       "functions/dist/**",

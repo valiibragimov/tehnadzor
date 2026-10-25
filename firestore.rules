@@ -23,7 +23,8 @@ service cloud.firestore {
 
     match /projects/{projectId} {
       allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
-      allow read, update, delete: if isProjectOwner(projectId);
+      allow read: if signedIn() && (resource.data.ownerUid == request.auth.uid || resource.data.createdBy == request.auth.uid);
+      allow update, delete: if isProjectOwner(projectId);
 
       function stateRevision() {
         let path = /databases/$(database)/documents/projects/$(projectId)/bimState/current;
