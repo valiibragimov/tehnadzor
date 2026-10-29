@@ -278,3 +278,9 @@ test("Firestore publication is atomic, conflict-safe, owner-scoped and backward-
     });
   } finally { await environment.cleanup(); await deleteApp(app); }
 });
+
+
+test("browser BIM startup coalesces readers, reloads fresh data and recovers after errors", { timeout: 120000 }, async () => {
+  const { checkBrowserBimStartup } = await import("./helpers/bim-browser.mjs");
+  await checkBrowserBimStartup();
+});

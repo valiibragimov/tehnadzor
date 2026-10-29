@@ -45,12 +45,23 @@ type BimSnapshot = { docs: Array<{ id: string; data(): Record<string, any> }>; s
 // Keep only one project/version. Never reuse across identities or trust a cached catalog.
 let cached: { key: string; snapshot: Promise<BimSnapshot> } | null = null;
 let requestSequence = 0;
-export async function getProjectBimSnapshot(projectId: string): Promise<BimSnapshot> {
+const pending = new Map<string, { projectId: string; promise: Promise<BimSnapshot> }>();
+export function getProjectBimSnapshot(projectId: string): Promise<BimSnapshot> {
+  const userId = auth.currentUser?.uid;
+  const key = JSON.stringify([userId, projectId]);
+  const active = pending.get(key);
+  if (active) return active.promise;
+  const entry = { projectId, promise: loadProjectBimSnapshot(projectId, userId) };
+  entry.promise = entry.promise.finally(() => { if (pending.get(key) === entry) pending.delete(key); });
+  pending.set(key, entry);
+  return entry.promise;
+}
+async function loadProjectBimSnapshot(projectId: string, userId: string | undefined): Promise<BimSnapshot> {
   const sequence = ++requestSequence;
   const store = createBrowserBimStore(projectId);
   const state = await store.get("bimState/current");
   const manifests = await store.list("bimModels");
-  const key = JSON.stringify([auth.currentUser?.uid, projectId, state?.epoch, state?.legacyHidden,
+  const key = JSON.stringify([userId, projectId, state?.epoch, state?.legacyHidden,
     manifests.map(m => [m.id, m.data.generation, m.data.revision, m.data.deleted])]);
   if (cached?.key === key) return cached.snapshot;
   const snapshot = (async () => {
@@ -61,15 +72,22 @@ export async function getProjectBimSnapshot(projectId: string): Promise<BimSnaps
     }
     return { docs, size: docs.length, empty: !docs.length, forEach: callback => docs.forEach(callback) };
   })();
-  if (sequence === requestSequence) cached = { key, snapshot };
+  if (sequence === requestSequence && auth.currentUser?.uid === userId) cached = { key, snapshot };
   try { return await snapshot; }
   catch (error) { if (cached?.snapshot === snapshot) cached = null; throw error; }
 }
-export function publishProjectBimModel(projectId: string, sourceModelId: string, elements: BimElementRecord[]) {
+function invalidateProject(projectId: string) {
   cached = null;
-  return publishBimModel(createBrowserBimStore(projectId), sourceModelId, elements);
+  requestSequence++;
+  for (const [key, entry] of pending) if (entry.projectId === projectId) pending.delete(key);
 }
-export function hideProjectBimModels(projectId: string, sourceModelId?: string) {
-  cached = null;
-  return hideBimModels(createBrowserBimStore(projectId), sourceModelId);
+export async function publishProjectBimModel(projectId: string, sourceModelId: string, elements: BimElementRecord[]) {
+  invalidateProject(projectId);
+  try { return await publishBimModel(createBrowserBimStore(projectId), sourceModelId, elements); }
+  finally { invalidateProject(projectId); }
+}
+export async function hideProjectBimModels(projectId: string, sourceModelId?: string) {
+  invalidateProject(projectId);
+  try { return await hideBimModels(createBrowserBimStore(projectId), sourceModelId); }
+  finally { invalidateProject(projectId); }
 }
