@@ -7,6 +7,7 @@ import { build } from "esbuild";
 const records = new Map();
 let sequence = 0, failWrite = null, readGate = null, partialCache = false;
 let fullRegistryReads = 0;
+let registryDocumentsRead = 0, aliasQueries = 0;
 let afterCommit = null;
 const ref = (...parts) => ({ path: parts.filter(part => typeof part === "string").join("/"), get id() { return this.path.split("/").at(-1); } });
 function mergeFields(previous = {}, incoming) {
@@ -40,6 +41,10 @@ const sdk = {
       return filter.operator === "in" ? filter.value.includes(value) : value === filter.value;
     }
     const docs = [...records.keys()].filter(path => path.startsWith(reference.path + "/") && !path.slice(reference.path.length + 1).includes("/")).map(path => snapshot(ref(path))).filter(document => (reference.filters || []).every(filter => matches(document, filter)));
+    if (reference.path.endsWith("/inspections")) {
+      if (reference.filters?.length) aliasQueries += 1;
+      else registryDocumentsRead += docs.length;
+    }
     if (readGate) await readGate(reference.path);
     return { docs, empty: !docs.length, size: docs.length, forEach: callback => docs.forEach(callback) };
   },
@@ -73,7 +78,7 @@ const bundle = await build({
 const runtime = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString("base64")}`);
 const service = runtime.createFirestoreStrengthService({ getCurrentUserId: () => "owner" });
 const project = "synthetic-project";
-function reset() { records.clear(); failWrite = null; readGate = null; afterCommit = null; partialCache = false; fullRegistryReads = 0; records.set(`projects/${project}`, { ownerUid: "owner", createdBy: "owner" }); }
+function reset() { records.clear(); failWrite = null; readGate = null; afterCommit = null; partialCache = false; fullRegistryReads = 0; registryDocumentsRead = 0; aliasQueries = 0; records.set(`projects/${project}`, { ownerUid: "owner", createdBy: "owner" }); }
 
 test("a rejected inspection batch leaves both the previous source and registry intact", async () => {
   reset();
@@ -293,4 +298,30 @@ test("targeted alias reads retain sourceDocId and document-ID legacy links witho
   for (const id of ["check", "legacy-alias"]) assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", id)).data().checkStatus, "ok");
   assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", "foreign")).data().checkStatus, "exceeded");
   assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.totalChecks, 2);
+});
+
+test("sequential saves have a measured registry-read budget and retain recoverable analytics", async t => {
+  for (const [existing, saves, expectedDocuments] of [[0, 10, 55], [0, 50, 1275], [0, 100, 5050], [1000, 100, 105050]]) {
+    reset();
+    for (let index = 0; index < existing; index += 1) {
+      await runtime.setProjectCollectionDoc(project, "inspections", `existing-${index}`, {
+        sourceCollection: "strengthChecks", sourceId: `existing-${index}`, moduleKey: "strength", evaluationSchemaVersion: 2, checkStatus: "ok"
+      });
+    }
+    const started = performance.now();
+    for (let index = 0; index < saves; index += 1) {
+      await service.createCheck(project, { id: `new-${index}`, evaluationSchemaVersion: 2, status: "exceeded" });
+    }
+    const elapsedMs = Math.round(performance.now() - started);
+    // Upper bounds are a performance contract, not a requirement to keep full scans.
+    assert.ok(fullRegistryReads <= saves, `at most one registry scan per save (${existing}/${saves})`);
+    assert.ok(registryDocumentsRead <= expectedDocuments, `registry document budget (${existing}/${saves})`);
+    assert.ok(aliasQueries <= saves, "at most one targeted alias query per save");
+    const saved = (await runtime.getProjectDocSnapshot(project)).data();
+    assert.equal(saved.analyticsCurrent.totalChecks, existing + saves);
+    assert.equal(saved.analyticsCurrent.exceededCount, saves);
+    assert.equal(saved.inspectionSync.pending, false);
+    assert.equal((await service.loadChecks(project)).size, saves);
+    t.diagnostic(JSON.stringify({ existing, saves, fullRegistryReads, registryDocumentsRead, aliasQueries, syntheticElapsedMs: elapsedMs }));
+  }
 });

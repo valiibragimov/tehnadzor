@@ -180,15 +180,18 @@ export async function renderOverview() {
     const fallbackConstruction = workspace.construction?.dataset?.machineValue
       || workspace.construction?.value
       || "";
-    [issues, controlPlan] = await Promise.all([
-      loadProjectIssues(projectId).catch(() => []),
-      loadProjectControlPlan(projectId, {
-        fallbackConstruction,
-        fallbackConstructionLabel: workspace.construction?.dataset?.displayLabel
-          || workspace.construction?.value
-          || ""
-      }).catch(() => null)
-    ]);
+    const fallbackConstructionLabel = workspace.construction?.dataset?.displayLabel
+      || workspace.construction?.value
+      || "";
+    const loadedIssues = await loadProjectIssues(projectId).catch(() => null);
+    if (sequence !== renderSequence) return;
+    issues = loadedIssues || [];
+    controlPlan = await loadProjectControlPlan(projectId, {
+      fallbackConstruction,
+      fallbackConstructionLabel,
+      // Reuse successful reads only; a failed read keeps the plan's recovery path.
+      sources: loadedIssues ? { projectId, collections: {}, issues: loadedIssues } : undefined
+    }).catch(() => null);
   }
 
   if (sequence !== renderSequence) return;

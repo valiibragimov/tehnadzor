@@ -10,10 +10,11 @@ const bundle = await build({
     contents: `
       import { updateControlPlan, configureControlPlanWorkspace, initControlPlanModule } from './src/client/features/control-plan/ui.ts';
       import { updateSummaryTab, configureSummaryWorkspace } from './src/client/app/modules/summary.ts';
+      import { renderOverview, configureOverviewWorkspace } from './src/client/app/modules/overview.ts';
       import { initializeLocalization } from './src/client/shared/i18n/index.ts';
       import { createDemoFixtures } from './src/client/demo/fixtures.ts';
       import { createDemoDatabaseStore } from './src/client/demo/storage.ts';
-      export { updateControlPlan, updateSummaryTab };
+      export { updateControlPlan, updateSummaryTab, renderOverview };
       export async function setup() {
         const state = createDemoFixtures();
         const original = state.projects['demo-project'];
@@ -39,10 +40,10 @@ const bundle = await build({
         selector.innerHTML='<option value="project-a">Project A</option><option value="project-b">Project B</option><option value="">No project</option>';
         const workspace={ getProjectId:()=>projectId, getEngineerName:()=>'', projectSelector:selector,
           construction:document.getElementById('construction'), dateInput:{value:'2026-10-16'}, nodes:new Map(), geometryChecks:new Map() };
-        configureControlPlanWorkspace(workspace); configureSummaryWorkspace(workspace,()=>{});
+        configureControlPlanWorkspace(workspace); configureSummaryWorkspace(workspace,()=>{}); configureOverviewWorkspace(workspace);
         await initializeLocalization();
         document.querySelectorAll('.section').forEach(el=>el.classList.add('active'));
-        return { select(id) { projectId=id; selector.value=id||''; }, updateControlPlan, updateSummaryTab, initializePlan:initControlPlanModule };
+        return { select(id) { projectId=id; selector.value=id||''; }, updateControlPlan, updateSummaryTab, renderOverview, initializePlan:initControlPlanModule };
       }`
   },
   bundle: true, write: false, format: "esm", platform: "browser",
