@@ -25,3 +25,34 @@ test("IFC application service propagates persistence failures and supports a saf
   fail = false;
   assert.equal((await execute("project", new Uint8Array(), {})).importedCount, 1);
 });
+
+
+test("cancelling after parsing but before publication never writes model data", async () => {
+  const controller = new AbortController();
+  let writes = 0;
+  const execute = createIfcImportService({
+    parse: async () => { controller.abort(); return { importedCount: 1 }; },
+    save: async () => { writes++; return { writtenCount: 1, removedCount: 0 }; }
+  });
+  await assert.rejects(execute("project", new Uint8Array(), {}, controller.signal), { name: "AbortError" });
+  assert.equal(writes, 0);
+});
+
+
+test("a started IFC publication completes after client cancellation", async () => {
+  const controller = new AbortController();
+  let started, release;
+  const entered = new Promise(resolve => { started = resolve; });
+  const gate = new Promise(resolve => { release = resolve; });
+  let committed = false;
+  const execute = createIfcImportService({
+    parse: async (_bytes, _options, signal) => { assert.equal(signal, controller.signal); return { importedCount: 1, countsByType: { column: 1 } }; },
+    save: async () => { started(); await gate; committed = true; return { writtenCount: 1, removedCount: 0 }; }
+  });
+  const pending = execute("project", new Uint8Array(), {}, controller.signal);
+  await entered;
+  controller.abort();
+  release();
+  assert.equal((await pending).importedCount, 1);
+  assert.equal(committed, true);
+});

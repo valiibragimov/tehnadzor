@@ -8,32 +8,45 @@ function positiveInteger(name: string, fallback: number, maximum: number) {
   return value;
 }
 /** Bounded CPU work; Firestore and network I/O stay on the event loop. */
-export function createIfcWorkerPool() {
+export function createIfcWorkerPool({ workerFile = path.resolve(__dirname, "../workers/ifc-import.js") } = {}) {
   const maxBytes = positiveInteger("IFC_WORKER_MAX_BYTES", 25 * 1024 * 1024, 100 * 1024 * 1024);
   const maxQueue = positiveInteger("IFC_WORKER_QUEUE", 4, 64);
   const pool = new Piscina({
-    filename: path.resolve(__dirname, "../workers/ifc-import.js"), minThreads: 0,
+    filename: workerFile, minThreads: 0,
     maxThreads: positiveInteger("IFC_WORKER_THREADS", Math.min(2, Math.max(1, availableParallelism() - 1)), 16),
     maxQueue, concurrentTasksPerWorker: 1, idleTimeout: 30_000,
     resourceLimits: { maxOldGenerationSizeMb: positiveInteger("IFC_WORKER_HEAP_MB", 256, 4096) }
   });
+  const shutdown = new AbortController();
+  let closing: Promise<void> | undefined;
   return {
     async parse(bytes: Uint8Array, options: { sourceModelId?: string; fileName?: string }, signal?: AbortSignal) {
+      if (shutdown.signal.aborted) throw shutdown.signal.reason;
+      signal?.throwIfAborted();
       if (bytes.byteLength > maxBytes) throw Object.assign(new Error("IFC model exceeds the worker input limit."), { status: 413 });
       if (pool.queueSize >= maxQueue) throw Object.assign(new Error("IFC import queue is full. Please retry later."), { status: 503 });
       const deadline = AbortSignal.timeout(positiveInteger("IFC_WORKER_TIMEOUT_MS", 120_000, 600_000));
+      const combined = AbortSignal.any([shutdown.signal, deadline, ...(signal ? [signal] : [])]);
       try {
-        const result: { ok: true; model: IfcModelData } | { ok: false; error: string } = await pool.run({ bytes, options }, { signal: signal ? AbortSignal.any([signal, deadline]) : deadline });
+        const result: { ok: true; model: IfcModelData } | { ok: false; error: string } = await pool.run({ bytes, options }, { signal: combined });
         if (result.ok === false) throw Object.assign(new Error(result.error), { status: 422 });
         return result.model;
       } catch (error) {
+        if (shutdown.signal.aborted) throw shutdown.signal.reason;
+        if (signal?.aborted) throw signal.reason;
         if (error.name === "AbortError" || error.code === "ERR_WORKER_OUT_OF_MEMORY") {
           throw Object.assign(new Error("IFC worker exceeded its execution limit. Please retry later."), { status: 503 });
         }
         throw error;
       }
     },
-    close: () => pool.close(),
+    close() {
+      if (!closing) {
+        shutdown.abort(Object.assign(new Error("IFC worker pool is shutting down."), { status: 503 }));
+        closing = pool.destroy();
+      }
+      return closing;
+    },
     get queueSize() { return pool.queueSize; }
   };
 }

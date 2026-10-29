@@ -10,7 +10,7 @@ import { buildReportText } from "./presentation/report-text";
 
 import "dotenv/config";
 import cors from "cors";
-import express from "express";
+import express, { type Request, type Response } from "express";
 import path from "node:path";
 import { getLocalDevelopmentConfig } from "./infrastructure/local-development";
 import rateLimit from "express-rate-limit";
@@ -21,9 +21,11 @@ import { ensureProjectAccess, clearProjectElements, publishProjectBimModel } fro
 import { reportRequestSchema, ifcImportQuerySchema, bimDeleteQuerySchema, documentUploadQuerySchema } from "./http-contract";
 import { API_ROUTES } from "../../src/shared/api-routes";
 import { createIfcWorkerPool } from "./services/ifc-worker-pool";
+import { createHeavyOperationRunner } from "./services/heavy-operations";
+import { withClientCancellation } from "./infrastructure/http-operation";
 const ifcWorkers = createIfcWorkerPool();
 const importIfc = createIfcImportService({
-  parse: (bytes, options) => ifcWorkers.parse(bytes, options),
+  parse: (bytes, options, signal) => ifcWorkers.parse(bytes, options, signal),
   save: publishProjectBimModel
 });
 import { getProfileFeed } from "./services/profile-feed";
@@ -71,8 +73,9 @@ const HEAVY_OPERATION_LIMITS = {
     max: Number(process.env.BIM_DELETE_MAX || 3)
   }
 };
-const recentHeavyOperations = new Map<string, number[]>();
-const inFlightHeavyOperations = new Map<string, symbol>();
+const heavyOperations = createHeavyOperationRunner({
+  retentionMs: Math.max(60000, ...Object.values(HEAVY_OPERATION_LIMITS).map(limit => Number.isFinite(limit.windowMs) ? limit.windowMs : 30000))
+});
 
 const firebaseAdminInit = initFirebaseAdmin();
 const adminInitError = firebaseAdminInit.error;
@@ -126,47 +129,8 @@ function buildHeavyOperationKey(parts = []) {
     .join(":");
 }
 
-function enforceHeavyOperationRateLimit({ key, windowMs, max, message }) {
-  const now = Date.now();
-  const recent = recentHeavyOperations.get(key) || [];
-  const filtered = recent.filter((timestamp) => now - timestamp < windowMs);
-
-  if (filtered.length >= max) {
-    recentHeavyOperations.set(key, filtered);
-    throw createHttpError(429, message);
-  }
-
-  filtered.push(now);
-  recentHeavyOperations.set(key, filtered);
-}
-
-async function withHeavyOperationLock(options, operation) {
-  const normalizedKey = String(options?.key || "").trim();
-  if (!normalizedKey) {
-    return operation();
-  }
-
-  if (inFlightHeavyOperations.has(normalizedKey)) {
-    throw createHttpError(409, options.inFlightMessage || "Operation is already running");
-  }
-
-  enforceHeavyOperationRateLimit({
-    key: normalizedKey,
-    windowMs: Math.max(1_000, Number(options.rateWindowMs) || 30_000),
-    max: Math.max(1, Number(options.rateMax) || 1),
-    message: options.rateMessage || "Too many requests. Please retry later."
-  });
-
-  const token = Symbol(normalizedKey);
-  inFlightHeavyOperations.set(normalizedKey, token);
-
-  try {
-    return await operation();
-  } finally {
-    if (inFlightHeavyOperations.get(normalizedKey) === token) {
-      inFlightHeavyOperations.delete(normalizedKey);
-    }
-  }
+function withHeavyOperationLock<T>(req: Request, res: Response, options: Parameters<typeof heavyOperations.run>[0], operation: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  return withClientCancellation(req, res, signal => heavyOperations.run(options, operation, signal));
 }
 
 const corsOptions = {
@@ -252,10 +216,12 @@ app.post(API_ROUTES.uploadDocument, ifcImportLimiter, requireFirebaseAuth, expre
   if (!parsed.success) return res.status(400).json({ ok: false, error: "DOCUMENT_INVALID_ID" });
   try {
     const bytes = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
-    const result = await withHeavyOperationLock({ key: `document:${req.user.uid}:${parsed.data.projectId}`, rateWindowMs: 60000, rateMax: 5 },
+    const result = await withHeavyOperationLock(req, res, { key: `document:${req.user.uid}:${parsed.data.projectId}`, rateWindowMs: 60000, rateMax: 5 },
       () => uploadDocument(parsed.data, req.user.uid, bytes));
+    if (res.destroyed) return;
     return res.json(result);
   } catch (error) {
+    if (res.destroyed) return;
     const status = Number(error?.status) || (String(error?.message || "").startsWith("PDF_") ? 422 : 500);
     return res.status(status).json({ ok: false, error: status === 500 ? "DOCUMENT_UPLOAD_FAILED" : error.message });
   }
@@ -314,7 +280,7 @@ app.post(API_ROUTES.generateReport, generateReportLimiter, requireFirebaseAuth, 
       }
     }
 
-    const reportText = await withHeavyOperationLock(
+    const reportText = await withHeavyOperationLock(req, res,
       {
         key: buildHeavyOperationKey(["generateReport", requester, projectId, construction || "all"]),
         inFlightMessage: "Report generation is already running for this project.",
@@ -328,11 +294,13 @@ app.post(API_ROUTES.generateReport, generateReportLimiter, requireFirebaseAuth, 
       }
     );
 
+    if (res.destroyed) return;
     return res.json({
       ok: true,
       text: reportText
     });
   } catch (error) {
+    if (res.destroyed) return;
     console.error("[generateReport] Ошибка:", error);
     return res.status(error.status || 500).json({
       ok: false,
@@ -395,7 +363,7 @@ app.post(
         });
       }
 
-      const result = await withHeavyOperationLock(
+      const result = await withHeavyOperationLock(req, res,
         {
           key: buildHeavyOperationKey(["bimMutation", requester, projectId]),
           inFlightMessage: "IFC import is already running for this model.",
@@ -403,13 +371,14 @@ app.post(
           rateMax: HEAVY_OPERATION_LIMITS.ifcImport.max,
           rateMessage: "Too many IFC import requests. Please retry later."
         },
-        async () => {
-          const result = await importIfc(projectId, req.body, { sourceModelId, fileName });
+        async signal => {
+          const result = await importIfc(projectId, req.body, { sourceModelId, fileName }, signal);
           return { ...result, countsByLabel: Object.fromEntries(Object.entries(result.countsByType).map(([type, count]) => [BIM_DISPLAY_LABELS[type] || type, count])) };
 
         }
       );
 
+      if (res.destroyed) return;
       return res.json({
         ok: true,
         projectId,
@@ -421,6 +390,7 @@ app.post(
         countsByLabel: result.countsByLabel
       });
     } catch (error) {
+      if (res.destroyed) return;
       console.error("[bim/import-ifc] Ошибка:", error);
       return res.status(error.status || 500).json({
         ok: false,
@@ -463,7 +433,7 @@ app.delete(API_ROUTES.deleteBimElements, ifcImportLimiter, requireFirebaseAuth, 
       });
     }
 
-    const deletedCount = await withHeavyOperationLock(
+    const deletedCount = await withHeavyOperationLock(req, res,
       {
         key: buildHeavyOperationKey(["bimMutation", requester, projectId]),
         inFlightMessage: "BIM elements cleanup is already running for this project.",
@@ -478,6 +448,7 @@ app.delete(API_ROUTES.deleteBimElements, ifcImportLimiter, requireFirebaseAuth, 
       `[bim/elements] uid=${requester} projectId=${projectId} sourceModelId=${sourceModelId || "all"} deleted=${deletedCount}`
     );
 
+    if (res.destroyed) return;
     return res.json({
       ok: true,
       projectId,
@@ -485,6 +456,7 @@ app.delete(API_ROUTES.deleteBimElements, ifcImportLimiter, requireFirebaseAuth, 
       deletedCount
     });
   } catch (error) {
+    if (res.destroyed) return;
     console.error("[bim/elements] Ошибка:", error);
     return res.status(error.status || 500).json({
       ok: false,
@@ -556,10 +528,20 @@ const httpServer = app.listen(PORT, localDevelopment ? "127.0.0.1" : "0.0.0.0", 
   console.log(`ALLOWED_ORIGINS=${ALLOWED_ORIGINS.join(", ")}\n`);
 });
 
-async function shutdown() {
-  httpServer.close();
-  await ifcWorkers.close();
-  httpServer.closeAllConnections();
+let shutdownPromise: Promise<void> | undefined;
+function shutdown() {
+  if (!shutdownPromise) shutdownPromise = (async () => {
+    const httpClosed = new Promise<void>(resolve => httpServer.close(() => resolve()));
+    // Abort queued/parsing work, but await persistence that crossed its commit boundary.
+    try {
+      await heavyOperations.close();
+      await ifcWorkers.close();
+    } finally {
+      httpServer.closeAllConnections();
+      await httpClosed;
+    }
+  })().catch(error => { console.error("[shutdown] Failed to drain operations:", error); process.exitCode = 1; });
+  return shutdownPromise;
 }
 process.once("SIGTERM", shutdown);
 process.once("SIGINT", shutdown);
