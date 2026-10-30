@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { build } from "esbuild";
 import { initializeTestEnvironment, assertFails } from "@firebase/rules-unit-testing";
 import * as firestore from "firebase/firestore";
+import { startFirestoreTransportProxy } from "./helpers/firestore-transport-proxy.mjs";
 
 const address = process.env.FIRESTORE_EMULATOR_HOST || "";
 if (!/^(127\.0\.0\.1|localhost):\d+$/.test(address)) throw new Error("A loopback Firestore emulator is required.");
@@ -12,10 +13,22 @@ if (!/^(127\.0\.0\.1|localhost):\d+$/.test(address)) throw new Error("A loopback
 test("inspection persistence is atomic, recoverable and revision guarded in Firestore", { timeout: 120000 }, async t => {
   const [host, port] = address.split(":");
   const environment = await initializeTestEnvironment({ projectId: "demo-inspection-consistency", firestore: { host, port: Number(port), rules: await readFile("firestore.rules", "utf8") } });
-  let failRefresh = false, readGate = null, fullScans = 0;
+  let failRefresh = false, readGate = null, fullScans = 0, loseAcknowledgement = false;
   const db = environment.authenticatedContext("owner").firestore();
   const sdk = {
     ...firestore,
+    writeBatch(database) {
+      const batch = firestore.writeBatch(database);
+      const commit = batch.commit.bind(batch);
+      batch.commit = async () => {
+        await commit();
+        if (loseAcknowledgement) {
+          loseAcknowledgement = false;
+          throw Object.assign(new Error("synthetic lost write acknowledgement"), { code: "unavailable" });
+        }
+      };
+      return batch;
+    },
     async runTransaction(...args) { if (failRefresh) { failRefresh = false; throw new Error("synthetic analytics interruption"); } return firestore.runTransaction(...args); },
     async getDocs(reference) { const result = await firestore.getDocs(reference); if (readGate) await readGate(reference.path); return result; }
   };
@@ -71,6 +84,26 @@ test("inspection persistence is atomic, recoverable and revision guarded in Fire
       assert.equal(saved.analyticsCurrent.exceededCount, 1);
       assert.equal(saved.inspectionSync.pending, false);
     });
+    await t.test("lost acknowledgement and repeated saves preserve one source and one registry identity", async () => {
+      const retryProject = "retry-project";
+      await firestore.setDoc(firestore.doc(db, "projects", retryProject), { ownerUid: "owner", createdBy: "owner" });
+      // Let the real repository allocate the ID, then retry the same operation.
+      const input = { evaluationSchemaVersion: 2, status: "ok", actual: 31 };
+      loseAcknowledgement = true;
+      await assert.rejects(service.createCheck(retryProject, input), { code: "unavailable" });
+      assert.ok(input.id);
+      const id = input.id;
+      assert.equal((await runtime.getProjectCollectionSnapshot(retryProject, "strengthChecks")).size, 1);
+      assert.equal((await runtime.getProjectCollectionSnapshot(retryProject, "inspections")).size, 1);
+      await Promise.all(Array.from({ length: 5 }, () => service.createCheck(retryProject, { ...input })));
+      const reopened = runtime.createFirestoreStrengthService({ getCurrentUserId: () => "owner" });
+      assert.deepEqual([...(await reopened.loadChecks(retryProject)).keys()], [id]);
+      assert.equal((await reopened.loadChecks(retryProject)).get(id).actual, 31);
+      assert.deepEqual((await runtime.getProjectCollectionSnapshot(retryProject, "inspections")).docs.map(doc => doc.id), [`strengthChecks_${id}`]);
+      const saved = (await runtime.getProjectDocSnapshot(retryProject)).data();
+      assert.equal(saved.analyticsCurrent.totalChecks, 1);
+      assert.equal(saved.inspectionSync.pending, false);
+    });
     await t.test("a stale snapshot cannot clear the marker of a newer save", async () => {
       let entered, release;
       const waiting = new Promise(resolve => { entered = resolve; });
@@ -121,31 +154,50 @@ test("inspection persistence is atomic, recoverable and revision guarded in Fire
 });
 
 
-test("browser Firestore channel cancellation does not leak AbortError on rejected reads and reconnects", { timeout: 60000 }, async () => {
+test("browser Firestore retries and channel cancellation remain consistent across tabs and reconnects", { timeout: 60000 }, async t => {
   const { chromium } = await import("playwright");
   const { startStaticServer } = await import("../smoke/helpers/static-server.mjs");
   const { resolve } = await import("node:path");
+  const [host, port] = address.split(":");
+  const projectId = "demo-inspection-transport";
+  const environment = await initializeTestEnvironment({ projectId, firestore: { host, port: Number(port), rules: await readFile("firestore.rules", "utf8") } });
   const temporaryRoot = await mkdtemp(resolve(tmpdir(), "tehnadzor-channel-"));
-  await build({
-    entryPoints: ["app", "auth", "firestore"].map(name => resolve(`src/client/infrastructure/firebase/${name}.ts`)),
-    outdir: resolve(temporaryRoot, "infrastructure/firebase"), entryNames: "[name]",
-    bundle: true, splitting: true, format: "esm", platform: "browser", target: "es2022"
-  });
-  const server = await startStaticServer(temporaryRoot);
-  const browser = await chromium.launch({ headless: true, ...(process.platform === "win32" ? { channel: "chrome" } : {}) });
-  const page = await browser.newPage();
-  const errors = [];
-  page.on("pageerror", error => errors.push(error.message));
+  let server, browser, transportProxy;
   try {
-    await page.route("**/*", route => {
+    transportProxy = await startFirestoreTransportProxy(address);
+    const browserAddress = transportProxy.address;
+    await build({
+      entryPoints: [...["app", "auth", "firestore"].map(name => resolve(`src/client/infrastructure/firebase/${name}.ts`)), resolve("src/client/app/repositories/firestore-repository.ts")],
+      outdir: resolve(temporaryRoot, "infrastructure/firebase"), entryNames: "[name]",
+      bundle: true, splitting: true, format: "esm", platform: "browser", target: "es2022", minify: true,
+      plugins: [{ name: "browser-emulator-db", setup(context) {
+        context.onResolve({ filter: /(?:^|\/)firebase\.js$/ }, () => ({ path: "db", namespace: "browser-emulator" }));
+        context.onResolve({ filter: /bim-repository\.js$/ }, () => ({ path: "bim", namespace: "browser-emulator" }));
+        context.onLoad({ filter: /.*/, namespace: "browser-emulator" }, args => ({ resolveDir: process.cwd(), contents: args.path === "db"
+          ? `import {getFirestore} from ${JSON.stringify(resolve("src/client/infrastructure/firebase/firestore.ts").replaceAll("\\", "/"))}; export const db=getFirestore();`
+          : "export function getProjectBimSnapshot(){throw Error('BIM outside transport test');} export function hideProjectBimModels(){}" }));
+      } }]
+    });
+    server = await startStaticServer(temporaryRoot);
+    browser = await chromium.launch({ headless: true, ...(process.platform === "win32" ? { channel: "chrome" } : {}) });
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    const errors = [], consoleErrors = [];
+    context.on("page", page => {
+      page.on("pageerror", error => errors.push(error.message));
+      page.on("console", message => { if (message.type() === "error") consoleErrors.push(message.text()); });
+    });
+    page.on("console", message => { if (message.type() === "error") consoleErrors.push(message.text()); });
+    page.on("pageerror", error => errors.push(error.message));
+    await context.route("**/*", route => {
       const origin = new URL(route.request().url()).origin;
-      return origin === server.url || origin === `http://${address}` ? route.continue() : route.abort();
+      return origin === server.url || origin === `http://${browserAddress}` ? route.continue() : route.abort();
     });
     await page.goto(server.url + "/infrastructure/firebase/app.js");
-    const result = await page.evaluate(async address => {
+    const result = await page.evaluate(async ({ address, projectId }) => {
       const appSdk = await import("/infrastructure/firebase/app.js");
       const sdk = await import("/infrastructure/firebase/firestore.js");
-      const app = appSdk.initializeApp({ apiKey: "demo-key", projectId: "demo-inspection-consistency", appId: "demo-browser" });
+      const app = appSdk.initializeApp({ apiKey: "demo-key", projectId, appId: "demo-browser" });
       const db = sdk.initializeFirestore(app, { localCache: sdk.persistentLocalCache({ tabManager: sdk.persistentMultipleTabManager() }) });
       const [host, port] = address.split(":");
       sdk.connectFirestoreEmulator(db, host, Number(port), { mockUserToken: { sub: "foreign" } });
@@ -173,10 +225,130 @@ test("browser Firestore channel cancellation does not leak AbortError on rejecte
         await new Promise(resolve => setTimeout(resolve, 100));
       } finally { AbortController.prototype.abort = abort; }
       return { denied, unhandled, reasons };
-    }, address);
+    }, { address: browserAddress, projectId });
     assert.equal(result.denied, 5);
     assert.deepEqual(result.unhandled, []);
     assert.deepEqual(errors, []);
     assert.ok(result.reasons.includes("AbortError"), "exercise real SDK channel cancellation");
-  } finally { await browser.close(); await server.close(); await rm(temporaryRoot, { recursive: true, force: true }); }
+    // The same origin and browser context share IndexedDB and its primary lease.
+    const peer = await context.newPage();
+    for (const tab of [page, peer]) {
+      await tab.goto(server.url + "/infrastructure/firebase/app.js");
+      await tab.evaluate(async ({ address, projectId }) => {
+        const appSdk = await import("/infrastructure/firebase/app.js");
+        const sdk = await import("/infrastructure/firebase/firestore.js");
+        const app = appSdk.initializeApp({ apiKey: "demo-key", projectId, appId: "demo-owner" });
+        const db = sdk.initializeFirestore(app, { localCache: sdk.persistentLocalCache({ tabManager: sdk.persistentMultipleTabManager() }) });
+        const [host, port] = address.split(":");
+        sdk.connectFirestoreEmulator(db, host, Number(port), { mockUserToken: { sub: "owner" } });
+        const repository = await import("/infrastructure/firebase/firestore-repository.js");
+        if (appSdk.getApps().length !== 1 || sdk.getFirestore() !== db) throw Error("Firebase runtime was initialized more than once");
+        const state = { appSdk, sdk, app, db, repository, unhandled: [], aborts: 0, abortReasons: [], listeners: 0 };
+        globalThis.transportTest = state;
+        globalThis.addEventListener("unhandledrejection", event => state.unhandled.push(String(event.reason)));
+        const abort = AbortController.prototype.abort;
+        AbortController.prototype.abort = function(...args) {
+          const result = abort.apply(this, args);
+          state.aborts += 1; state.abortReasons.push(this.signal.reason?.name);
+          state.firstAbortMessage ??= this.signal.reason?.message;
+          return result;
+        };
+      }, { address: browserAddress, projectId });
+    }
+    await page.evaluate(async () => {
+      const { sdk, db } = globalThis.transportTest;
+      await sdk.setDoc(sdk.doc(db, "projects", "transport-project"), { ownerUid: "owner", createdBy: "owner" });
+    });
+    async function exercise(tab) {
+      return tab.evaluate(async () => {
+        const state = globalThis.transportTest;
+        const { sdk, db, repository } = state;
+        for (let cycle = 0; cycle < 10; cycle += 1) {
+          // Both tabs repeatedly write the same logical identity through the real repository.
+          await repository.saveInspectionSourceDoc("transport-project", "strengthChecks", "same-check",
+            { actual: 31, evaluationSchemaVersion: 2, status: "ok" },
+            { sourceCollection: "strengthChecks", sourceId: "same-check", sourceDocId: "same-check", checkStatus: "ok" });
+          const reference = sdk.doc(db, "projects", "transport-project", "strengthChecks", "same-check");
+          await Promise.all(Array.from({ length: 10 }, async () => {
+            const snapshot = await sdk.getDocFromServer(reference);
+            if (snapshot.data().actual !== 31) throw Error("saved evidence changed");
+          }));
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => { stop(); reject(Error("server snapshot did not arrive")); }, 10000);
+            const stop = repository.watchDocSync(reference, snapshot => {
+              if (snapshot.metadata.fromCache) return;
+              clearTimeout(timeout); stop(); state.listeners += 1; resolve();
+            }, error => { clearTimeout(timeout); stop(); reject(error); });
+          });
+        }
+      });
+    }
+    await Promise.all([exercise(page), exercise(peer)]);
+    const peerResult = await peer.evaluate(async () => {
+      const state = globalThis.transportTest;
+      await state.sdk.terminate(state.db);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return { listeners: state.listeners, unhandled: state.unhandled };
+    });
+    assert.equal(peerResult.listeners, 10);
+    assert.deepEqual(peerResult.unhandled, []);
+    await peer.close();
+    const offlineCode = await page.evaluate(async () => {
+      const { sdk, db } = globalThis.transportTest;
+      await sdk.disableNetwork(db);
+      return sdk.getDocFromServer(sdk.doc(db, "projects", "transport-project", "strengthChecks", "same-check"))
+        .then(() => "unexpected-success", error => error.code);
+    });
+    assert.equal(offlineCode, "unavailable");
+    await page.evaluate(async () => {
+      const { sdk, db } = globalThis.transportTest;
+      await sdk.enableNetwork(db);
+      const saved = await sdk.getDocFromServer(sdk.doc(db, "projects", "transport-project", "strengthChecks", "same-check"));
+      if (saved.data().actual !== 31) throw Error("reconnect lost saved evidence");
+    });
+    assert.deepEqual(consoleErrors, []);
+    transportProxy.dropNextListenResponse();
+    await page.evaluate(async () => {
+      const { sdk, db } = globalThis.transportTest;
+      const saved = await sdk.getDocFromServer(sdk.doc(db, "projects", "transport-project", "strengthChecks", "same-check"));
+      if (saved.data().actual !== 31) throw Error("network interruption lost saved evidence");
+    });
+    assert.equal(transportProxy.disconnects, 1, "the real Listen response was interrupted");
+    // Close/reopen the persisted runtime without deleting IndexedDB.
+    await page.evaluate(async () => {
+      const { sdk, db, appSdk, app } = globalThis.transportTest;
+      await sdk.terminate(db);
+      await appSdk.deleteApp(app);
+    });
+    await page.evaluate(async ({ address, projectId }) => {
+      const state = globalThis.transportTest;
+      const { sdk, appSdk } = state;
+      state.app = appSdk.initializeApp({ apiKey: "demo-key", projectId, appId: "demo-owner" });
+      state.db = sdk.initializeFirestore(state.app, { localCache: sdk.persistentLocalCache({ tabManager: sdk.persistentMultipleTabManager() }) });
+      const [host, port] = address.split(":");
+      sdk.connectFirestoreEmulator(state.db, host, Number(port), { mockUserToken: { sub: "owner" } });
+    }, { address: browserAddress, projectId });
+    const reopened = await page.evaluate(async () => {
+      const { sdk, db } = globalThis.transportTest;
+      const sources = await sdk.getDocsFromServer(sdk.collection(db, "projects", "transport-project", "strengthChecks"));
+      const registry = await sdk.getDocsFromServer(sdk.collection(db, "projects", "transport-project", "inspections"));
+      await sdk.terminate(db);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return { sourceIds: sources.docs.map(doc => doc.id), values: sources.docs.map(doc => doc.data().actual), registryIds: registry.docs.map(doc => doc.id),
+        aborts: globalThis.transportTest.aborts, firstAbortMessage: globalThis.transportTest.firstAbortMessage, abortReasons: globalThis.transportTest.abortReasons, listeners: globalThis.transportTest.listeners, unhandled: globalThis.transportTest.unhandled };
+    });
+    assert.deepEqual(reopened.sourceIds, ["same-check"]);
+    assert.deepEqual(reopened.registryIds, ["strengthChecks_same-check"]);
+    assert.deepEqual(reopened.values, [31]);
+    assert.equal(reopened.listeners, 10);
+    assert.ok(reopened.aborts > 0);
+    assert.ok(reopened.abortReasons.includes("AbortError"));
+    t.diagnostic(JSON.stringify({ repeatedSaves: 20, serverReads: 200, completedSubscriptions: reopened.listeners + peerResult.listeners, abortsInSurvivingTab: reopened.aborts, firstAbortMessage: reopened.firstAbortMessage,
+      unhandledRejections: reopened.unhandled.length + peerResult.unhandled.length, pageErrors: errors.length, injectedDisconnects: transportProxy.disconnects, expectedNetworkConsoleErrors: consoleErrors.length }));
+    assert.deepEqual(reopened.unhandled, []);
+    assert.deepEqual(errors, []);
+    assert.ok(consoleErrors.every(message => /^Failed to load resource: net::ERR_/.test(message)), consoleErrors.join("\n"));
+  } finally {
+    await Promise.all([browser?.close(), server?.close(), transportProxy?.close(), environment.cleanup(), rm(temporaryRoot, { recursive: true, force: true })]);
+  }
 });
