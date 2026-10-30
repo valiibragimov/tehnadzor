@@ -9,6 +9,7 @@ let sequence = 0, failWrite = null, readGate = null, partialCache = false;
 let fullRegistryReads = 0;
 let registryDocumentsRead = 0, aliasQueries = 0;
 let afterCommit = null;
+let requireProductionIndexes = false, failAliasField = null;
 const ref = (...parts) => ({ path: parts.filter(part => typeof part === "string").join("/"), get id() { return this.path.split("/").at(-1); } });
 function mergeFields(previous = {}, incoming) {
   const result = structuredClone(previous);
@@ -34,6 +35,20 @@ const sdk = {
   doc: (parent, ...parts) => typeof parent?.path === "string" ? ref(parent.path, ...(parts.length ? parts : [`auto-${++sequence}`])) : ref(...parts),
   getDoc: async reference => snapshot(reference),
   getDocs: async reference => {
+    if (failAliasField && reference.filters?.some(filter => filter.field === failAliasField)) {
+      const error = Object.assign(new Error("alias lookup denied"), { code: "permission-denied" });
+      error.stack = error.message;
+      throw error;
+    }
+    // The emulator accepts this mixed OR, but the production planner requires
+    // an extra index when a document-ID branch is combined with field branches.
+    if (requireProductionIndexes && reference.filters?.some(filter =>
+      filter.kind === "or" && filter.filters.some(child => child.field === "__name__") &&
+      filter.filters.some(child => child.field !== "__name__"))) {
+      const error = Object.assign(new Error("The query requires an index (inspections)."), { code: "failed-precondition" });
+      error.stack = error.message;
+      throw error;
+    }
     if (reference.path.endsWith("/inspections") && !reference.filters?.length) fullRegistryReads += 1;
     function matches(document, filter) {
       if (filter.kind === "or") return filter.filters.some(child => matches(document, child));
@@ -316,12 +331,61 @@ test("sequential saves have a measured registry-read budget and retain recoverab
     // Upper bounds are a performance contract, not a requirement to keep full scans.
     assert.ok(fullRegistryReads <= saves, `at most one registry scan per save (${existing}/${saves})`);
     assert.ok(registryDocumentsRead <= expectedDocuments, `registry document budget (${existing}/${saves})`);
-    assert.ok(aliasQueries <= saves, "at most one targeted alias query per save");
+    assert.ok(aliasQueries <= saves * 3, "at most three targeted alias queries per save");
     const saved = (await runtime.getProjectDocSnapshot(project)).data();
     assert.equal(saved.analyticsCurrent.totalChecks, existing + saves);
     assert.equal(saved.analyticsCurrent.exceededCount, saves);
     assert.equal(saved.inspectionSync.pending, false);
     assert.equal((await service.loadChecks(project)).size, saves);
     t.diagnostic(JSON.stringify({ existing, saves, fullRegistryReads, registryDocumentsRead, aliasQueries, syntheticElapsedMs: elapsedMs }));
+  }
+});
+
+
+test("production index constraints cannot block saving, reopening or retrying a check", async () => {
+  reset();
+  requireProductionIndexes = true;
+  try {
+    const input = { id: "index-check", evaluationSchemaVersion: 2, status: "ok", actual: 31 };
+    await service.createCheck(project, input);
+    const reopened = runtime.createFirestoreStrengthService({ getCurrentUserId: () => "owner" });
+    assert.equal((await reopened.loadChecks(project)).get(input.id).actual, 31);
+    await reopened.createCheck(project, { ...input });
+    assert.equal((await reopened.loadChecks(project)).size, 1);
+    assert.equal((await runtime.getProjectCollectionSnapshot(project, "inspections")).size, 1);
+    await reopened.deleteCheck(project, input.id);
+    assert.equal((await reopened.loadChecks(project)).size, 0);
+  } finally { requireProductionIndexes = false; }
+});
+
+
+test("overlapping alias queries update each legacy document once and preserve foreign identities", async () => {
+  reset();
+  await runtime.setProjectCollectionDoc(project, "inspections", "strengthChecks_check", { sourceCollection: "strengthChecks", sourceId: "check", sourceDocId: "check", retainedEvidence: "preserve" });
+  let committedPaths;
+  afterCommit = async paths => { if (paths.some(path => path.endsWith("/strengthChecks/check"))) committedPaths = paths; };
+  await service.updateCheck(project, "check", { evaluationSchemaVersion: 2, status: "ok" });
+  assert.equal(committedPaths.length, 3);
+  assert.equal(new Set(committedPaths).size, committedPaths.length);
+  assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", "strengthChecks_check")).data().retainedEvidence, "preserve");
+  await runtime.setProjectCollectionDoc(project, "inspections", "strengthChecks_occupied", { sourceCollection: "geoNodes", sourceId: "other", factX: 20 });
+  await assert.rejects(service.updateCheck(project, "occupied", { status: "ok" }), /identity is already occupied/);
+  assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "strengthChecks", "occupied")).exists(), false);
+  assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", "strengthChecks_occupied")).data().factX, 20);
+});
+
+test("failure of any alias query preserves all saved evidence and propagates the Firebase error", async () => {
+  for (const field of ["sourceId", "sourceDocId", "__name__"]) {
+    reset();
+    await service.updateCheck(project, "check", { evaluationSchemaVersion: 2, status: "ok", actual: 31 });
+    const before = structuredClone(records);
+    failAliasField = field;
+    try {
+      await assert.rejects(service.updateCheck(project, "check", { status: "exceeded", actual: 20 }), { code: "permission-denied" });
+      assert.deepEqual(records, before);
+    } finally { failAliasField = null; }
+    await service.updateCheck(project, "check", { evaluationSchemaVersion: 2, status: "exceeded", actual: 20 });
+    assert.equal((await service.loadChecks(project)).get("check").actual, 20);
+    assert.equal((await runtime.getProjectCollectionSnapshot(project, "inspections")).size, 1);
   }
 });

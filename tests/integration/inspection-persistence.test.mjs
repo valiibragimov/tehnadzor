@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { build } from "esbuild";
 import { initializeTestEnvironment, assertFails } from "@firebase/rules-unit-testing";
 import * as firestore from "firebase/firestore";
@@ -41,6 +42,17 @@ test("inspection persistence is atomic, recoverable and revision guarded in Fire
     const project = "inspection-project";
     await firestore.setDoc(firestore.doc(db, "projects", project), { ownerUid: "owner", createdBy: "owner" });
     const service = runtime.createFirestoreStrengthService({ getCurrentUserId: () => "owner" });
+    await t.test("unauthenticated and foreign users cannot save inspection evidence", async () => {
+      for (const [name, context] of [["anonymous", environment.unauthenticatedContext()], ["foreign", environment.authenticatedContext("foreign")]]) {
+        globalThis.integrationInspectionDb = context.firestore();
+        const deniedRuntime = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString("base64")}#${name}`);
+        await assertFails(deniedRuntime.saveInspectionSourceDoc(project, "strengthChecks", "denied", { actual: 20 }, { sourceCollection: "strengthChecks", sourceId: "denied" }));
+        assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "strengthChecks", "denied")).exists(), false);
+        assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", "strengthChecks_denied")).exists(), false);
+        assert.equal((await runtime.getProjectDocSnapshot(project)).data().inspectionSync, undefined);
+      }
+      globalThis.integrationInspectionDb = db;
+    });
     await t.test("Firestore rejection cannot commit just one representation", async () => {
       await assertFails(runtime.saveInspectionSourceDoc(project, "elements", "forbidden", { name: "forbidden BIM write" }, { moduleKey: "strength", evaluationSchemaVersion: 2, checkStatus: "ok" }));
       assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", "elements_forbidden")).exists(), false);
@@ -106,4 +118,65 @@ test("inspection persistence is atomic, recoverable and revision guarded in Fire
     delete globalThis.integrationInspectionDb;
     await environment.cleanup();
   }
+});
+
+
+test("browser Firestore channel cancellation does not leak AbortError on rejected reads and reconnects", { timeout: 60000 }, async () => {
+  const { chromium } = await import("playwright");
+  const { startStaticServer } = await import("../smoke/helpers/static-server.mjs");
+  const { resolve } = await import("node:path");
+  const temporaryRoot = await mkdtemp(resolve(tmpdir(), "tehnadzor-channel-"));
+  await build({
+    entryPoints: ["app", "auth", "firestore"].map(name => resolve(`src/client/infrastructure/firebase/${name}.ts`)),
+    outdir: resolve(temporaryRoot, "infrastructure/firebase"), entryNames: "[name]",
+    bundle: true, splitting: true, format: "esm", platform: "browser", target: "es2022"
+  });
+  const server = await startStaticServer(temporaryRoot);
+  const browser = await chromium.launch({ headless: true, ...(process.platform === "win32" ? { channel: "chrome" } : {}) });
+  const page = await browser.newPage();
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  try {
+    await page.route("**/*", route => {
+      const origin = new URL(route.request().url()).origin;
+      return origin === server.url || origin === `http://${address}` ? route.continue() : route.abort();
+    });
+    await page.goto(server.url + "/infrastructure/firebase/app.js");
+    const result = await page.evaluate(async address => {
+      const appSdk = await import("/infrastructure/firebase/app.js");
+      const sdk = await import("/infrastructure/firebase/firestore.js");
+      const app = appSdk.initializeApp({ apiKey: "demo-key", projectId: "demo-inspection-consistency", appId: "demo-browser" });
+      const db = sdk.initializeFirestore(app, { localCache: sdk.persistentLocalCache({ tabManager: sdk.persistentMultipleTabManager() }) });
+      const [host, port] = address.split(":");
+      sdk.connectFirestoreEmulator(db, host, Number(port), { mockUserToken: { sub: "foreign" } });
+      const unhandled = [], reasons = [];
+      globalThis.addEventListener("unhandledrejection", event => unhandled.push(String(event.reason)));
+      const abort = AbortController.prototype.abort;
+      AbortController.prototype.abort = function(...args) {
+        const result = abort.apply(this, args);
+        reasons.push(this.signal.reason?.name);
+        return result;
+      };
+      let denied = 0;
+      try {
+        for (let cycle = 0; cycle < 5; cycle += 1) {
+          await sdk.getDocsFromServer(sdk.collection(db, "projects", "inspection-project", "inspections")).catch(error => {
+            if (error.code !== "permission-denied") throw error;
+            denied += 1;
+          });
+          await sdk.disableNetwork(db);
+          await sdk.enableNetwork(db);
+        }
+        await sdk.terminate(db);
+        await sdk.clearIndexedDbPersistence(db);
+        await appSdk.deleteApp(app);
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } finally { AbortController.prototype.abort = abort; }
+      return { denied, unhandled, reasons };
+    }, address);
+    assert.equal(result.denied, 5);
+    assert.deepEqual(result.unhandled, []);
+    assert.deepEqual(errors, []);
+    assert.ok(result.reasons.includes("AbortError"), "exercise real SDK channel cancellation");
+  } finally { await browser.close(); await server.close(); await rm(temporaryRoot, { recursive: true, force: true }); }
 });

@@ -14,7 +14,6 @@ import {
   type QuerySnapshot,
   type DocumentData,
   orderBy,
-  or,
   query,
   runTransaction,
   setDoc,
@@ -213,17 +212,23 @@ export function getInspectionRegistrySnapshot(projectId: string) {
   return getDocsFromServer(getProjectCollectionRef(projectId, "inspections"));
 }
 
-function getInspectionSourceSnapshot(projectId: string, sourceCollection: string, sourceIds: string[]) {
+async function getInspectionSourceSnapshot(projectId: string, sourceCollection: string, sourceIds: string[]) {
   const registry = getProjectCollectionRef(projectId, "inspections");
   if (sourceIds.length !== 1) {
     return getDocsFromServer(query(registry, where("sourceCollection", "==", sourceCollection)));
   }
   const sourceId = sourceIds[0];
-  return getDocsFromServer(query(registry, or(
-    where("sourceId", "==", sourceId),
-    where("sourceDocId", "==", sourceId),
-    where(documentId(), "in", [sourceId, `${sourceCollection}_${sourceId}`])
-  )));
+  // Mixing field filters and document IDs in one OR requires an additional
+  // production index (the emulator does not enforce it). Separate simple
+  // queries use automatic indexes and retain every supported legacy identity.
+  // Fail closed: never write from an incomplete alias lookup or offline cache.
+  const snapshots = await Promise.all([
+    getDocsFromServer(query(registry, where("sourceId", "==", sourceId))),
+    getDocsFromServer(query(registry, where("sourceDocId", "==", sourceId))),
+    getDocsFromServer(query(registry, where(documentId(), "in", [sourceId, `${sourceCollection}_${sourceId}`])))
+  ]);
+  const documents = new Map(snapshots.flatMap(snapshot => snapshot.docs.map(document => [document.id, document] as const)));
+  return { docs: [...documents.values()] };
 }
 
 export async function saveInspectionSourceDoc(
