@@ -45,7 +45,8 @@
     "test:documents": "npm run build:server:ts && npx --yes firebase-tools@15.33.0 emulators:exec --only firestore,storage --project demo-tehnadzor-documents --config firebase.emulator.json \"node --test tests/integration/documents.test.mjs\"",
     "test:integration": "npm run build:server:ts && npx --yes firebase-tools@15.33.0 emulators:exec --only firestore --project demo-tehnadzor-test --config firebase.emulator.json \"node --test tests/integration/firestore.test.mjs tests/integration/inspection-persistence.test.mjs\"",
     "build:local": "node scripts/build/build-local.mjs",
-    "dev:local": "npm run build:local && npm run build:server:ts && npx --yes firebase-tools@15.33.0 emulators:exec --only auth,firestore,storage --project demo-tehnadzor-approbation --config firebase.emulator.json --import output/approbation/local-web-export \"node scripts/dev/local-api.mjs\""
+    "dev:local": "npm run build:local && npm run build:server:ts && npx --yes firebase-tools@15.33.0 emulators:exec --only auth,firestore,storage --project demo-tehnadzor-approbation --config firebase.emulator.json --import output/approbation/local-web-export \"node scripts/dev/local-api.mjs\"",
+    "postinstall": "node scripts/build/redocly-compat.mjs"
   },
   "dependencies": {
     "@ifc-lite/data": "^1.11.0",
@@ -63,6 +64,7 @@
     "@apidevtools/swagger-parser": "^13.1.0",
     "@eslint/js": "^10.0.1",
     "@firebase/rules-unit-testing": "^5.0.2",
+    "@redocly/openapi-core": "1.34.20",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.5.0",
@@ -80,6 +82,7 @@
     "protobufjs": "7.6.5",
     "websocket-driver": "0.7.5",
     "@grpc/grpc-js": "1.14.6",
-    "brace-expansion": "5.0.12"
+    "brace-expansion": "5.0.12",
+    "minimatch": "11.0.1"
   }
 }

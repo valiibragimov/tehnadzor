@@ -1,0 +1,25 @@
+# Dependency audit compatibility / Совместимость зависимостей
+
+## English
+
+The 31 October 2026 root audit reports 13 moderate dependency entries for one advisory, [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249). They propagate from minimatch through ESLint/TypeScript tooling and Redocly/openapi-typescript; they are not 13 independent application exploits. The advisory marks `<11.0.1` affected. Root minimatch was 10.2.5 and Redocly's nested copy was 5.1.9.
+
+We override minimatch to exactly 11.0.1. It supports the project's Node 22 runtime. The modern named API works for the lint/TypeScript consumers. Redocly 1.34.20 alone expects a callable CommonJS export. `npm ci` therefore explicitly logs and applies a single import adaptation (`require("minimatch").minimatch`, expressed as destructuring). Its exact version and entire pristine/patched source are checked. Unknown source/version fails installation; repeated installation is idempotent. No matcher algorithm, options, audit rule, severity or advisory metadata is changed. No new patching dependency is added.
+
+`scripts/build/redocly-compat.mjs` is a temporary, visible vendor compatibility patch, not a vulnerability suppression. API generation checks it before using Redocly. With lifecycle scripts disabled, explicitly run `node scripts/build/redocly-compat.mjs` before API generation, or generation fails. Do not edit installed dependencies by hand. When updating Redocly, remove this patch only after verifying its native matcher API, remote header behavior and generated API artifacts; unknown updates deliberately require review.
+
+Alternatives tested: ordinary audit fix leaves the finding; forcing npm's suggested downgrades is rejected. A bare minimatch override passes audit but breaks public Redocly `readFileFromUrl` header matching (`TypeError: minimatch is not a function`). Updating Redocly within 1.x still retains that callable import. Redocly 2.7.0 and 2.72.1 use modern matching but break openapi-typescript 7.13.0 imports of private `lib/ref-utils.js` (`ERR_PACKAGE_PATH_NOT_EXPORTED`). The localized import adaptation avoids changing API generation libraries, output or application APIs.
+
+Regression tests use synthetic customFetch responses, no network, checking included/excluded headers, URL scheme handling, braces, empty headers and HTTP errors. Lifecycle checks cover missing patches, source/version drift and idempotence. Full API checks, lint, typecheck, build, tests and all package audits remain required. Exotic old minimatch glob behavior is not guaranteed beyond tested supported patterns; this repository supplies no custom remote header globs. No production exploitability is asserted.
+
+## Русский
+
+Аудит корневого пакета 31 октября 2026 сообщает 13 moderate-записей, связанных с одной advisory GHSA-g3hv-75wg-m249. Они распространяются по цепочкам ESLint/TypeScript и Redocly/openapi-typescript; это не 13 независимых уязвимостей приложения. Advisory считает затронутыми версии `<11.0.1`. До исправления использовались minimatch 10.2.5 и вложенная версия 5.1.9 у Redocly.
+
+Override закрепляет minimatch 11.0.1, совместимый с Node 22. Именованный API подходит потребителям lint/TypeScript, но Redocly 1.34.20 ожидает вызываемый CommonJS export. Поэтому `npm ci` явно сообщает и применяет однострочную адаптацию импорта через destructuring. Проверяются точная версия и полный hash исходного/исправленного файла. Незнакомый исходник или версия останавливают установку; повторный запуск идемпотентен. Алгоритм matching, параметры, правила аудита, severity и advisory не меняются. Новых зависимостей для patching нет.
+
+`scripts/build/redocly-compat.mjs` — временная документированная адаптация vendor-кода, не подавление уязвимости. Генерация API проверяет её наличие. Если lifecycle scripts отключены, сначала явно выполните `node scripts/build/redocly-compat.mjs`, иначе генерация завершится ошибкой. Не правьте node_modules вручную. При обновлении Redocly адаптацию можно удалить только после проверки его собственного matcher API, удалённых заголовков и неизменности API-артефактов. Неизвестное обновление намеренно требует ревью.
+
+Проверенные альтернативы: обычный audit fix оставляет finding; принудительные откаты npm отвергнуты. Один override делает аудит зелёным, но ломает readFileFromUrl с заголовками. Обновление Redocly внутри 1.x оставляет старый импорт. Версии 2.7.0/2.72.1 ломают импорты private lib/ref-utils.js у openapi-typescript 7.13.0. Локальная адаптация сохраняет генератор, его результат и API приложения.
+
+Регрессии используют синтетический customFetch без сети: включение/исключение заголовков, явную/неявную схему URL, braces, пустые заголовки и HTTP-ошибки. Проверяются отсутствие patch, изменение версии/исходника и идемпотентность. Все API checks, lint, typecheck, сборка, тесты и аудиты остаются обязательными. Экзотические glob-паттерны старой версии вне проверенных случаев не гарантируются; проект не задаёт свои remote header globs. Наличие production-exploit не утверждается.

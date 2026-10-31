@@ -3,6 +3,9 @@ import { createRequire } from "node:module";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import openapiTS, { astToString } from "openapi-typescript";
 import SwaggerParser from "@apidevtools/swagger-parser";
+import { ensureRedoclyCompatibility } from "./redocly-compat.mjs";
+
+await ensureRedoclyCompatibility({ checkOnly: true });
 
 const require = createRequire(import.meta.url);
 const { z } = require("../../server/node_modules/zod");
