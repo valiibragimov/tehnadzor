@@ -6,7 +6,7 @@ import { build } from "esbuild";
 // the Firestore SDK boundary. Batches stage writes until commit succeeds.
 const records = new Map();
 let sequence = 0, failWrite = null, readGate = null, partialCache = false;
-let fullRegistryReads = 0;
+let fullRegistryReads = 0, pointReads = 0;
 let registryDocumentsRead = 0, aliasQueries = 0;
 let afterCommit = null;
 let requireProductionIndexes = false, failAliasField = null;
@@ -26,14 +26,14 @@ function writer() {
     set(reference, value, options) { paths.push(reference.path); writes.push(() => records.set(reference.path, options?.merge ? mergeFields(records.get(reference.path), value) : structuredClone(value))); return api; },
     delete(reference) { paths.push(reference.path); writes.push(() => records.delete(reference.path)); return api; },
     async commit() { if (failWrite && failWrite(paths)) { failWrite = null; const error = new Error("batch rejected"); error.stack = error.message; throw error; } writes.forEach(write => write()); if (afterCommit) await afterCommit(paths); },
-    async get(reference) { return snapshot(reference); }
+    async get(reference) { pointReads += 1; return snapshot(reference); }
   };
   return api;
 }
 const sdk = {
   collection: (_, ...parts) => ref(...parts),
   doc: (parent, ...parts) => typeof parent?.path === "string" ? ref(parent.path, ...(parts.length ? parts : [`auto-${++sequence}`])) : ref(...parts),
-  getDoc: async reference => snapshot(reference),
+  getDoc: async reference => { pointReads += 1; return snapshot(reference); },
   getDocs: async reference => {
     if (failAliasField && reference.filters?.some(filter => filter.field === failAliasField)) {
       const error = Object.assign(new Error("alias lookup denied"), { code: "permission-denied" });
@@ -93,7 +93,7 @@ const bundle = await build({
 const runtime = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString("base64")}`);
 const service = runtime.createFirestoreStrengthService({ getCurrentUserId: () => "owner" });
 const project = "synthetic-project";
-function reset() { records.clear(); failWrite = null; readGate = null; afterCommit = null; partialCache = false; fullRegistryReads = 0; registryDocumentsRead = 0; aliasQueries = 0; records.set(`projects/${project}`, { ownerUid: "owner", createdBy: "owner" }); }
+function reset() { records.clear(); failWrite = null; readGate = null; afterCommit = null; partialCache = false; fullRegistryReads = 0; pointReads = 0; registryDocumentsRead = 0; aliasQueries = 0; records.set(`projects/${project}`, { ownerUid: "owner", createdBy: "owner" }); }
 
 test("a rejected inspection batch leaves both the previous source and registry intact", async () => {
   reset();
@@ -316,7 +316,7 @@ test("targeted alias reads retain sourceDocId and document-ID legacy links witho
 });
 
 test("sequential saves have a measured registry-read budget and retain recoverable analytics", async t => {
-  for (const [existing, saves, expectedDocuments] of [[0, 10, 55], [0, 50, 1275], [0, 100, 5050], [1000, 100, 105050]]) {
+  for (const [existing, saves] of [[0, 10], [0, 50], [0, 100], [1000, 100]]) {
     reset();
     for (let index = 0; index < existing; index += 1) {
       await runtime.setProjectCollectionDoc(project, "inspections", `existing-${index}`, {
@@ -328,19 +328,125 @@ test("sequential saves have a measured registry-read budget and retain recoverab
       await service.createCheck(project, { id: `new-${index}`, evaluationSchemaVersion: 2, status: "exceeded" });
     }
     const elapsedMs = Math.round(performance.now() - started);
+    const savePointReads = pointReads;
     // Upper bounds are a performance contract, not a requirement to keep full scans.
-    assert.ok(fullRegistryReads <= saves, `at most one registry scan per save (${existing}/${saves})`);
-    assert.ok(registryDocumentsRead <= expectedDocuments, `registry document budget (${existing}/${saves})`);
+    assert.ok(fullRegistryReads <= 1, `at most one initial registry scan per series (${existing}/${saves})`);
+    assert.ok(registryDocumentsRead <= existing + 1, `registry document budget (${existing}/${saves})`);
     assert.ok(aliasQueries <= saves * 3, "at most three targeted alias queries per save");
+    assert.ok(savePointReads <= saves * 6, "point reads stay linear including new-identity transaction checks");
     const saved = (await runtime.getProjectDocSnapshot(project)).data();
     assert.equal(saved.analyticsCurrent.totalChecks, existing + saves);
     assert.equal(saved.analyticsCurrent.exceededCount, saves);
     assert.equal(saved.inspectionSync.pending, false);
     assert.equal((await service.loadChecks(project)).size, saves);
-    t.diagnostic(JSON.stringify({ existing, saves, fullRegistryReads, registryDocumentsRead, aliasQueries, syntheticElapsedMs: elapsedMs }));
+    t.diagnostic(JSON.stringify({ existing, saves, fullRegistryReads, registryDocumentsRead, aliasQueries, savePointReads, syntheticElapsedMs: elapsedMs }));
   }
 });
 
+
+test("new-identity analytics are atomic, retryable and agree with a full rebuild", async () => {
+  reset();
+  await service.createCheck(project, { id: "first", evaluationSchemaVersion: 2, status: "ok", createdAt: 1800000000000 });
+  const before = (await runtime.getProjectDocSnapshot(project)).data();
+  failWrite = paths => paths.some(path => path.endsWith("/strengthChecks/second"));
+  await assert.rejects(service.createCheck(project, { id: "second", evaluationSchemaVersion: 2, status: "exceeded", createdAt: 1700000000000 }), /batch rejected/);
+  assert.equal((await service.loadChecks(project)).size, 1);
+  assert.deepEqual((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent, before.analyticsCurrent);
+  await service.createCheck(project, { id: "second", evaluationSchemaVersion: 2, status: "exceeded", createdAt: 1700000000000 });
+  const appended = (await runtime.getProjectDocSnapshot(project)).data();
+  assert.equal(appended.analyticsCurrent.totalChecks, 2);
+  assert.equal(appended.analyticsCurrent.exceededCount, 1);
+  assert.equal(appended.analyticsCurrent.lastInspectionAt, 1800000000000);
+  assert.equal(appended.inspectionSync.analyticsRevision, appended.inspectionSync.revision);
+  assert.notEqual(appended.inspectionSync.revision, before.inspectionSync.revision);
+  const rebuilt = await runtime.recomputeAndPersistProjectAnalyticsCurrent(project);
+  assert.deepEqual({ ...appended.analyticsCurrent, updatedAt: 0 }, { ...rebuilt, updatedAt: 0 });
+});
+
+test("append contributions preserve module mapping and current assessment criteria", async () => {
+  reset();
+  await service.createCheck(project, { id: "seed", evaluationSchemaVersion: 2, status: "ok", createdAt: 1700000000000 });
+  const scans = fullRegistryReads;
+  for (const [collection, moduleKey, version, status] of [
+    ["geoNodes", "geo", 2, "bad"], ["reinfChecks", "reinforcement", 2, "ok"], ["geomChecks", "geometry", 1, "ok"]
+  ]) {
+    await runtime.saveInspectionSourceDoc(project, collection, collection, {}, {
+      sourceCollection: collection, sourceId: collection, moduleKey, evaluationSchemaVersion: version, checkStatus: status, createdAt: 1800000000000
+    });
+    await runtime.refreshPendingProjectAnalytics(project);
+  }
+  assert.equal(fullRegistryReads, scans);
+  const current = (await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent;
+  assert.equal(current.totalChecks, 3);
+  assert.equal(current.exceededCount, 1);
+  assert.equal(current.byModule.geo.exceeded, 1);
+  assert.equal(current.byModule.reinforcement.total, 1);
+  assert.equal(current.byModule.geometry.total, 0);
+  const rebuilt = await runtime.recomputeAndPersistProjectAnalyticsCurrent(project);
+  assert.deepEqual({ ...current, updatedAt: 0 }, { ...rebuilt, updatedAt: 0 });
+});
+
+test("noncanonical legacy identities cannot enable append-only analytics", async () => {
+  for (const legacyId of [" duplicate ", 123]) {
+    reset();
+    await runtime.setProjectCollectionDoc(project, "inspections", "legacy", {
+      sourceCollection: "strengthChecks", sourceId: legacyId, moduleKey: "strength", evaluationSchemaVersion: 2, checkStatus: "ok"
+    });
+    await service.createCheck(project, { id: "warm", evaluationSchemaVersion: 2, status: "ok" });
+    const scans = fullRegistryReads;
+    await service.createCheck(project, { id: String(legacyId).trim(), evaluationSchemaVersion: 2, status: "ok" });
+    assert.ok(fullRegistryReads > scans, "ambiguous legacy data requires complete recovery");
+    assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.totalChecks, 2);
+  }
+  reset();
+  await service.createCheck(project, { id: "duplicate", evaluationSchemaVersion: 2, status: "ok" });
+  await service.createCheck(project, { id: " duplicate ", evaluationSchemaVersion: 2, status: "ok" });
+  assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.totalChecks, 1);
+});
+
+test("legacy document IDs normalized by analytics cannot be missed by exact alias queries", async () => {
+  reset();
+  await runtime.setProjectCollectionDoc(project, "inspections", " duplicate ", {
+    moduleKey: "strength", evaluationSchemaVersion: 2, checkStatus: "ok"
+  });
+  await service.createCheck(project, { id: "warm", evaluationSchemaVersion: 2, status: "ok" });
+  await service.createCheck(project, { id: "duplicate", evaluationSchemaVersion: 2, status: "ok" });
+  assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.totalChecks, 2);
+});
+
+test("lost acknowledgement of an atomic append remains idempotent on retry", async () => {
+  reset();
+  await service.createCheck(project, { id: "seed", evaluationSchemaVersion: 2, status: "ok" });
+  afterCommit = async paths => {
+    if (paths.some(path => path.endsWith("/strengthChecks/uncertain"))) {
+      afterCommit = null;
+      throw new Error("lost transaction acknowledgement");
+    }
+  };
+  const input = { id: "uncertain", evaluationSchemaVersion: 2, status: "exceeded" };
+  await assert.rejects(service.createCheck(project, input), /lost transaction acknowledgement/);
+  assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.totalChecks, 2);
+  await service.createCheck(project, { ...input });
+  assert.equal((await service.loadChecks(project)).size, 2);
+  assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.totalChecks, 2);
+});
+
+test("pending or unverified analytics and separate projects retain full recovery", async () => {
+  reset();
+  await service.createCheck(project, { id: "first", evaluationSchemaVersion: 2, status: "ok" });
+  const scans = fullRegistryReads;
+  await runtime.mergeProjectDoc(project, { inspectionSync: { analyticsRevision: "legacy-unverified" } });
+  await service.createCheck(project, { id: "second", evaluationSchemaVersion: 2, status: "exceeded" });
+  assert.equal(fullRegistryReads, scans + 1);
+  const other = "other-project";
+  await runtime.mergeProjectDoc(other, { ownerUid: "owner", createdBy: "owner" });
+  await service.createCheck(other, { id: "second", evaluationSchemaVersion: 2, status: "ok" });
+  assert.equal((await runtime.getProjectDocSnapshot(other)).data().analyticsCurrent.totalChecks, 1);
+  assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.exceededCount, 1);
+  await runtime.mergeProjectDoc(project, { analyticsCurrent: { totalChecks: 999 } });
+  await service.createCheck(project, { id: "third", evaluationSchemaVersion: 2, status: "ok" });
+  assert.equal((await runtime.getProjectDocSnapshot(project)).data().analyticsCurrent.totalChecks, 3);
+});
 
 test("production index constraints cannot block saving, reopening or retrying a check", async () => {
   reset();

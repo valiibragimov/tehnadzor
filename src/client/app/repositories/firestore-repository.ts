@@ -1,5 +1,6 @@
 import { getProjectBimSnapshot, hideProjectBimModels } from "./bim-repository.js";
 import { db } from "../../firebase.js";
+import { appendNewInspectionAnalytics } from "../inspection-analytics.js";
 import {
   addDoc,
   collection,
@@ -239,6 +240,9 @@ export async function saveInspectionSourceDoc(
   inspection: FirestoreRecord,
   options: { merge?: boolean } = {}
 ) {
+  // Capture the revision BEFORE the alias queries. Any cooperating writer
+  // invalidates this observation; the ordinary pending/recovery path remains.
+  const before = await getProjectDocSnapshot(projectId);
   const inspections = await getInspectionSourceSnapshot(projectId, sourceCollection, [sourceId]);
   const matching = inspections.docs.filter(document => inspectionRepresentsSource(document, sourceCollection, sourceId));
   const registryIds = matching.map(document => document.id);
@@ -249,6 +253,31 @@ export async function saveInspectionSourceDoc(
   }
   if (registryIds.length > 498) throw new Error("Too many inspection aliases for an atomic save.");
   const ref = getProjectCollectionDocRef(projectId, sourceCollection, sourceId);
+  const beforeSync = before.data()?.inspectionSync;
+  if (inspections.docs.length === 0 && beforeSync?.version === 1 && beforeSync.pending === false &&
+      beforeSync.revision && beforeSync.analyticsRevision === beforeSync.revision &&
+      sourceId && sourceId === sourceId.trim() &&
+      inspection.sourceCollection === sourceCollection && inspection.sourceId === sourceId) {
+    const projectRef = getProjectDocRef(projectId);
+    const registryRef = getProjectCollectionDocRef(projectId, "inspections", registryIds[0]);
+    const saved = await runTransaction(db, async transaction => {
+      const project = await transaction.get(projectRef);
+      const sourceExists = await transaction.get(ref);
+      const aliasExists = await transaction.get(registryRef);
+      const sync = project.data()?.inspectionSync;
+      if (!project.exists() || sourceExists.exists() || aliasExists.exists() ||
+          sync?.version !== 1 || sync.pending !== false || sync.revision !== beforeSync.revision || sync.analyticsRevision !== sync.revision) return false;
+      const analyticsCurrent = appendNewInspectionAnalytics(project.data()?.analyticsCurrent, inspection);
+      if (!analyticsCurrent) return false;
+      const revision = crypto.randomUUID();
+      transaction.set(ref, source, options);
+      transaction.set(registryRef, inspection, { merge: true });
+      transaction.set(projectRef, { analyticsCurrent,
+        inspectionSync: { version: 1, revision, analyticsRevision: revision, pending: false } }, { merge: true });
+      return true;
+    });
+    if (saved) return { id: sourceId, ref };
+  }
   const batch = writeBatch(db);
   batch.set(ref, source, options);
   for (const registryId of registryIds) {
@@ -300,7 +329,7 @@ export async function deleteInspectionSourceDocs(
 }
 
 export async function persistInspectionAnalyticsIfCurrent(
-  projectId: string, revision: string, analyticsCurrent: FirestoreRecord
+  projectId: string, revision: string, analyticsCurrent: FirestoreRecord, targetedIdentities = false
 ) {
   return runTransaction(db, async transaction => {
     const ref = getProjectDocRef(projectId);
@@ -309,7 +338,7 @@ export async function persistInspectionAnalyticsIfCurrent(
     if ((project.data().inspectionSync?.revision || "") !== revision) return false;
     transaction.set(ref, {
       analyticsCurrent,
-      inspectionSync: { version: 1, revision: revision || crypto.randomUUID(), pending: false }
+      inspectionSync: { version: 1, revision: revision || crypto.randomUUID(), analyticsRevision: targetedIdentities ? revision : "", pending: false }
     }, { merge: true });
     return true;
   });

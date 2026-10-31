@@ -141,7 +141,7 @@ export async function clearInspectionSourceDocs(projectId: string, collectionNam
   return snapshot.size;
 }
 
-export async function persistInspectionAnalyticsIfCurrent(projectId: string, revision: string, analyticsCurrent: AnalyticsCurrent) {
+export async function persistInspectionAnalyticsIfCurrent(projectId: string, revision: string, analyticsCurrent: AnalyticsCurrent, _targetedIdentities = false) {
   let persisted = false;
   mutate(state => {
     const project = state.projects[projectId];

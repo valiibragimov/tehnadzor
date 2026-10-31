@@ -66,6 +66,52 @@ test("inspection persistence is atomic, recoverable and revision guarded in Fire
       }
       globalThis.integrationInspectionDb = db;
     });
+    await t.test("new identities avoid rescans while concurrent writers and denied users remain isolated", async () => {
+      const fastProject = "append-project";
+      await firestore.setDoc(firestore.doc(db, "projects", fastProject), { ownerUid: "owner", createdBy: "owner" });
+      await service.createCheck(fastProject, { id: "seed", evaluationSchemaVersion: 2, status: "ok", createdAt: 1800000000000 });
+      const scans = fullScans;
+      for (let index = 0; index < 5; index++) {
+        await service.createCheck(fastProject, { id: `new-${index}`, evaluationSchemaVersion: 2, status: "exceeded", createdAt: 1700000000000 });
+      }
+      assert.equal(fullScans, scans, "sequential new identities need no additional registry scan");
+      const peer = runtime.createFirestoreStrengthService({ getCurrentUserId: () => "owner" });
+      await Promise.all([
+        peer.createCheck(fastProject, { id: "peer", evaluationSchemaVersion: 2, status: "ok" }),
+        service.createCheck(fastProject, { id: "local", evaluationSchemaVersion: 2, status: "exceeded" })
+      ]);
+      const current = (await runtime.getProjectDocSnapshot(fastProject)).data();
+      assert.equal(current.analyticsCurrent.totalChecks, 8);
+      assert.equal(current.analyticsCurrent.exceededCount, 6);
+      assert.equal(current.inspectionSync.pending, false);
+      const rebuilt = await runtime.recomputeAndPersistProjectAnalyticsCurrent(fastProject);
+      assert.deepEqual({ ...current.analyticsCurrent, updatedAt: 0 }, { ...rebuilt, updatedAt: 0 });
+      globalThis.integrationInspectionDb = environment.authenticatedContext("foreign").firestore();
+      const denied = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString("base64")}#append-foreign`);
+      await assertFails(denied.saveInspectionSourceDoc(fastProject, "strengthChecks", "denied-new", {}, {
+        sourceCollection: "strengthChecks", sourceId: "denied-new", evaluationSchemaVersion: 2, checkStatus: "ok"
+      }));
+      globalThis.integrationInspectionDb = db;
+      assert.equal((await runtime.getProjectCollectionDocSnapshot(fastProject, "strengthChecks", "denied-new")).exists(), false);
+      assert.equal((await runtime.getProjectDocSnapshot(fastProject)).data().analyticsCurrent.totalChecks, 8);
+    });
+    await t.test("server transforms rebuild analytics from committed values", async () => {
+      const transformProject = "transform-project";
+      await firestore.setDoc(firestore.doc(db, "projects", transformProject), { ownerUid: "owner", createdBy: "owner" });
+      await service.createCheck(transformProject, { id: "seed", evaluationSchemaVersion: 2, status: "ok", createdAt: 1700000000000 });
+      const scans = fullScans;
+      await runtime.saveInspectionSourceDoc(transformProject, "strengthChecks", "transform", {}, {
+        sourceCollection: "strengthChecks", sourceId: "transform", moduleKey: "strength",
+        evaluationSchemaVersion: firestore.increment(2), checkStatus: "exceeded", createdAt: firestore.serverTimestamp()
+      });
+      await runtime.refreshPendingProjectAnalytics(transformProject);
+      assert.equal(fullScans, scans + 1);
+      const stored = (await runtime.getProjectCollectionDocSnapshot(transformProject, "inspections", "strengthChecks_transform")).data();
+      const current = (await runtime.getProjectDocSnapshot(transformProject)).data();
+      assert.equal(current.analyticsCurrent.totalChecks, 2);
+      assert.equal(current.analyticsCurrent.exceededCount, 1);
+      assert.equal(current.analyticsCurrent.lastInspectionAt, stored.createdAt.toMillis());
+    });
     await t.test("Firestore rejection cannot commit just one representation", async () => {
       await assertFails(runtime.saveInspectionSourceDoc(project, "elements", "forbidden", { name: "forbidden BIM write" }, { moduleKey: "strength", evaluationSchemaVersion: 2, checkStatus: "ok" }));
       assert.equal((await runtime.getProjectCollectionDocSnapshot(project, "inspections", "elements_forbidden")).exists(), false);
