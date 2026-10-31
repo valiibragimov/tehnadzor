@@ -197,11 +197,10 @@ function toFiniteNumber(value) {
   return null;
 }
 
+const catalogCollator = new Intl.Collator("ru", { numeric: true, sensitivity: "base" });
+
 function compareLocale(left, right) {
-  return String(left || "").localeCompare(String(right || ""), "ru", {
-    numeric: true,
-    sensitivity: "base"
-  });
+  return catalogCollator.compare(String(left || ""), String(right || ""));
 }
 
 export function getTehnadzorTypeByBimType(type) {
@@ -320,8 +319,18 @@ export function buildBimElementOptionLabel(element: Partial<BimElement> = {}) {
   return baseLabel || "Элемент IFC";
 }
 
+const searchRecords = new WeakMap<object, { values: unknown[]; text: string }>();
+
 export function buildBimElementSearchText(element: Partial<BimElement> = {}) {
-  return [
+  // Weak ownership releases entries with the catalog. Check mutable fields and
+  // the translated label so edits, resolved axes and language changes stay fresh.
+  const values = [element.type, element.mark, element.rawMark, element.name,
+    element.description, element.objectType, element.axes, element.resolvedAxes,
+    element.floor, element.ifcGuid, element.elementId, element.id,
+    element.sourceModelId, getBimTypeLabel(element.type)];
+  const cached = searchRecords.get(element);
+  if (cached && values.every((value, index) => value === cached.values[index])) return cached.text;
+  const text = [
     buildBimElementOptionLabel(element),
     formatBimElementLabel(element),
     getBimTypeLabel(element.type),
@@ -341,6 +350,8 @@ export function buildBimElementSearchText(element: Partial<BimElement> = {}) {
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
+  searchRecords.set(element, { values, text });
+  return text;
 }
 
 export function buildBimElementFilterOptions(elements: Array<Partial<BimElement>> = []) {
@@ -383,18 +394,15 @@ export function buildBimElementFilterOptions(elements: Array<Partial<BimElement>
 }
 
 export function sortProjectBimElements(elements: BimElement[] = []) {
-  return [...elements].sort((left, right) => {
-    const leftOrder = BIM_TYPE_SORT_ORDER[left?.type] ?? 999;
-    const rightOrder = BIM_TYPE_SORT_ORDER[right?.type] ?? 999;
-    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
-
-    const leftMark = pickBestBimIdentifier(left) || normalizeIfcTextValue(left?.rawMark) || normalizeIfcTextValue(left?.name) || "";
-    const rightMark = pickBestBimIdentifier(right) || normalizeIfcTextValue(right?.rawMark) || normalizeIfcTextValue(right?.name) || "";
-    const markCompare = compareLocale(leftMark, rightMark);
-    if (markCompare !== 0) return markCompare;
-
-    const leftAxes = String(left?.axes || "").trim();
-    const rightAxes = String(right?.axes || "").trim();
-    return compareLocale(leftAxes, rightAxes);
-  });
+  // Keys live only for this sort: mutable records are re-read on the next call.
+  return elements.map(element => ({
+    element,
+    order: BIM_TYPE_SORT_ORDER[element?.type] ?? 999,
+    mark: pickBestBimIdentifier(element) || normalizeIfcTextValue(element?.rawMark) || normalizeIfcTextValue(element?.name) || "",
+    axes: String(element?.axes || "").trim()
+  })).sort((left, right) => {
+    const typeCompare = left.order - right.order;
+    if (typeCompare !== 0) return typeCompare;
+    return compareLocale(left.mark, right.mark) || compareLocale(left.axes, right.axes);
+  }).map(entry => entry.element);
 }

@@ -1,0 +1,41 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
+test('catalog sorting preserves natural order without repeatedly extracting identifiers', async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'bim-sort-'));
+ try {
+  const file=join(dir,'catalog.mjs');
+  await build({stdin:{contents:`export * from './src/client/app/services/bim-elements.ts'; export {default as i18next} from 'i18next'; export {resources} from './src/client/shared/i18n/resources.ts';`,resolveDir:process.cwd()},outfile:file,bundle:true,platform:'node',format:'esm'});
+  const {sortProjectBimElements,buildBimElementSearchText,i18next,resources}=await import(pathToFileURL(file));
+  let nameReads=0;
+  const searchable={id:'x',type:'column',mark:'C-1',get name(){nameReads++;return 'Original';},axes:'A-1'};
+  for(let i=0;i<100;i++) assert.ok(buildBimElementSearchText(searchable).includes('original'));
+  assert.ok(nameReads<=110, `search normalization budget exceeded: ${nameReads}`);
+  searchable.axes='B-2';
+  assert.ok(buildBimElementSearchText(searchable).includes('b-2'));
+  const mutable={id:'mutable',type:'column',name:'Old',mark:'C-1',axes:'A-1'};
+  assert.ok(buildBimElementSearchText(mutable).includes('old'));
+  mutable.name='New';mutable.mark='C-2';mutable.resolvedAxes='Z-9';
+  const fresh=buildBimElementSearchText(mutable);
+  assert.ok(fresh.includes('new') && fresh.includes('c-2') && fresh.includes('z-9'));
+  assert.ok(!fresh.includes('old'));
+  await i18next.init({lng:'ru',resources});
+  assert.ok(buildBimElementSearchText(mutable).includes('\u043a\u043e\u043b\u043e\u043d\u043d\u0430'));
+  await i18next.changeLanguage('en');
+  assert.ok(buildBimElementSearchText(mutable).includes('column'));
+  assert.ok(!buildBimElementSearchText(mutable).includes('\u043a\u043e\u043b\u043e\u043d\u043d\u0430'));
+  assert.ok(buildBimElementSearchText({...mutable,name:'Replacement'}).includes('replacement'));
+  let reads=0;
+  const elements=Array.from({length:1000},(_,i)=>({id:String(i),type:'column',get mark(){reads++;return `C-${(i*701)%1000}`;},axes:'A-1'}));
+  const result=sortProjectBimElements(elements);
+  assert.deepEqual(result.slice(0,3).map(x=>x.id),['0','301','602']);
+  assert.equal(elements[1].id,'1','input order is unchanged');
+  assert.ok(reads<=elements.length*2,`identifier read budget exceeded: ${reads}`);
+  elements[0]={id:'replacement',type:'column',mark:'C-1001',axes:'A-1'};
+  assert.equal(sortProjectBimElements(elements).at(-1).id,'replacement','a later sort observes mutable data');
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
