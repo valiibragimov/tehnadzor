@@ -21,7 +21,7 @@
 | 5 / `bim` | P2, Worth exploring | Углубить модуль каталога BIM при подтверждённой нагрузке | Частично: измерены 10k/50k/100k, ускорены сортировка и поиск |
 | 6 / `server` | P2, Worth exploring | Сосредоточить lifecycle тяжёлых операций на сервере | Исправлено для одного процесса |
 | 7 / `bridge` | P3, Worth exploring | Сократить shallow-модуль посредничества | Остаётся |
-| 8 / `gates` | P2, Worth exploring | Сделать архитектурные правила проверяемыми | Частично исправлено |
+| 8 / `gates` | P2, Worth exploring | Сделать архитектурные правила проверяемыми | Частично: strict-набор и отрицательные import gates внедрены |
 
 ### 1. P1 — идентичность, статусы и связи замечаний
 
@@ -118,9 +118,11 @@ Shutdown прекращает приём новых HTTP-соединений и
 
 **Исправлено частично.** [Коммит `ab558a6`](https://github.com/valiibragimov/tehnadzor/commit/ab558a6) заменил [старую реализацию](../src/client/app/inspection-evaluation.ts) реэкспортом `evaluateReinforcementCheck` из [feature evaluation](../src/client/features/inspections/reinforcement/evaluation.ts). Этот конкретный дубль устранён; это не доказательство отсутствия любого другого дублирования расчётов.
 
-**Что остаётся.** [tsconfig.base.json](../tsconfig.base.json) сохраняет `strict: false`; [eslint.config.mjs](../eslint.config.mjs) отключает `no-explicit-any`, а правило направлений импортов ограничено прежними областями. Строгие [Functions](../tsconfig.functions.json) и [server profile feed](../tsconfig.server.profile-feed.json) не делают строгими основной клиент и весь сервер.
+**Первый strict-набор выполнен 31 октября 2026 от `c36954f`.** [Границы, оценка и регрессии](engineering-gates.ru.md): `typecheck:engineering` входит в общий typecheck/CI и включает strict, проверку индексного доступа и точных optional-полей для acceptance, assessment-status, geometry/dimensions и geodesy/evaluation с их type contracts. Устранены две ошибки индексного доступа одним безопасным сужением; `any` в assessment-status заменён на `unknown`. Глобальный base не меняется.
 
-**Следующий шаг.** Постепенно включать строгие проверки для изменяемых модулей и расширять проверку реальных границ feature/evaluation. Закреплять единицы, неполные измерения, подтипы и допуски поведенческими тестами; добавить отрицательную проверку запрещённого импорта. Не ослаблять типы ради зелёной сборки и не вводить общий framework разных измерений.
+ESLint запрещает explicit any/non-null assertions и известные UI/storage/runtime-зависимости во всех четырёх feature evaluation и выбранных leaf-модулях. Отрицательные CLI-регрессии проверяют реальные запреты статических/type/dynamic imports, re-exports, require, browser globals и unsafe TypeScript. Поведенческие регрессии закрепляют м→мм, неполные/нечисловые данные, подтипы свай, допуски и общность legacy-фасада армирования. Выявленная ошибка пробельных координат исправлена без изменения настоящего нуля.
+
+**Что остаётся.** Основной клиент и сервер по-прежнему наследуют `strict: false`; construction/registry и остальные evaluators пока не входят в strict-набор. Архитектурный gate ограничен выбранными путями, не всем графом. Этап частично выполнен: продолжать rollout по измеренному compiler closure, сохраняя различия единиц/локали/применимости, без общего framework расчётов и без подавления ошибок типов.
 
 ## Порядок продолжения
 

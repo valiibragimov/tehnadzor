@@ -9,7 +9,7 @@ import type {
 } from "./types.js";
 
 const numericValue = (value: string | number | null | undefined) => {
-  if (value === "" || value == null) return null;
+  if (value == null || String(value).trim() === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
@@ -217,7 +217,9 @@ function evaluateRows<T>(
     allHaveActual &&= hasActual;
 
     for (let index = 0; index < project.length; index++) {
-      if (project[index] != null && actual[index] != null) allOk &&= withinGeoTolerance((actual[index] - project[index]) * 1000, tolerance);
+      const design = project[index];
+      const measured = actual[index];
+      if (design != null && measured != null) allOk &&= withinGeoTolerance((measured - design) * 1000, tolerance);
     }
   }
 

@@ -34,7 +34,7 @@
     "typecheck:bim": "tsc -p ./tsconfig.bim.json",
     "typecheck:strict:server-profile-feed": "tsc -p ./tsconfig.server.profile-feed.json --noEmit",
     "typecheck:demo": "tsc -p ./tsconfig.demo.json --noEmit",
-    "typecheck": "npm run typecheck:bim && npm run typecheck:strict:server-profile-feed && tsc -p ./tsconfig.client.json --noEmit && npm run typecheck:demo && tsc -p ./tsconfig.server.json --noEmit && tsc -p ./tsconfig.functions.json --noEmit",
+    "typecheck": "npm run typecheck:engineering && npm run typecheck:bim && npm run typecheck:strict:server-profile-feed && tsc -p ./tsconfig.client.json --noEmit && npm run typecheck:demo && tsc -p ./tsconfig.server.json --noEmit && tsc -p ./tsconfig.functions.json --noEmit",
     "api:generate": "node scripts/build/generate-api.mjs",
     "api:check": "node scripts/build/generate-api.mjs --check",
     "test:core": "npm run build:server:ts && node --test tests/core/*.test.mjs",
@@ -46,7 +46,8 @@
     "test:integration": "npm run build:server:ts && npx --yes firebase-tools@15.33.0 emulators:exec --only firestore --project demo-tehnadzor-test --config firebase.emulator.json \"node --test tests/integration/firestore.test.mjs tests/integration/inspection-persistence.test.mjs\"",
     "build:local": "node scripts/build/build-local.mjs",
     "dev:local": "npm run build:local && npm run build:server:ts && npx --yes firebase-tools@15.33.0 emulators:exec --only auth,firestore,storage --project demo-tehnadzor-approbation --config firebase.emulator.json --import output/approbation/local-web-export \"node scripts/dev/local-api.mjs\"",
-    "postinstall": "node scripts/build/redocly-compat.mjs"
+    "postinstall": "node scripts/build/redocly-compat.mjs",
+    "typecheck:engineering": "tsc -p ./tsconfig.engineering.json"
   },
   "dependencies": {
     "@ifc-lite/data": "^1.11.0",

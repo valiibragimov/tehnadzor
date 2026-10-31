@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "useUnknownInCatchVariables": true,
+    "noEmit": true,
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": []
+  },
+  "files": [
+    "src/client/features/inspections/acceptance.ts",
+    "src/client/features/inspections/assessment-status.ts",
+    "src/client/features/inspections/geometry/dimensions.ts",
+    "src/client/features/inspections/geodesy/evaluation.ts"
+  ],
+  "include": []
+}

@@ -82,6 +82,29 @@ export default [
     }
   },
   {
+    files: [
+      "src/client/features/inspections/*/evaluation.ts",
+      "src/client/features/inspections/acceptance.ts",
+      "src/client/features/inspections/assessment-status.ts",
+      "src/client/features/inspections/geometry/dimensions.ts"
+    ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-non-null-assertion": "error",
+      "no-restricted-imports": ["error", { patterns: [{
+        group: ["firebase", "firebase/**", "@firebase/**", "express", "piscina",
+          "**/firebase.js", "**/repositories/**", "**/infrastructure/**", "**/ui/**",
+          "**/services/**", "**/runtime.js", "**/*-runtime.js", "**/dom.js", "**/form.js", "**/*-service.js", "**/utils.js", "**/app.js"],
+        message: "Engineering evaluation depends on pure domain contracts, not UI, services or persistence."
+      }] }],
+      "no-restricted-syntax": ["error",
+        { selector: "ImportExpression", message: "Engineering evaluation uses explicit static domain imports." },
+        { selector: "CallExpression[callee.name='require']", message: "Engineering evaluation uses explicit static domain imports." }
+      ],
+      "no-restricted-globals": ["error", "window", "document", "fetch", "localStorage", "indexedDB", "navigator", "globalThis", "self"]
+    }
+  },
+  {
     files: ["tests/ui/**/*.mjs"],
     languageOptions: { globals: { ...globals.browser } }
   },
