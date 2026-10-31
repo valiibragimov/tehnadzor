@@ -435,8 +435,8 @@ function moduleConfig(
     tolerances: Object.freeze([...tolerances]),
     normativeDocs: Object.freeze([...normativeDocs]),
     resultRules: Object.freeze([...resultRules]),
-    infoMessage,
-    fieldBehavior: fieldBehavior ? Object.freeze({ ...fieldBehavior }) : undefined
+    ...(infoMessage !== undefined ? { infoMessage } : {}),
+    ...(fieldBehavior ? { fieldBehavior: Object.freeze({ ...fieldBehavior }) } : {})
   });
 }
 
@@ -1761,7 +1761,8 @@ function mergeModuleConfig(
 
 export function getConstructionInspectionConfig(constructionValue: unknown) {
   const key = normalizeRegistryKey(constructionValue);
-  return key ? INSPECTION_REGISTRY[key] || null : null;
+  const registry: Readonly<Partial<Record<string, ConstructionInspectionConfig>>> = INSPECTION_REGISTRY;
+  return key && Object.hasOwn(registry, key) ? registry[key] || null : null;
 }
 
 export function getConstructionModuleInspectionConfig(
@@ -1782,6 +1783,9 @@ export function getConstructionModuleInspectionConfig(
   return mergeModuleConfig(baseModuleConfig, subtypeOverride || undefined);
 }
 
+export function getInspectionConfig(constructionValue: unknown, module: ModuleInput, subtypeValue?: string): ConstructionInspectionModuleConfig | null;
+export function getInspectionConfig(constructionValue: unknown, module?: undefined, subtypeValue?: string): ConstructionInspectionConfig | null;
+export function getInspectionConfig(constructionValue: unknown, module?: ModuleInput, subtypeValue?: string): ConstructionInspectionModuleConfig | ConstructionInspectionConfig | null;
 export function getInspectionConfig(
   constructionValue: unknown,
   module?: ModuleInput,

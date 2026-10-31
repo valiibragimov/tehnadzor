@@ -811,11 +811,12 @@ function applyInspectionRegistryStatus(
     };
   }
 
+  const message = registryMessage || behaviorWithRegistryFields.message;
   return {
     ...behaviorWithRegistryFields,
     supported: false,
     profile: "unsupported",
-    message: registryMessage || behaviorWithRegistryFields.message
+    ...(message !== undefined ? { message } : {})
   };
 }
 
@@ -956,7 +957,7 @@ export interface ConstructionEntityLabels {
   requiredText: string;
 }
 
-const ENTITY_LABELS_BY_DISPLAY_LABEL: Readonly<Record<string, ConstructionEntityLabels>> = Object.freeze({
+const ENTITY_LABELS_BY_DISPLAY_LABEL: Readonly<Record<string, ConstructionEntityLabels> & { "Стена": ConstructionEntityLabels }> = Object.freeze({
   "Стена": Object.freeze({
     singular: "Стена",
     singularGenitive: "стены",

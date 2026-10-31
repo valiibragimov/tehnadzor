@@ -86,7 +86,8 @@ export default [
       "src/client/features/inspections/*/evaluation.ts",
       "src/client/features/inspections/acceptance.ts",
       "src/client/features/inspections/assessment-status.ts",
-      "src/client/features/inspections/geometry/dimensions.ts"
+      "src/client/features/inspections/geometry/dimensions.ts",
+      "src/client/app/construction.ts", "src/client/app/inspection-registry.ts"
     ],
     rules: {
       "@typescript-eslint/no-explicit-any": "error",

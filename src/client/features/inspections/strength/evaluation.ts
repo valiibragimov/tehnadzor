@@ -24,7 +24,8 @@ export function parseConcreteStrengthValue(value: unknown) {
 
   const normalized = String(value).trim();
   const classMatch = normalized.match(/^[BВ](\d+(?:[.,]\d+)?)(?:\([MМ]\d+\))?$/iu);
-  if (classMatch) return Number(classMatch[1].replace(",", "."));
+  const classValue = classMatch?.[1];
+  if (classValue) return Number(classValue.replace(",", "."));
 
   // A historical M grade cannot be converted into an acceptance class by a fixed ratio.
   return null;

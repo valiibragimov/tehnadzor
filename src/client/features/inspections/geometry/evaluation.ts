@@ -74,8 +74,9 @@ export function evaluateGeometryCheck(check: GeometryCheckRecord) {
     const project = parse(p), actual = parse(a);
     if (!p || !a || project.length !== actual.length) { results.push("incomplete"); return; }
     project.forEach((item, index) => {
-      if (item.length !== 2 || actual[index].length !== 2) { results.push("incomplete"); return; }
-      for (let i = 0; i < 2; i++) results.push(comparePhysicalMeasurement(item[i], actual[index][i], "opening", criteria));
+      const measured = actual[index];
+      if (item.length !== 2 || !measured || measured.length !== 2) { results.push("incomplete"); return; }
+      for (let i = 0; i < 2; i++) results.push(comparePhysicalMeasurement(item[i], measured[i], "opening", criteria));
     });
   }
   return summarizeMeasurements(results);

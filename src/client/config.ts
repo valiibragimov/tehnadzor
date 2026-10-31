@@ -65,14 +65,15 @@ export const REGULATORY_DOCS = {
 // ============================
 // Настройки приложения
 // ============================
-const runtimeAppConfig =
-  typeof globalThis !== "undefined" &&
-  globalThis.__APP_CONFIG__ &&
-  typeof globalThis.__APP_CONFIG__ === "object"
-    ? globalThis.__APP_CONFIG__
-    : {};
+function isRuntimeConfig(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object";
+}
+const runtimeGlobal: object | undefined = typeof globalThis !== "undefined" ? globalThis : undefined;
+const runtimeConfigValue = runtimeGlobal && "__APP_CONFIG__" in runtimeGlobal
+  ? runtimeGlobal.__APP_CONFIG__ : undefined;
+const runtimeAppConfig = isRuntimeConfig(runtimeConfigValue) ? runtimeConfigValue : {};
 
-function readRuntimeConfigString(key, fallback = "") {
+function readRuntimeConfigString(key: string, fallback = "") {
   const runtimeValue = runtimeAppConfig[key];
   if (typeof runtimeValue !== "string") return fallback;
   return runtimeValue.trim() || fallback;
