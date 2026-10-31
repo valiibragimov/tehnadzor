@@ -15,13 +15,6 @@ interface AppModuleBridgeOptions {
   strength: StrengthRuntimeDependencies;
 }
 
-type JournalModule = typeof import("./modules/journal.js");
-type GeometryModule = typeof import("./modules/geometry.js");
-type ReinforcementModule = typeof import("./modules/reinforcement.js");
-type StrengthModule = typeof import("./modules/strength.js");
-
-type ModuleAction<TModule, TResult> = (module: TModule) => TResult | Promise<TResult>;
-
 export function createAppModuleBridge({
   workspace,
   onJournalTabActivated,
@@ -29,102 +22,45 @@ export function createAppModuleBridge({
   reinforcement,
   strength
 }: AppModuleBridgeOptions) {
-  let moduleRuntime: ReturnType<typeof createModuleRuntime> | null = null;
+  const moduleRuntime = createModuleRuntime({ workspace, onJournalTabActivated, journalGeodesy, reinforcement, strength });
 
-  function getModuleRuntime() {
-    if (!moduleRuntime) {
-      moduleRuntime = createModuleRuntime({
-        workspace,
-        onJournalTabActivated,
-        journalGeodesy,
-        reinforcement,
-        strength
-      });
-    }
-    return moduleRuntime;
-  }
+  const loadJournal = moduleRuntime.loadJournal;
 
-  function loadJournal() {
-    return getModuleRuntime().loadJournal();
-  }
+  const saveJournal = moduleRuntime.saveJournal;
 
-  function saveJournal() {
-    return getModuleRuntime().saveJournal();
-  }
+  const renderJournal = moduleRuntime.renderJournal;
 
-  function renderJournal() {
-    return getModuleRuntime().renderJournal();
-  }
+  const loadJournalSessionsForProject = moduleRuntime.loadJournalSessionsForProject;
 
-  function loadJournalSessionsForProject(projectId: string) {
-    return getModuleRuntime().loadJournalSessionsForProject(projectId);
-  }
+  const loadJournalFromFirestore = moduleRuntime.loadJournalFromFirestore;
 
-  function loadJournalFromFirestore() {
-    return getModuleRuntime().loadJournalFromFirestore();
-  }
+  const applyJournalFilter = moduleRuntime.applyJournalFilter;
 
-  function applyJournalFilter() {
-    return getModuleRuntime().applyJournalFilter();
-  }
+  const setJournalFilters = moduleRuntime.setJournalFilters;
 
-  function setJournalFilters(moduleKey: string | null = null, constructionValue: string | null = null) {
-    return getModuleRuntime().setJournalFilters(moduleKey, constructionValue);
-  }
+  const addJournalEntry = moduleRuntime.addJournalEntry;
 
-  function addJournalEntry(params: unknown) {
-    return getModuleRuntime().addJournalEntry(params);
-  }
+  const upsertJournalEntry = moduleRuntime.upsertJournalEntry;
 
-  function upsertJournalEntry(params: unknown) {
-    return getModuleRuntime().upsertJournalEntry(params);
-  }
+  const notifyFirestoreSyncStatus = moduleRuntime.notifyFirestoreSyncStatus;
 
-  function notifyFirestoreSyncStatus(docRef: unknown) {
-    return getModuleRuntime().notifyFirestoreSyncStatus(docRef);
-  }
+  const withGeometryModule = moduleRuntime.withGeometryModule;
 
-  function withGeometryModule<TResult = unknown>(
-    action: ModuleAction<GeometryModule, TResult>,
-    fallback?: TResult
-  ) {
-    return getModuleRuntime().withGeometryModule(action, fallback);
-  }
+  const loadGeomChecks = moduleRuntime.loadGeomChecks;
 
-  function loadGeomChecks() {
-    return getModuleRuntime().loadGeomChecks();
-  }
+  const saveGeomChecks = moduleRuntime.saveGeomChecks;
 
-  function saveGeomChecks() {
-    return getModuleRuntime().saveGeomChecks();
-  }
+  const renderGeomChecks = moduleRuntime.renderGeomChecks;
 
-  function renderGeomChecks() {
-    return getModuleRuntime().renderGeomChecks();
-  }
+  const loadGeomCheck = moduleRuntime.loadGeomCheck;
 
-  function loadGeomCheck(id: string) {
-    return getModuleRuntime().loadGeomCheck(id);
-  }
+  const updateGeomFieldsVisibility = moduleRuntime.updateGeomFieldsVisibility;
 
-  function updateGeomFieldsVisibility() {
-    return getModuleRuntime().updateGeomFieldsVisibility();
-  }
+  const refreshGeometryBimElementsIfLoaded = moduleRuntime.refreshGeometryBimElementsIfLoaded;
 
-  function refreshGeometryBimElementsIfLoaded() {
-    return getModuleRuntime().refreshGeometryBimElementsIfLoaded();
-  }
+  const refreshReinforcementBimElementsIfLoaded = moduleRuntime.refreshReinforcementBimElementsIfLoaded;
 
-  function refreshReinforcementBimElementsIfLoaded() {
-    return getModuleRuntime().refreshReinforcementBimElementsIfLoaded();
-  }
-
-  function withReinforcementModule<TResult = unknown>(
-    action: ModuleAction<ReinforcementModule, TResult>,
-    fallback?: TResult
-  ) {
-    return getModuleRuntime().withReinforcementModule(action, fallback);
-  }
+  const withReinforcementModule = moduleRuntime.withReinforcementModule;
 
   function updateReinfLocationFieldsVisibility(shouldReset = true) {
     return withReinforcementModule((module) => module.updateReinfLocationFieldsVisibility(shouldReset));
@@ -220,12 +156,7 @@ export function createAppModuleBridge({
     return withReinforcementModule((module) => module.clearReinfForm());
   }
 
-  function withStrengthModule<TResult = unknown>(
-    action: ModuleAction<StrengthModule, TResult>,
-    fallback?: TResult
-  ) {
-    return getModuleRuntime().withStrengthModule(action, fallback);
-  }
+  const withStrengthModule = moduleRuntime.withStrengthModule;
 
   function updateStrengthFieldsVisibility() {
     return withStrengthModule((module) => module.updateStrengthFieldsVisibility());
@@ -251,30 +182,11 @@ export function createAppModuleBridge({
     return withStrengthModule((module) => module.clearStrengthForm());
   }
 
-  function refreshStrengthBimElementsIfLoaded() {
-    return getModuleRuntime().refreshStrengthBimElementsIfLoaded();
-  }
+  const refreshStrengthBimElementsIfLoaded = moduleRuntime.refreshStrengthBimElementsIfLoaded;
 
-  function updateSummaryTab() {
-    return getModuleRuntime().updateSummaryTab();
-  }
+  const updateSummaryTab = moduleRuntime.updateSummaryTab;
 
-  function initNavigation(storageKey = APP_STORAGE_KEYS.tab) {
-    getModuleRuntime().initTabsNavigation(storageKey);
-
-    if (document.readyState === "loading") {
-      document.addEventListener(
-        "DOMContentLoaded",
-        () => {
-          getModuleRuntime().initBottomNav(storageKey);
-        },
-        { once: true }
-      );
-      return;
-    }
-
-    getModuleRuntime().initBottomNav(storageKey);
-  }
+  const initNavigation = moduleRuntime.initNavigation;
 
   return {
     initNavigation,

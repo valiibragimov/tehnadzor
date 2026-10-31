@@ -1,4 +1,5 @@
 import type { WorkspaceContext } from "./workspace-context.js";
+import { APP_STORAGE_KEYS } from "./storage.js";
 import { dispatchAppTabActivated } from "./services/module-activation.js";
 import type { JournalGeodesyApi } from "./modules/journal.js";
 import type {
@@ -763,7 +764,33 @@ export function createModuleRuntime({
     console.log("[BottomNav] Инициализация завершена");
   };
 
+  let navigationInitialized = false;
+  const initNavigation = (storageKey = APP_STORAGE_KEYS.tab) => {
+    if (navigationInitialized) {
+      // A failed lazy import clears its tab promise; allow retry without
+      // rebinding handlers, replacing controls or firing another activation.
+      ensureTabModule(document.body.dataset.workspaceTab);
+      return;
+    }
+    navigationInitialized = true;
+    try {
+      initTabsNavigation(storageKey);
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", () => {
+          try { initBottomNav(storageKey); }
+          catch (error) { navigationInitialized = false; throw error; }
+        }, { once: true });
+      } else {
+        initBottomNav(storageKey);
+      }
+    } catch (error) {
+      navigationInitialized = false;
+      throw error;
+    }
+  };
+
   return {
+    initNavigation,
     ensureTabModule,
     initTabsNavigation,
     initBottomNav,
